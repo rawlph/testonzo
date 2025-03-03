@@ -27,7 +27,7 @@ body {
 
 /* Offset for the middle row */
 .hex-row.offset {
-    margin-left: 50x; /* Half the width for pointy-top hex grid */
+    margin-left: 80x; /* Half the width for pointy-top hex grid */
 }
 
 /* The hexagon SVG */
