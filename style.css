@@ -1,6 +1,6 @@
-/* Center the grid on the page with a calm background */
+/* Center the grid on the page */
 body {
-    background-color: #f0f0f0; /* Light gray for serenity */
+    background-color: #f0f0f0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -17,39 +17,39 @@ body {
 
 /* Style for each row of hexes */
 .hex-row {
-    /* No extra styling needed beyond layout */
+    line-height: 0; /* Prevents extra vertical spacing */
 }
 
-/* Offset every other row for honeycomb alignment */
+/* Offset the second row for honeycomb pattern */
 .hex-row.offset {
-    margin-left: 50px; /* Shifts every other row by half the hex width */
+    margin-left: 50px; /* Half the hex width */
 }
 
-/* Hexagon styling for pointy-top honeycomb */
+/* Hexagon styling */
 .hex {
-    width: 100px; /* Distance between opposite flat sides */
-    height: 115.47px; /* Height for a regular pointy-top hex (width * 2 / √3 ≈ 115.47px) */
-    background-color: #3498db; /* Soft blue */
+    width: 100px;
+    height: 115.47px;
+    background-color: #3498db;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    border: 2px solid #2c3e50; /* Darker blue-gray border for definition */
-    margin: 0; /* No margins so hexes touch horizontally */
-    position: relative; /* For positioning the character */
-    display: inline-block; /* Keeps hexes in a row */
+    box-shadow: 0 0 0 2px #2c3e50; /* Clean border effect */
+    margin: 0;
+    display: inline-block;
+    position: relative;
 }
 
-/* Adjust vertical spacing between rows for proper interlocking */
+/* Vertical spacing between rows */
 .hex-row + .hex-row {
-    margin-top: -28.87px; /* Overlaps rows to set vertical distance between centers to ~86.6px */
+    margin-top: -28.87px; /* Overlap for interlocking */
 }
 
-/* Character (red dot) styling */
+/* Optional: Character (red dot) styling */
 .character {
-    width: 20px; /* Size of the dot */
+    width: 20px;
     height: 20px;
-    background-color: #e74c3c; /* Soft red */
-    border-radius: 50%; /* Makes it a circle */
+    background-color: #e74c3c;
+    border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Centers it in the hex */
+    transform: translate(-50%, -50%);
 }
