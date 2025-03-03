@@ -22,7 +22,7 @@ body {
 
 /* Offset the second row for honeycomb pattern */
 .hex-row.offset {
-    margin-left: 110px; /* Half the hex width */
+    margin-left: 108px; /* Half the hex width */
 }
 
 /* Hexagon styling */
