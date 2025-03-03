@@ -1,6 +1,6 @@
-/* Reset body to center the grid and set a calm background */
+/* Center the grid on the page with a calm background */
 body {
-    background-color: #f0f0f0; /* Light gray for a serene feel */
+    background-color: #f0f0f0; /* Light gray for serenity */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,32 +20,33 @@ body {
     /* No extra styling needed beyond layout */
 }
 
-/* Offset every other row for hex grid alignment */
+/* Offset every other row for honeycomb alignment */
 .hex-row.offset {
-    margin-left: 50px; /* Shifts the second row by half the hex width */
+    margin-left: 50px; /* Shifts every other row by half the hex width */
+}
+
+/* Hexagon styling for pointy-top honeycomb */
+.hex {
+    width: 100px; /* Distance between opposite flat sides */
+    height: 115.47px; /* Height for a regular pointy-top hex (width * 2 / √3 ≈ 115.47px) */
+    background-color: #3498db; /* Soft blue */
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    border: 2px solid #2c3e50; /* Darker blue-gray border for definition */
+    margin: 0; /* No margins so hexes touch horizontally */
+    position: relative; /* For positioning the character */
+    display: inline-block; /* Keeps hexes in a row */
 }
 
 /* Adjust vertical spacing between rows for proper interlocking */
 .hex-row + .hex-row {
-    margin-top: -11.6px; /* Overlaps rows to set vertical distance between centers to ~75px */
-}
-
-/* Hexagon styling */
-.hex {
-    width: 100px; /* Horizontal distance between opposite points */
-    height: 86.6px; /* Vertical distance for a regular flat-top hex (width * √3 / 2) */
-    background-color: #3498db; /* Soft blue for a calm palette */
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    margin: 0; /* No margins so hexes touch horizontally */
-    position: relative; /* For positioning the character */
-    display: inline-block; /* Keeps hexes in a row without gaps */
+    margin-top: -28.87px; /* Overlaps rows to set vertical distance between centers to ~86.6px */
 }
 
 /* Character (red dot) styling */
 .character {
     width: 20px; /* Size of the dot */
     height: 20px;
-    background-color: #e74c3c; /* Soft red for visibility */
+    background-color: #e74c3c; /* Soft red */
     border-radius: 50%; /* Makes it a circle */
     position: absolute;
     top: 50%;
