@@ -1,41 +1,43 @@
 body {
-    background-color: #2c3e50; /* Darker background for better contrast */
+    background-color: #2c3e50;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    overflow: hidden;
 }
 
 .grid {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    padding: 20px;
+    padding: 50px;
 }
 
 .hex-row {
     display: flex;
     justify-content: center;
+    gap: 0;
 }
 
 .hex-row.offset {
     transform: translateX(50px); /* Half hex width */
+    margin-top: -26px; /* Adjusted for perfect interlock */
 }
 
 .hex-row:not(:first-child) {
-    margin-top: -28px; /* Adjusted overlap for better interlocking */
+    margin-top: -26px; /* Tight vertical overlap */
 }
 
 .hex {
     width: 100px;
     height: 86.6px;
     position: relative;
+    margin: 0 -3px; /* Horizontal overlap */
     clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    margin: 0 -2px; /* Negative margin to overlap borders */
 }
 
-/* Hex background with border */
+/* Hex surface with border */
 .hex::before {
     content: '';
     position: absolute;
@@ -47,9 +49,10 @@ body {
     background-color: #3498db;
     clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
     z-index: 1;
+    transition: background-color 0.2s;
 }
 
-/* Border effect */
+/* Border (background color revealed through gap) */
 .hex::after {
     content: '';
     position: absolute;
@@ -57,7 +60,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #2c3e50; /* Matches background color */
+    background-color: inherit; /* Uses body background */
     clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
     z-index: 0;
 }
@@ -72,5 +75,5 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 2;
-    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
 }
