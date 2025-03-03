@@ -8,11 +8,15 @@ body {
     margin: 0;
 }
 
-/* Container for the hex grid */
+/* Grid container with soft background and shadow */
 .grid {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Style for each row of hexes */
@@ -22,19 +26,21 @@ body {
 
 /* Offset the second row for honeycomb pattern */
 .hex-row.offset {
-    margin-left: 105px; /* Adjusted per your fix */
+    margin-left: 105px; /* Adjust as needed for your layout */
 }
 
-/* Hexagon styling */
+/* Hexagon styling (SVG) */
 .hex {
     width: 100px;
     height: 115.47px;
-    background-color: #3498db;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    box-shadow: inset 3 3 3 4px #2c3e50; /* Inner border, 2px thick, dark blue-gray */
     margin: 0;
     display: inline-block;
     position: relative;
+}
+
+/* Hover effect for hex tiles */
+.hex:hover path {
+    fill: #5dade2; /* Lighter blue on hover */
 }
 
 /* Vertical spacing between rows */
