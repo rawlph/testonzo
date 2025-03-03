@@ -8,51 +8,52 @@ body {
     margin: 0;
 }
 
-/* Grid container with soft background and shadow */
+/* Grid container */
 .grid {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: block; /* Changed from flex to block for better control */
     background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
-    padding: 20px; /* Adjust if it causes row gaps */
+    padding: 0;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Clear floats */
 }
 
 /* Style for each row of hexes */
 .hex-row {
-    font-size: 0; /* Removes whitespace between inline-block children */
+    display: block;
     line-height: 0; /* Prevents extra vertical spacing */
 }
 
-/* Offset for the middle row */
+/* Offset for the second row */
 .hex-row.offset {
-    margin-left: 50px; 
+    margin-left: 50px; /* Half the hexagon width (100px / 2) */
+}
+
+/* Vertical spacing between rows */
+.hex-row + .hex-row {
+    margin-top: -28.87px; /* Adjusted based on hexagon height (115.47px * 3/4 ≈ 86.6px, overlap = 115.47 - 86.6) */
+}
+
+/* Hex container */
+.hex-container {
+    position: relative;
+    width: 100px;
+    height: 115.47px;
+    float: left; /* Changed from inline-block to float to eliminate gaps */
+    margin: 0;
+    padding: 0;
 }
 
 /* The hexagon SVG */
 .hex {
     width: 100px;
     height: 115.47px;
-    margin: 0; /* Ensure no extra spacing */
+    display: block; /* Ensure SVG takes up full container */
 }
 
 /* Hover effect for hex tiles */
 .hex:hover path {
     fill: #5dade2; /* Lighter blue on hover */
-}
-
-/* Vertical spacing between rows */
-.hex-row + .hex-row {
-    margin-top: -28.87px; /* Overlap for interlocking */
-}
-
-/* Hex container */
-.hex-container {
-    position: relative; /* For character positioning */
-    width: 100px;
-    height: 115.47px;
-    display: inline-block;
 }
 
 /* Character styling */
@@ -64,7 +65,7 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Center it */
+    transform: translate(-50%, -50%);
     box-shadow: 0 0 10px 2px rgba(231, 76, 60, 0.7);
     display: none; /* Hidden until activated */
 }
