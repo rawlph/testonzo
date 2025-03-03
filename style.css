@@ -35,8 +35,7 @@ body {
     width: 100px;
     height: 115.47px;
     float: left;
-    margin: 0;
-    padding: 0;
+    margin-right: -13.4px; /* Overlaps containers to close the gap */
 }
 
 .hex {
