@@ -1,0 +1,42 @@
+body {
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hex-row {
+    display: flex;
+}
+
+.hex-row.offset {
+    margin-left: 50px; /* Shifts every other row for hex alignment */
+}
+
+.hex {
+    width: 100px;
+    height: 57.735px; /* Hex height: width * (sqrt(3)/2) */
+    background-color: #3498db;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    margin: 0 5px;
+    position: relative;
+}
+
+.character {
+    width: 20px;
+    height: 20px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
