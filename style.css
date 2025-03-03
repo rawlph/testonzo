@@ -21,21 +21,20 @@ body {
 
 /* Style for each row of hexes */
 .hex-row {
+	font-size: 0; /* Removes whitespace between inline-block children */
     line-height: 0; /* Prevents extra vertical spacing */
 }
 
-/* Offset the second row for honeycomb pattern */
+/* Offset for the middle row */
 .hex-row.offset {
-    margin-left: 105px; /* Adjust as needed for your layout */
+    margin-left: 50px; /* Half the width for pointy-top hex grid */
 }
 
-/* Hexagon styling (SVG) */
+/* The hexagon SVG */
 .hex {
     width: 100px;
     height: 115.47px;
-    margin: 0;
-    display: inline-block;
-    position: relative;
+    margin: 0; /* Ensure no extra spacing */
 }
 
 /* Hover effect for hex tiles */
@@ -50,6 +49,9 @@ body {
 
 .hex-container {
     position: relative; /* So the character can be positioned absolutely inside */
+	width: 100px;
+    height: 115.47px;
+    display: inline-block;
 }
 
 .character {
