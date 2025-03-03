@@ -22,7 +22,7 @@ body {
 
 /* Offset the second row for honeycomb pattern */
 .hex-row.offset {
-    margin-left: 100px; /* Half the hex width */
+    margin-left: 125px; /* Half the hex width */
 }
 
 /* Hexagon styling */
@@ -31,7 +31,7 @@ body {
     height: 115.47px;
     background-color: #3498db;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    box-shadow: 0 0 0 2px #2c3e50; /* Clean border effect */
+    box-shadow: 1 1 1 4px #2c3e50; /* Clean border effect */
     margin: 0;
     display: inline-block;
     position: relative;
@@ -39,7 +39,7 @@ body {
 
 /* Vertical spacing between rows */
 .hex-row + .hex-row {
-    margin-top: -29px; /* Overlap for interlocking */
+    margin-top: -28px; /* Overlap for interlocking */
 }
 
 /* Optional: Character (red dot) styling */
