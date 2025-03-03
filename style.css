@@ -1,54 +1,47 @@
-/* Reset body to center the grid and set a calm background */
 body {
-    background-color: #f0f0f0; /* Light gray for a serene feel */
+    background-color: #f0f0f0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
 }
 
-/* Container for the hex grid */
 .grid {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 0;
 }
 
-/* Style for each row of hexes */
 .hex-row {
-    /* No extra styling needed beyond layout */
+    display: flex;
+    justify-content: center;
+    gap: 0;
 }
 
-/* Offset every other row for hex grid alignment */
 .hex-row.offset {
-    margin-left: 50px; /* Shifts the second row by half the hex width */
+    transform: translateX(50px); /* Half the hex width */
 }
 
-/* Adjust vertical spacing between rows for proper interlocking */
-.hex-row + .hex-row {
-    margin-top: -11.6px; /* Overlaps rows to set vertical distance between centers to ~75px */
+.hex-row:not(:first-child) {
+    margin-top: -26px; /* Adjusted overlap for proper interlocking */
 }
 
-/* Hexagon styling */
 .hex {
-    width: 100px; /* Horizontal distance between opposite points */
-    height: 86.6px; /* Vertical distance for a regular flat-top hex (width * √3 / 2) */
-    background-color: #3498db; /* Soft blue for a calm palette */
+    width: 100px;
+    height: 86.6px;
+    background-color: #3498db;
     clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    margin: 0; /* No margins so hexes touch horizontally */
-    position: relative; /* For positioning the character */
-    display: inline-block; /* Keeps hexes in a row without gaps */
+    position: relative;
 }
 
-/* Character (red dot) styling */
 .character {
-    width: 20px; /* Size of the dot */
+    width: 20px;
     height: 20px;
-    background-color: #e74c3c; /* Soft red for visibility */
-    border-radius: 50%; /* Makes it a circle */
+    background-color: #e74c3c;
+    border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Centers it in the hex */
+    transform: translate(-50%, -50%);
 }
