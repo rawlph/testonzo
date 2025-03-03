@@ -1,17 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const hexes = document.querySelectorAll('.hex');
+    const hexContainers = document.querySelectorAll('.hex-container');
     let currentHex = 0; // Start at the first hex
 
-    // Place the character in the first hex
-    hexes[currentHex].innerHTML = '<div class="character"></div>';
+    // Show the character on the starting hex
+    hexContainers[currentHex].querySelector('.character').style.display = 'block';
 
-    hexes.forEach((hex, index) => {
-        hex.addEventListener('click', () => {
-            // Remove character from current hex
-            hexes[currentHex].innerHTML = '';
-            // Move to clicked hex
+    hexContainers.forEach((container, index) => {
+        container.addEventListener('click', () => {
+            // Hide the character in the current hex
+            hexContainers[currentHex].querySelector('.character').style.display = 'none';
+            // Move to the clicked hex and show the character
             currentHex = index;
-            hexes[currentHex].innerHTML = '<div class="character"></div>';
+            hexContainers[currentHex].querySelector('.character').style.display = 'block';
         });
     });
 });
