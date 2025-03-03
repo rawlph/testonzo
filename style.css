@@ -1,4 +1,3 @@
-/* Center the grid on the page */
 body {
     background-color: #f0f0f0;
     display: flex;
@@ -8,64 +7,58 @@ body {
     margin: 0;
 }
 
-/* Grid container */
 .grid {
-    display: block; /* Changed from flex to block for better control */
+    display: block;
     background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
     padding: 0;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    overflow: hidden; /* Clear floats */
+    overflow: visible;
+    width: 350px;
 }
 
-/* Style for each row of hexes */
 .hex-row {
     display: block;
-    line-height: 0; /* Prevents extra vertical spacing */
+    line-height: 0;
 }
 
-/* Offset for the second row */
 .hex-row.offset {
-    margin-left: 50px; /* Half the hexagon width (100px / 2) */
+    margin-left: 25px;
 }
 
-/* Vertical spacing between rows */
 .hex-row + .hex-row {
-    margin-top: -28.87px; /* Adjusted based on hexagon height (115.47px * 3/4 ≈ 86.6px, overlap = 115.47 - 86.6) */
+    margin-top: -28.87px; /* Vertical overlap for hex alignment */
 }
 
-/* Hex container */
 .hex-container {
     position: relative;
     width: 100px;
     height: 115.47px;
-    float: left; /* Changed from inline-block to float to eliminate gaps */
+    float: left;
     margin: 0;
     padding: 0;
 }
 
-/* The hexagon SVG */
 .hex {
     width: 100px;
     height: 115.47px;
-    display: block; /* Ensure SVG takes up full container */
+    display: block;
+    margin: 0;
 }
 
-/* Hover effect for hex tiles */
 .hex:hover path {
-    fill: #5dade2; /* Lighter blue on hover */
+    fill: #5dade2; /* Hover effect */
 }
 
-/* Character styling */
 .character {
     width: 20px;
     height: 20px;
-    background-color: #e74c3c; /* Red for now */
+    background-color: #e74c3c;
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     box-shadow: 0 0 10px 2px rgba(231, 76, 60, 0.7);
-    display: none; /* Hidden until activated */
+    display: none;
 }
