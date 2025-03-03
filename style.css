@@ -27,7 +27,7 @@ body {
 
 /* Offset for the middle row */
 .hex-row.offset {
-    margin-left: 50px; /* Corrected typo */
+    margin-left: 50px; 
 }
 
 /* The hexagon SVG */
