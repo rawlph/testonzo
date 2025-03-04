@@ -20,7 +20,7 @@ body {
 }
 
 .hex-row + .hex-row {
-    margin-top: -28.87px; /* Vertical overlap for row interlocking */
+    margin-top: -29px; /* Vertical overlap for row interlocking */
 }
 
 .hex-row:nth-child(2) {
