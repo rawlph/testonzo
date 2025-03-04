@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const message = hasKey ? 'You finished with the key, congrats!' : 'You won!';
                         winScreen.querySelector('p').textContent = message;
                         winScreen.style.display = 'block';
+						console.log('Key collected!');
                     } else {
                         console.error('Win screen not found. Add <div id="win-screen"><p></p><button id="restart-btn">Restart</button></div> to your HTML.');
                     }
