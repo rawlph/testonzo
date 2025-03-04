@@ -21,9 +21,6 @@ body {
     height: 100px;
 }
 
-.goal {
-    background-color: gold; /* Adjust as needed */
-}
 
 .goal svg path {
     fill: gold; /* If you want the hexagon itself to be golden */

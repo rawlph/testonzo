@@ -6,6 +6,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const hexHeight = 100;       // Height of the hexagon (flat-to-flat)
     const rowOffset = hexHeight * 0.75; // Vertical spacing between rows
     const colOffset = hexVisualWidth;   // Horizontal spacing between columns
+	
+	const clickedRow = parseInt(e.target.closest('.hex-container').getAttribute('data-row'));
+    const clickedCol = parseInt(e.target.closest('.hex-container').getAttribute('data-col'));
+    const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
+
+    // Check if the clicked tile is adjacent
+    const isAdjacent = adjacentTiles.some(tile => tile.row === clickedRow && tile.col === clickedCol);
+    if (isAdjacent) {
+        // Update character position
+        currentRow = clickedRow;
+        currentCol = clickedCol;
+        // Move the character in the DOM (e.g., update its position)
+        document.querySelector('.character').parentNode.querySelector('.character').remove();
+        document.querySelector(`[data-row="${currentRow}"][data-col="${currentCol}"]`)
+            .appendChild(document.createElement('div')).classList.add('character');
+        // Increment turn counter or other logic
+    }
 
     // Calculate total grid dimensions
     const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
@@ -84,21 +101,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRow = 0;
     let currentCol = 0;
 
-    // Function to find adjacent tiles (simplified for a hex grid)
     function getAdjacentTiles(row, col) {
-        const adjacent = [];
-        const directions = [
-            [0, -1], [0, 1], [-1, -1], [-1, 0], [1, -1], [1, 0]
+    const adjacent = [];
+    const isEvenRow = row % 2 === 0;
+
+    // Define neighbor directions based on row type
+    let directions;
+    if (isEvenRow) {
+        directions = [
+            [-1, -1], // Northwest
+            [-1, 0],  // Northeast
+            [0, -1],  // West
+            [0, 1],   // East
+            [1, -1],  // Southwest
+            [1, 0]    // Southeast
         ];
-        directions.forEach(([dRow, dCol]) => {
-            const newRow = row + dRow;
-            const newCol = col + dCol;
-            if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
-                adjacent.push({ row: newRow, col: newCol });
-            }
-        });
-        return adjacent;
+    } else {
+        directions = [
+            [-1, 0],  // Northwest
+            [-1, 1],  // Northeast
+            [0, -1],  // West
+            [0, 1],   // East
+            [1, 0],   // Southwest
+            [1, 1]    // Southeast
+        ];
     }
+
+    // Check each direction and ensure it’s within bounds
+    directions.forEach(([dRow, dCol]) => {
+        const newRow = row + dRow;
+        const newCol = col + dCol;
+        if (newRow >= 0 && newRow < 7 && newCol >= 0 && newCol < 7) {
+            adjacent.push({ row: newRow, col: newCol });
+        }
+    });
+    return adjacent;
+}
 
     // Add click listeners to all hexagons
     document.querySelectorAll('.hex-container').forEach(container => {
