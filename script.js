@@ -14,16 +14,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Function to find adjacent tiles
-    function getAdjacentTiles(row, col) {
+   function getAdjacentTiles(row, col) {
         const adjacent = [];
-        const directions = [
-            [0, -1],  // Left
-            [0, 1],   // Right
-            [-1, -1], // Up-left
-            [-1, 0],  // Up
-            [1, -1],  // Down-left
-            [1, 0]    // Down
-        ];
+        const isEvenRow = row % 2 === 0;
+
+        let directions;
+        if (isEvenRow) {
+            // Even rows (0, 2): No shift
+            directions = [
+                [0, -1],  // West (Left)
+                [0, 1],   // East (Right)
+                [-1, -1], // North-west (Up-left)
+                [-1, 0],  // North-east (Up-right)
+                [1, -1],  // South-west (Down-left)
+                [1, 0]    // South-east (Down-right)
+            ];
+        } else {
+            // Odd rows (1): Shifted right
+            directions = [
+                [0, -1],  // West (Left)
+                [0, 1],   // East (Right)
+                [-1, 0],  // North-west (Up-left)
+                [-1, 1],  // North-east (Up-right)
+                [1, 0],   // South-west (Down)
+                [1, 1]    // South-east (Down-right)
+            ];
+        }
+
         directions.forEach(([dRow, dCol]) => {
             const newRow = row + dRow;
             const newCol = col + dCol;

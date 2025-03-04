@@ -48,6 +48,9 @@ body {
     display: block;
 }
 
+.key .hex path { fill: #CCCC00; } /* Goldish */.
+
+
 .hex-container:hover .hex path {
     fill: #5dade2; /* Hover effect restored */
 }
