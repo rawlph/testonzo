@@ -21,6 +21,10 @@ body {
     height: 100px;
 }
 
+.hex-container.goal svg path {
+    fill: gold;
+}
+
 svg {
     display: block;
 }
