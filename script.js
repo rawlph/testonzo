@@ -1,38 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
     const hexContainers = document.querySelectorAll('.hex-container');
-    let currentHex = 0; // Start at the first hexagon (row 0, col 0)
+    let currentHex = 0; // Starting position
     let turnCount = 0;
+    const turnDisplay = document.querySelector('p'); // Assuming you already have a <p> for turns
 
-    // Show the character on the starting hexagon
     hexContainers[currentHex].querySelector('.character').style.display = 'block';
 
-    // Create and append the turn counter display
-    const turnDisplay = document.createElement('p');
-    turnDisplay.textContent = `Turns: ${turnCount}`;
-    document.body.appendChild(turnDisplay);
-
-    // Add click handlers to move the character
     hexContainers.forEach((container, index) => {
         container.addEventListener('click', () => {
-            // Hide character in current hexagon
             hexContainers[currentHex].querySelector('.character').style.display = 'none';
-
-            // Move to the clicked hexagon
             currentHex = index;
             hexContainers[currentHex].querySelector('.character').style.display = 'block';
-
-            // Increment turn counter and update display
             turnCount++;
             turnDisplay.textContent = `Turns: ${turnCount}`;
 
-            // Get the new position from data attributes
             const newRow = parseInt(container.getAttribute('data-row'));
             const newCol = parseInt(container.getAttribute('data-col'));
 
-            // Check for win condition (goal tile at row 2, col 2)
             if (newRow === 2 && newCol === 2) {
-                alert('You Win!');
+                document.getElementById('win-screen').style.display = 'block';
             }
         });
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        document.getElementById('win-screen').style.display = 'none';
+        hexContainers.forEach(container => {
+            container.querySelector('.character').style.display = 'none';
+        });
+        currentHex = 0;
+        hexContainers[currentHex].querySelector('.character').style.display = 'block';
+        turnCount = 0;
+        turnDisplay.textContent = `Turns: ${turnCount}`;
     });
 });

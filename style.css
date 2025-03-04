@@ -56,6 +56,38 @@ body {
     fill: gold; /* Matches the fill set in the HTML */
 }
 
+#win-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+#win-screen p {
+    font-size: 24px;
+    margin: 0;
+}
+
+#win-screen button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#win-screen button:hover {
+    background-color: #5dade2;
+}
+
+
 .character {
     width: 20px;
     height: 20px;
