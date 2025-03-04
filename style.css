@@ -56,6 +56,10 @@ body {
     fill: gold; /* Matches the fill set in the HTML */
 }
 
+.blocked .hexagon {
+    background-color: #555; /* Dark gray, or any "off-limits" color */
+}
+
 #win-screen {
     position: absolute;
     top: 50%;
