@@ -9,15 +9,10 @@ body {
 
 .grid {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 .hex-row {
-    position: relative;
-    display: flex;
-    justify-content: center;
+    position: absolute;
 }
 
 .hex-container {
