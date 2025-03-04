@@ -21,8 +21,12 @@ body {
     height: 100px;
 }
 
-.hex-container.goal svg path {
-    fill: gold;
+.goal {
+    background-color: gold; /* Adjust as needed */
+}
+
+.goal svg path {
+    fill: gold; /* If you want the hexagon itself to be golden */
 }
 
 svg {
@@ -40,13 +44,14 @@ path {
 }
 
 .character {
-    width: 20px;
-    height: 20px;
-    background-color: #e74c3c;
-    border-radius: 50%;
+    display: none; /* Hidden by default */
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    display: none;
+    width: 20px;
+    height: 20px;
+    background-color: red; /* Or use an image */
+    border-radius: 50%;
+    z-index: 10;
 }
