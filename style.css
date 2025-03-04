@@ -26,6 +26,10 @@ body {
     margin-left: 25px;
 }
 
+.hex-row:nth-child(2) {
+    margin-left: 50px; /* Shifts the middle row to form the honeycomb */
+}
+
 .hex-row + .hex-row {
     margin-top: -28.87px; /* Vertical overlap for hex alignment */
 }
@@ -36,6 +40,8 @@ body {
     height: 115.47px;
     float: left;
     margin-right: -13.4px; /* Overlaps containers to close the gap */
+	margin: 0;
+    padding: 0;
 }
 
 .hex {
