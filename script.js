@@ -1,34 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
     const hexContainers = document.querySelectorAll('.hex-container');
-    let currentHex = 0; // Start on the first hexagon
+    let currentHex = 0; // Start at the first hexagon (row 0, col 0)
+    let turnCount = 0;
 
     // Show the character on the starting hexagon
     hexContainers[currentHex].querySelector('.character').style.display = 'block';
 
-    // Add click functionality to move the character
+    // Create and append the turn counter display
+    const turnDisplay = document.createElement('p');
+    turnDisplay.textContent = `Turns: ${turnCount}`;
+    document.body.appendChild(turnDisplay);
+
+    // Add click handlers to move the character
     hexContainers.forEach((container, index) => {
         container.addEventListener('click', () => {
-            // Hide the character in the current hexagon
+            // Hide character in current hexagon
             hexContainers[currentHex].querySelector('.character').style.display = 'none';
+
             // Move to the clicked hexagon
             currentHex = index;
             hexContainers[currentHex].querySelector('.character').style.display = 'block';
+
+            // Increment turn counter and update display
+            turnCount++;
+            turnDisplay.textContent = `Turns: ${turnCount}`;
+
+            // Get the new position from data attributes
+            const newRow = parseInt(container.getAttribute('data-row'));
+            const newCol = parseInt(container.getAttribute('data-col'));
+
+            // Check for win condition (goal tile at row 2, col 2)
+            if (newRow === 2 && newCol === 2) {
+                alert('You Win!');
+            }
         });
     });
-	let turnCount = 0;
-const turnDisplay = document.createElement('p');
-turnDisplay.textContent = `Turns: ${turnCount}`;
-document.body.appendChild(turnDisplay); // Add to page
-
-function moveCharacter(newRow, newCol) {
-    // Existing movement logic here (update character position)
-    turnCount++;
-    turnDisplay.textContent = `Turns: ${turnCount}`;
-
-    // Check if character reached the goal
-    if (newRow === 2 && newCol === 2) {
-        alert('You Win!');
-        // Optionally disable further moves or show a reset button
-    }
-}
 });
