@@ -3,32 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexagonal Grid</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Hexagonal Grid Game</title>
+    <style>
+        /* Basic styling for the hex grid */
+        .hex-row {
+            display: flex;
+            margin-bottom: -28px; /* Offset for overlapping hexagons */
+        }
+        .hex-container {
+            position: relative;
+            width: 100px;
+            height: 115.47px;
+            margin-right: 10px;
+        }
+        .hex-container:nth-child(even) {
+            position: relative;
+            top: 57.735px; /* Half the height for staggered rows */
+        }
+        .hex path {
+            fill: #3498db; /* Default tile color */
+            stroke: #2c3e50;
+            stroke-width: 2;
+        }
+        /* Styling for blocked tiles */
+        .blocked .hex path {
+            fill: #555; /* Dark gray for blocked tiles */
+        }
+        .character {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Hidden by default */
+        }
+        .hex-container.start .character {
+            display: block; /* Show character on starting tile */
+        }
+    </style>
 </head>
 <body>
-    <div class="grid">
+    <div class="hex-grid">
+        <!-- Row 0 -->
         <div class="hex-row"><!--
-            --><div class="hex-container" data-row="0" data-col="0"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container" data-row="0" data-col="1" class="blocked"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container" data-row="0" data-col="2"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
+            --><div class="hex-container start" data-row="0" data-col="0">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
+            --><div class="hex-container blocked" data-row="0" data-col="1">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
+            --><div class="hex-container" data-row="0" data-col="2">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
         --></div>
-        <div class="hex-row offset"><!--
-            --><div class="hex-container" data-row="1" data-col="0"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container" data-row="1" data-col="1"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container" data-row="1" data-col="2" class="blocked"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-        --></div>
+        <!-- Row 1 -->
         <div class="hex-row"><!--
-            --><div class="hex-container" data-row="2" data-col="0"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container" data-row="2" data-col="1"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="#3498db" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
-            --><div class="hex-container goal" data-row="2" data-col="2"><svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47"><path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" fill="gold" stroke="#2c3e50" stroke-width="2" /></svg><div class="character"></div></div><!--
+            --><div class="hex-container" data-row="1" data-col="0">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
+            --><div class="hex-container" data-row="1" data-col="1">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
+            --><div class="hex-container" data-row="1" data-col="2">
+                <svg class="hex" width="100" height="115.47" viewBox="0 0 100 115.47">
+                    <path d="M50 0 L93.3 28.87 L93.3 86.6 L50 115.47 L6.7 86.6 L6.7 28.87 Z" />
+                </svg>
+                <div class="character"></div>
+            </div><!--
         --></div>
     </div>
-	<div id="win-screen" style="display: none;">
-    <p>You Win!</p>
-    <button id="restart-btn">Play Again</button>
-</div>
-<p id="turn-counter">Turns: 0</p>
-    <script src="script.js"></script>
+
+    <!-- Add your JavaScript here -->
+      <script src="script.js"></script>
 </body>
 </html>
