@@ -12,28 +12,42 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Turn counter element not found. Please add <p id="turn-counter">Turns: 0</p> to your HTML.');
     }
 
-    // Function to get adjacent tiles
-    function getAdjacentTiles(row, col) {
-        const adjacent = [];
-        const directions = [
+   function getAdjacentTiles(row, col) {
+    const adjacent = [];
+    const isEvenRow = row % 2 === 0;
+
+    let directions;
+    if (isEvenRow) {
+        // Even rows (0, 2): No shift
+        directions = [
+            [0, -1],  // Left
+            [0, 1],   // Right
+            [-1, -1], // Up-left
+            [-1, 0],  // Up-right
+            [1, -1],  // Down-left
+            [1, 0]    // Down-right
+        ];
+    } else {
+        // Odd rows (1): Shifted right
+        directions = [
             [0, -1],  // Left
             [0, 1],   // Right
             [-1, -1], // Up-left
             [-1, 0],  // Up
-            [1, -1],  // Down-left
-            [1, 0]    // Down
+            [1, 0],   // Down
+            [1, 1]    // Down-right
         ];
-
-        directions.forEach(([dRow, dCol]) => {
-            const newRow = row + dRow;
-            const newCol = col + dCol;
-            // Check if the new position is within the 3x3 grid
-            if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-                adjacent.push({ row: newRow, col: newCol });
-            }
-        });
-        return adjacent;
     }
+
+    directions.forEach(([dRow, dCol]) => {
+        const newRow = row + dRow;
+        const newCol = col + dCol;
+        if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+            adjacent.push({ row: newRow, col: newCol });
+        }
+    });
+    return adjacent;
+}
 
     // Add click handlers to each hexagon
     hexContainers.forEach((container, index) => {
