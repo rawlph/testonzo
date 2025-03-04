@@ -56,8 +56,12 @@ body {
     fill: gold; /* Matches the fill set in the HTML */
 }
 
-.blocked .hexagon {
-    background-color: #555; /* Dark gray, or any "off-limits" color */
+.hex-container.blocked .hex path {
+    fill: #555; /* Dark gray for blocked tiles */
+}
+
+.hex-container.blocked:hover .hex path {
+    fill: #555; /* Keep blocked tiles the same color on hover */
 }
 
 #win-screen {
