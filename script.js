@@ -15,4 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainers[currentHex].querySelector('.character').style.display = 'block';
         });
     });
+	let turnCount = 0;
+const turnDisplay = document.createElement('p');
+turnDisplay.textContent = `Turns: ${turnCount}`;
+document.body.appendChild(turnDisplay); // Add to page
+
+function moveCharacter(newRow, newCol) {
+    // Existing movement logic here (update character position)
+    turnCount++;
+    turnDisplay.textContent = `Turns: ${turnCount}`;
+
+    // Check if character reached the goal
+    if (newRow === 2 && newCol === 2) {
+        alert('You Win!');
+        // Optionally disable further moves or show a reset button
+    }
+}
 });
