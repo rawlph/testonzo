@@ -52,6 +52,10 @@ body {
     fill: #5dade2; /* Hover effect restored */
 }
 
+.hex-container.goal .hex path {
+    fill: gold; /* Matches the fill set in the HTML */
+}
+
 .character {
     width: 20px;
     height: 20px;
