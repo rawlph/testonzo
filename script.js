@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.querySelector('.grid');
-    const rows = 3; // Adjust as needed
-    const cols = 3; // Adjust as needed
-    const hexVisualWidth = 86.6; // Actual width of the hexagon shape
-    const hexHeight = 100; // Height of the hexagon
-    const offsetX = hexVisualWidth * 0.75; // Horizontal spacing for pointy-top hexagons
+    const rows = 5;
+    const cols = 5;
+    const hexVisualWidth = 86.6;
+    const hexHeight = 100;
+    const offsetX = hexVisualWidth * 0.75;
 
     for (let row = 0; row < rows; row++) {
         const hexRow = document.createElement('div');
         hexRow.classList.add('hex-row');
-        hexRow.style.top = `${row * (hexHeight * 0.75)}px`; // Vertical spacing
+        hexRow.style.top = `${row * (hexHeight * 0.75)}px`;
 
         for (let col = 0; col < cols; col++) {
             const hexContainer = document.createElement('div');
@@ -17,12 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.setAttribute('data-row', row);
             hexContainer.setAttribute('data-col', col);
 
-            // Position the hexagon
             const isOddRow = row % 2 === 1;
             const offset = isOddRow ? offsetX / 2 : 0;
             hexContainer.style.left = `${col * offsetX + offset}px`;
 
-            // Create SVG with adjusted width
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', hexVisualWidth);
             svg.setAttribute('height', hexHeight);

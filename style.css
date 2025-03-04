@@ -2,7 +2,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; /* Full viewport height */
+    height: 100vh;
     margin: 0;
     background-color: #f0f0f0;
 }
@@ -20,19 +20,9 @@ body {
     justify-content: center;
 }
 
-.grid {
-    position: relative;
-    width: 100%;
-    height: 100vh; /* Full height for visibility */
-}
-
-.hex-row {
-    position: absolute;
-}
-
 .hex-container {
     position: absolute;
-	width: 86.6px; /* Matches the hexagon’s visual width */
+    width: 86.6px;
     height: 100px;
 }
 
@@ -41,23 +31,23 @@ svg {
 }
 
 path {
-    fill: #3498db; /* Blue fill */
-    stroke: #2c3e50; /* Dark border */
+    fill: #3498db;
+    stroke: #2c3e50;
     stroke-width: 2;
 }
 
 .hex-container:hover path {
-    fill: #5dade2; /* Lighter blue on hover */
+    fill: #5dade2;
 }
 
 .character {
     width: 20px;
     height: 20px;
-    background-color: #e74c3c; /* Red for characters */
+    background-color: #e74c3c;
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    display: none; /* Hidden by default, shown by .js */
+    display: none;
 }
