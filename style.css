@@ -9,12 +9,11 @@ body {
 
 .grid {
     position: relative;
-    width: 350px; /* Fits 3 hexagons: 100px + 100px + 100px - 13.4px overlaps */
-    height: 300px; /* Fits 3 rows: 115.47px + 2 × 86.6px, adjusted */
+    width: 350px;
+    height: 300px;
     background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    padding: 0; /* Remove padding to avoid extra space */
 }
 
 .hex-row {
@@ -27,12 +26,12 @@ body {
 }
 
 .hex-row:nth-child(2) {
-    top: 86.6px; /* Center-to-center distance */
-    left: 50px; /* Half hexagon width for offset */
+    top: 86.6px;
+    left: 43.3px; /* Fixed offset */
 }
 
 .hex-row:nth-child(3) {
-    top: 173.2px; /* 2 × 86.6px */
+    top: 173.2px;
 }
 
 .hex-container {
@@ -40,11 +39,28 @@ body {
     width: 100px;
     height: 115.47px;
     float: left;
-    margin-right: -13.4px; /* Keeps horizontal gaps closed */
+    margin-right: -13.4px; /* Closes horizontal gaps */
 }
 
 .hex {
     width: 100px;
     height: 115.47px;
     display: block;
+}
+
+.hex-container:hover .hex path {
+    fill: #5dade2; /* Hover effect restored */
+}
+
+.character {
+    width: 20px;
+    height: 20px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px 2px rgba(231, 76, 60, 0.7);
+    display: none; /* Shown via JavaScript */
 }
