@@ -1,114 +1,39 @@
-body {
-    background-color: #f0f0f0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
-
 .grid {
     position: relative;
-    width: 350px;
-    height: 300px;
-    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 100vh; /* Full height for visibility */
 }
 
 .hex-row {
     position: absolute;
-    left: 0;
-}
-
-.hex-row:nth-child(1) {
-    top: 0;
-}
-
-.hex-row:nth-child(2) {
-    top: 86.6px;
-    left: 43.3px; /* Fixed offset */
-}
-
-.hex-row:nth-child(3) {
-    top: 173.2px;
 }
 
 .hex-container {
-    position: relative;
-    width: 100px;
-    height: 115.47px;
-    float: left;
-    margin-right: -13.4px; /* Closes horizontal gaps */
+    position: absolute;
 }
 
-.hex {
-    width: 100px;
-    height: 115.47px;
+svg {
     display: block;
 }
 
-.key .hex path { fill: #CCCC00; } /* Goldish */.
-
-
-.hex-container:hover .hex path {
-    fill: #5dade2; /* Hover effect restored */
+path {
+    fill: #3498db; /* Blue fill */
+    stroke: #2c3e50; /* Dark border */
+    stroke-width: 2;
 }
 
-.hex-container.goal .hex path {
-    fill: gold; /* Matches the fill set in the HTML */
+.hex-container:hover path {
+    fill: #5dade2; /* Lighter blue on hover */
 }
-
-.hex-container.blocked .hex path {
-    fill: #555; /* Dark gray for blocked tiles */
-}
-
-.hex-container.blocked:hover .hex path {
-    fill: #555; /* Keep blocked tiles the same color on hover */
-}
-
-#win-screen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-#win-screen p {
-    font-size: 24px;
-    margin: 0;
-}
-
-#win-screen button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-#win-screen button:hover {
-    background-color: #5dade2;
-}
-
 
 .character {
     width: 20px;
     height: 20px;
-    background-color: #e74c3c;
+    background-color: #e74c3c; /* Red for characters */
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 10px 2px rgba(231, 76, 60, 0.7);
-    display: none; /* Shown only via JavaScript */
-	pointer-events: none; /* Clicks pass through to the hexagon */
+    display: none; /* Hidden until game logic shows it */
 }
