@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const hexContainers = document.querySelectorAll('.hex-container');
     let currentHex = 0; // Starting position (first tile)
-    let turnCount = 0;  // Initialize turn counter
+    let turnCount = 0;  // Track the number of moves
+    let hasKey = false; // Track if the player has collected the key
 
     // Show the character on the starting hexagon
     hexContainers[currentHex].querySelector('.character').style.display = 'block';
@@ -12,33 +13,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Turn counter element not found. Please add <p id="turn-counter">Turns: 0</p> to your HTML.');
     }
 
+    // Function to find adjacent tiles
     function getAdjacentTiles(row, col) {
         const adjacent = [];
-        const isEvenRow = row % 2 === 0;
-
-        let directions;
-        if (isEvenRow) {
-            // Even rows (0, 2): No shift
-            directions = [
-                [0, -1],  // West (Left)
-                [0, 1],   // East (Right)
-                [-1, -1], // North-west (Up-left)
-                [-1, 0],  // North-east (Up-right)
-                [1, -1],  // South-west (Down-left)
-                [1, 0]    // South-east (Down-right)
-            ];
-        } else {
-            // Odd rows (1): Shifted right
-            directions = [
-                [0, -1],  // West (Left)
-                [0, 1],   // East (Right)
-                [-1, 0],  // North-west (Up-left)
-                [-1, 1],  // North-east (Up-right)
-                [1, 0],   // South-west (Down)
-                [1, 1]    // South-east (Down-right)
-            ];
-        }
-
+        const directions = [
+            [0, -1],  // Left
+            [0, 1],   // Right
+            [-1, -1], // Up-left
+            [-1, 0],  // Up
+            [1, -1],  // Down-left
+            [1, 0]    // Down
+        ];
         directions.forEach(([dRow, dCol]) => {
             const newRow = row + dRow;
             const newCol = col + dCol;
@@ -57,54 +42,69 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentRow = parseInt(hexContainers[currentHex].getAttribute('data-row'));
             const currentCol = parseInt(hexContainers[currentHex].getAttribute('data-col'));
 
-            // Get all adjacent tiles to the current position
-            const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-
             // Check if the clicked tile is adjacent
+            const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
             const isAdjacent = adjacentTiles.some(tile => 
                 tile.row === clickedRow && tile.col === clickedCol
             );
 
-            // Allow move if tile is adjacent and not blocked
+            // Move the character if the tile is adjacent and not blocked
             if (isAdjacent && !container.classList.contains('blocked')) {
-                // Hide the character on the current hexagon
+                // Hide the character on the current tile
                 hexContainers[currentHex].querySelector('.character').style.display = 'none';
 
-                // Move the character to the clicked hexagon
+                // Move to the clicked tile
                 currentHex = index;
                 hexContainers[currentHex].querySelector('.character').style.display = 'block';
 
-                // Increment the turn counter and update the display
+                // Update turn count
                 turnCount++;
                 if (turnDisplay) {
                     turnDisplay.textContent = `Turns: ${turnCount}`;
                 }
 
-                // Check if the character has reached the goal (row 2, col 2)
+                // Check if the player collected the key (row 0, col 2)
+                if (clickedRow === 0 && clickedCol === 2 && !hasKey) {
+                    hasKey = true;
+                    container.classList.remove('key'); // Remove gold styling
+                }
+
+                // Check if the player reached the goal (row 2, col 2)
                 if (clickedRow === 2 && clickedCol === 2) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
+                        // Show different messages based on whether the key was collected
+                        const message = hasKey ? 'You finished with the key, congrats!' : 'You won!';
+                        winScreen.querySelector('p').textContent = message;
                         winScreen.style.display = 'block';
                     } else {
-                        console.error('Win screen element not found. Please add <div id="win-screen">...</div> to your HTML.');
+                        console.error('Win screen not found. Add <div id="win-screen"><p></p><button id="restart-btn">Restart</button></div> to your HTML.');
                     }
                 }
             }
         });
     });
 
-    // Optional: Add restart functionality
+    // Restart button functionality
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
             const winScreen = document.getElementById('win-screen');
             if (winScreen) winScreen.style.display = 'none';
+
+            // Reset all characters and re-add the key
             hexContainers.forEach(container => {
                 container.querySelector('.character').style.display = 'none';
+                if (container.getAttribute('data-row') === '0' && container.getAttribute('data-col') === '2') {
+                    container.classList.add('key'); // Put the key back
+                }
             });
+
+            // Reset game state
             currentHex = 0;
             hexContainers[currentHex].querySelector('.character').style.display = 'block';
             turnCount = 0;
+            hasKey = false; // Reset key status
             if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
         });
     }
