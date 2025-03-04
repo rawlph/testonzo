@@ -9,29 +9,22 @@ body {
 
 .grid {
     display: block;
-    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
     padding: 0;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    overflow: visible;
-    width: 350px;
+    margin: 0;
 }
 
 .hex-row {
     display: block;
     line-height: 0;
-}
-
-.hex-row.offset {
-    margin-left: 25px;
-}
-
-.hex-row:nth-child(2) {
-    margin-left: 50px; /* Shifts the middle row to form the honeycomb */
+    margin: 0;
 }
 
 .hex-row + .hex-row {
-    margin-top: -28.87px; /* Vertical overlap for hex alignment */
+    margin-top: -28.87px; /* Vertical overlap for row interlocking */
+}
+
+.hex-row:nth-child(2) {
+    margin-left: 50px; /* Horizontal offset for middle row */
 }
 
 .hex-container {
@@ -39,20 +32,13 @@ body {
     width: 100px;
     height: 115.47px;
     float: left;
-    margin-right: -13.4px; /* Overlaps containers to close the gap */
-	margin: 0;
-    padding: 0;
+    margin-right: -13.4px; /* Horizontal overlap to close gaps within rows */
 }
 
 .hex {
     width: 100px;
     height: 115.47px;
     display: block;
-    margin: 0;
-}
-
-.hex:hover path {
-    fill: #5dade2; /* Hover effect */
 }
 
 .character {
