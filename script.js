@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.querySelector('.grid');
-    const rows = 7;
-    const cols = 7;
+    const rows = 22;
+    const cols = 22;
     const hexVisualWidth = 86.6; // Width of the hexagon (point-to-point)
     const hexHeight = 100;       // Height of the hexagon (flat-to-flat)
     const rowOffset = hexHeight * 0.75; // Vertical spacing between rows
