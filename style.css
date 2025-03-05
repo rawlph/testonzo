@@ -87,7 +87,7 @@ path {
 }
 
 .key {
-    background-color: #6633CC; /* Or use a key icon */
+    fill: #6633CC; /* Or use a key icon */
 }
 
 .character {
