@@ -8,7 +8,32 @@
 </head>
 <body>
     <div class="grid"></div>
-    <div class="game-info">
+    <div class="ui-panel">
+        <p id="turn-counter">Turns: 0</p>
+        <div id="win-screen" style="display: none;">
+            <p>Victory! You reached the goal.</p>
+            <button id="restart-btn">Restart</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Grid Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="grid"></div>
+    <div class="ui-panel">
+        <p id="stats-display">Moves: 1 | Luck: 0 | XP: 0</p>
+        <p id="traits-display">Traits: None</p>
+        <p id="temp-inventory-display">Level Items: None</p>
+        <p id="persistent-inventory-display">Persistent Items: None</p>
         <p id="turn-counter">Turns: 0</p>
         <div id="win-screen" style="display: none;">
             <p>Victory! You reached the goal.</p>

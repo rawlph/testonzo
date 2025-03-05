@@ -2,10 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const grid = document.querySelector('.grid');
     const rows = 5;
     const cols = 5;
-    const hexVisualWidth = 86.6; // Width of the hexagon (point-to-point)
-    const hexHeight = 100;  // Height of the hexagon (flat-to-flat)
-    const rowOffset = hexHeight * 0.75; // Vertical spacing between rows
-    const colOffset = hexVisualWidth;  // Horizontal spacing between columns
+    const hexVisualWidth = 86.6;
+    const hexHeight = 100;
+    const rowOffset = hexHeight * 0.75;
+    const colOffset = hexVisualWidth;
 
     // Load persistent progress or initialize
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
@@ -15,14 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
         xp: 0
     };
     let { stats, traits, persistentInventory, xp } = playerProgress;
-
-    // Temporary inventory for the level
+	// Temporary inventory for the level									
     let temporaryInventory = [];
 
     // Calculate total grid dimensions
     const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
     const totalHeight = (rows - 1) * rowOffset + hexHeight;
-	// Set grid size for centering							  
+	// Set grid size for centering										
     grid.style.width = `${totalWidth}px`;
     grid.style.height = `${totalHeight}px`;
     grid.style.position = 'relative';
@@ -41,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.setAttribute('data-row', row);
             hexContainer.setAttribute('data-col', col);
 
-			// Calculate horizontal position								
+			// Calculate horizontal position							   
             const isOddRow = row % 2 === 1;
             const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
             const hexLeft = col * colOffset + rowShift;
@@ -50,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.style.left = `${hexLeft}px`;
             hexContainer.style.top = '0';
 
-			// Create SVG hexagon					 
+			// Create SVG hexagon					 				  
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', hexVisualWidth);
             svg.setAttribute('height', hexHeight);
@@ -60,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(path);
             hexContainer.appendChild(svg);
 
-			// Add character placeholder (each tile has character by default, shown only by JS			
+			// Add character placeholder (each tile has character by default, shown only by JS																				
             const character = document.createElement('div');
             character.classList.add('character');
             hexContainer.appendChild(character);
@@ -111,12 +110,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let turnCount = 0;
     const turnDisplay = document.getElementById('turn-counter');
-    if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+    const statsDisplay = document.getElementById('stats-display');
+    const traitsDisplay = document.getElementById('traits-display');
+    const tempInventoryDisplay = document.getElementById('temp-inventory-display');
+    const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
+
+    // Initial UI update
+    updateUI();
 
     let currentRow = 0;
     let currentCol = 0;
 
-	// Function to get adjacent tiles								 
+	// Function to get adjacent tiles										   
     function getAdjacentTiles(row, col) {
         const adjacent = [];
         const isEvenRow = row % 2 === 0;
@@ -136,7 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return adjacent;
     }
 
-	// Add click listeners for movement								   
+    function updateUI() {
+        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+        if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp}`;
+        if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
+        if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
+        if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
+    }
+	
+	// Add click listeners for movement	
     document.querySelectorAll('.hex-container').forEach(container => {
         container.addEventListener('click', () => {
             const clickedRow = parseInt(container.getAttribute('data-row'));
@@ -154,16 +167,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentCol = clickedCol;
                 container.querySelector('.character').style.display = 'block';
 
-				// **Check if the tile has a key and add it to inventory**													  
+				// **Check if the tile has a key and add it to inventory**																								   
                 if (container.classList.contains('key')) {
                     temporaryInventory.push('key');
                     container.classList.remove('key');
                 }
 
                 turnCount++;
-                if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+                updateUI();
 
-				// **victory condition with key check**											   
+				// **victory condition with key check**												 
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
@@ -173,8 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         winScreen.querySelector('p').textContent = winMessage;
                         winScreen.style.display = 'block';
 
-                        // Update persistent progress
-                        xp += 10; // 10 XP per victory
+						// Update persistent progress							 
+                        xp += 10; // 10 XP per victor
                         if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
                             traits.push('Keymaster');
                         }
@@ -185,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-	// Restart button functionality		   
+	// Restart button functionality									 
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
@@ -203,9 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
             turnCount = 0;
-            if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+            updateUI();
 
-			// Re-add blocked tiles		   
+			// Re-add blocked tiles				   
             const nonPathTiles = [];
             document.querySelectorAll('.hex-container').forEach(container => {
                 const row = parseInt(container.getAttribute('data-row'));
@@ -223,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 blockedTile.classList.add('blocked');
             }
 
-            // **Place a new key on restart**											 
+			// **Place a new key on restart**											 
             if (nonPathTiles.length > 0) {
                 const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
                 const keyTile = nonPathTiles[randomIndex];
