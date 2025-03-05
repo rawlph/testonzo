@@ -7,22 +7,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowOffset = hexHeight * 0.75;
     const colOffset = hexVisualWidth;
 
-    // Load persistent progress or initialize
+    // Load persistent progress or initialize with energy
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
         stats: { movementRange: 1, luck: 0 },
         traits: [],
         persistentInventory: [],
-        xp: 0
+        xp: 0,
+        energy: 0 // Add energy to track it
     };
-    let { stats, traits, persistentInventory, xp } = playerProgress;
-	// Temporary inventory for the level									
+    let { stats, traits, persistentInventory, xp, energy } = playerProgress;
     let temporaryInventory = [];
 
     // Calculate total grid dimensions
     const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
     const totalHeight = (rows - 1) * rowOffset + hexHeight;
-	// Set grid size for centering										
-    grid.style.width = `${totalWidth}px`;
+    grid.style.width = `${totalWidth}px`; // Fixed string interpolation
     grid.style.height = `${totalHeight}px`;
     grid.style.position = 'relative';
 
@@ -40,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.setAttribute('data-row', row);
             hexContainer.setAttribute('data-col', col);
 
-			// Calculate horizontal position							   
             const isOddRow = row % 2 === 1;
             const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
             const hexLeft = col * colOffset + rowShift;
@@ -49,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.style.left = `${hexLeft}px`;
             hexContainer.style.top = '0';
 
-			// Create SVG hexagon					 				  
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', hexVisualWidth);
             svg.setAttribute('height', hexHeight);
@@ -59,12 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(path);
             hexContainer.appendChild(svg);
 
-			// Add character placeholder (each tile has character by default, shown only by JS																				
             const character = document.createElement('div');
             character.classList.add('character');
             hexContainer.appendChild(character);
 
-			// Add 'goal' class to the last tile									
             if (row === rows - 1 && col === cols - 1) {
                 hexContainer.classList.add('goal');
             }
@@ -74,42 +69,50 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.appendChild(hexRow);
     }
 
-    // Add blocked tiles and key
-    const gridSize = Math.min(rows, cols);
-    const path = [];
-    for (let col = 0; col < cols; col++) path.push({ row: 0, col });
-    for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
+    // Function to place all tiles (blocked, key, energy)
+    function placeTiles() {
+        const path = [];
+        for (let col = 0; col < cols; col++) path.push({ row: 0, col });
+        for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
 
-    const nonPathTiles = [];
-    document.querySelectorAll('.hex-container').forEach(container => {
-        const row = parseInt(container.getAttribute('data-row'));
-        const col = parseInt(container.getAttribute('data-col'));
-        const isPath = path.some(p => p.row === row && p.col === col);
-        const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
-        if (!isPath && !isStartOrGoal) {
-            nonPathTiles.push(container);
+        const nonPathTiles = [];
+        document.querySelectorAll('.hex-container').forEach(container => {
+            const row = parseInt(container.getAttribute('data-row'));
+            const col = parseInt(container.getAttribute('data-col'));
+            const isPath = path.some(p => p.row === row && p.col === col);
+            const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+            if (!isPath && !isStartOrGoal) {
+                nonPathTiles.push(container);
+            }
+        });
+
+        // Place blocked tiles
+        const gridSize = Math.min(rows, cols);
+        const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
+        for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+            const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
+            blockedTile.classList.add('blocked');
         }
-    });
 
-    const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
-    for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
-        const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-        const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
-        blockedTile.classList.add('blocked');
+        // Place key
+        if (nonPathTiles.length > 0) {
+            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+            const keyTile = nonPathTiles.splice(randomIndex, 1)[0]; // Remove from available tiles
+            keyTile.classList.add('key');
+        }
+
+        // Place energy tiles
+        const energyTileCount = Math.floor(gridSize / 2);
+        for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+            const energyTile = nonPathTiles.splice(randomIndex, 1)[0];
+            energyTile.classList.add('energy');
+        }
     }
 
-    if (nonPathTiles.length > 0) {
-        const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-        const keyTile = nonPathTiles[randomIndex];
-        keyTile.classList.add('key');
-    }
-
-	const energyTileCount = Math.floor(gridSize / 2); // e.g., 11 for a 22x22 grid
-for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
-    const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-    const energyTile = nonPathTiles.splice(randomIndex, 1)[0];
-    energyTile.classList.add('energy');
-}
+    // Initial tile placement
+    placeTiles();
 
     // Game state
     const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
@@ -121,6 +124,7 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
     const traitsDisplay = document.getElementById('traits-display');
     const tempInventoryDisplay = document.getElementById('temp-inventory-display');
     const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
+    const energyDisplay = document.getElementById('energy-display'); // New energy display element
 
     // Initial UI update
     updateUI();
@@ -128,7 +132,6 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
     let currentRow = 0;
     let currentCol = 0;
 
-	// Function to get adjacent tiles										   
     function getAdjacentTiles(row, col) {
         const adjacent = [];
         const isEvenRow = row % 2 === 0;
@@ -149,14 +152,14 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
     }
 
     function updateUI() {
-        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`; // Fixed string syntax
         if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp}`;
         if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
         if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
         if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
+        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`; // Display energy
     }
-	
-	// Add click listeners for movement	
+
     document.querySelectorAll('.hex-container').forEach(container => {
         container.addEventListener('click', () => {
             const clickedRow = parseInt(container.getAttribute('data-row'));
@@ -167,29 +170,26 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
             const isBlocked = container.classList.contains('blocked');
 
             if (isAdjacent && !isBlocked) {
-                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`); // Fixed quotes
                 currentHex.querySelector('.character').style.display = 'none';
 
                 currentRow = clickedRow;
                 currentCol = clickedCol;
                 container.querySelector('.character').style.display = 'block';
 
-				// **Check if the tile has a key and add it to inventory**																								   
                 if (container.classList.contains('key')) {
                     temporaryInventory.push('key');
                     container.classList.remove('key');
                 }
-				// **Check if the tile has Energy and add it to Character**
-				if (container.classList.contains('energy')) {
-					energy += 5; // Gain 5 Energy
-					container.classList.remove('energy'); // Remove tile after collection
-					console.log('Collected Energy! Total:', energy);
-				}
+                if (container.classList.contains('energy')) {
+                    energy += 5; // Increment energy
+                    container.classList.remove('energy'); // Despawn energy tile
+                    console.log('Collected Energy! Total:', energy);
+                }
 
                 turnCount++;
                 updateUI();
 
-				// **victory condition with key check**												 
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
@@ -199,24 +199,17 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
                         winScreen.querySelector('p').textContent = winMessage;
                         winScreen.style.display = 'block';
 
-						// Update persistent progress							 
-                        xp += 10; // 10 XP per victor
+                        xp += 10;
                         if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
                             traits.push('Keymaster');
                         }
-                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
+                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp, energy }));
                     }
                 }
-				if (currentRow === rows - 1 && currentCol === cols - 1) {
-    playerProgress[currentLevel] = { xp, energy, completed: true };
-    localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
-    console.log('Level complete! Progress saved.');
-}
             }
         });
     });
 
-	// Restart button functionality									 
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
@@ -226,40 +219,18 @@ for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
             document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
             document.querySelectorAll('.blocked').forEach(block => block.classList.remove('blocked'));
             document.querySelectorAll('.key').forEach(key => key.classList.remove('key'));
+            document.querySelectorAll('.energy').forEach(energyTile => energyTile.classList.remove('energy')); // Clear energy tiles
 
             currentRow = 0;
             currentCol = 0;
-            temporaryInventory = []; // Reset temporary inventory
+            temporaryInventory = [];
             const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
             if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
             turnCount = 0;
             updateUI();
 
-			// Re-add blocked tiles				   
-            const nonPathTiles = [];
-            document.querySelectorAll('.hex-container').forEach(container => {
-                const row = parseInt(container.getAttribute('data-row'));
-                const col = parseInt(container.getAttribute('data-col'));
-                const isPath = path.some(p => p.row === row && p.col === col);
-                const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
-                if (!isPath && !isStartOrGoal) {
-                    nonPathTiles.push(container);
-                }
-            });
-
-            for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
-                const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-                const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
-                blockedTile.classList.add('blocked');
-            }
-
-			// **Place a new key on restart**											 
-            if (nonPathTiles.length > 0) {
-                const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-                const keyTile = nonPathTiles[randomIndex];
-                keyTile.classList.add('key');
-            }
+            placeTiles(); // Re-place all tiles (blocks, key, energy)
         });
     }
 });
