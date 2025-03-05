@@ -273,6 +273,23 @@ document.querySelectorAll('.hex-container').forEach(container => {
                             observationsMade: playerProgress.observationsMade
                         }));
                     }
+					    // Show the stats window
+    const statsWindow = document.getElementById('stats-window');
+    if (statsWindow) {
+        // Calculate breakdown of observed tile types
+        const typeCounts = {};
+        playerProgress.observedTypes.forEach(type => {
+            typeCounts[type] = (typeCounts[type] || 0) + 1;
+        });
+        const observedTypesText = Object.entries(typeCounts)
+            .map(([type, count]) => `${type}: ${count}`)
+            .join(', ');
+
+        // Populate the stats
+        document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
+        document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
+        document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
+        statsWindow.style.display = 'block';
                 }
             });
         });
