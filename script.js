@@ -7,21 +7,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowOffset = hexHeight * 0.75;
     const colOffset = hexVisualWidth;
 
-    // Load persistent progress or initialize with energy
+    // Calculate starting energy based on grid size
+    const startingEnergy = 5 * (rows + cols - 2);
+    let energy = startingEnergy; // Energy is a per-level resource, not persistent
+
+    // Load persistent progress (energy is no longer part of playerProgress)
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
         stats: { movementRange: 1, luck: 0 },
         traits: [],
         persistentInventory: [],
-        xp: 0,
-        energy: 0 // Add energy to track it
+        xp: 0
     };
-    let { stats, traits, persistentInventory, xp, energy } = playerProgress;
+    let { stats, traits, persistentInventory, xp } = playerProgress;
+
     let temporaryInventory = [];
 
     // Calculate total grid dimensions
     const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
     const totalHeight = (rows - 1) * rowOffset + hexHeight;
-    grid.style.width = `${totalWidth}px`; // Fixed string interpolation
+    grid.style.width = `${totalWidth}px`;
     grid.style.height = `${totalHeight}px`;
     grid.style.position = 'relative';
 
@@ -98,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Place key
         if (nonPathTiles.length > 0) {
             const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-            const keyTile = nonPathTiles.splice(randomIndex, 1)[0]; // Remove from available tiles
+            const keyTile = nonPathTiles.splice(randomIndex, 1)[0];
             keyTile.classList.add('key');
         }
 
@@ -124,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const traitsDisplay = document.getElementById('traits-display');
     const tempInventoryDisplay = document.getElementById('temp-inventory-display');
     const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
-    const energyDisplay = document.getElementById('energy-display'); // New energy display element
+    const energyDisplay = document.getElementById('energy-display');
 
     // Initial UI update
     updateUI();
@@ -152,12 +156,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateUI() {
-        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`; // Fixed string syntax
+        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
         if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp}`;
         if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
         if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
         if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
-        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`; // Display energy
+        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
     }
 
     document.querySelectorAll('.hex-container').forEach(container => {
@@ -170,7 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const isBlocked = container.classList.contains('blocked');
 
             if (isAdjacent && !isBlocked) {
-                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`); // Fixed quotes
+                // Deduct 1 energy per move
+                energy -= 1;
+
+                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                 currentHex.querySelector('.character').style.display = 'none';
 
                 currentRow = clickedRow;
@@ -203,7 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
                             traits.push('Keymaster');
                         }
-                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp, energy }));
+                        // Save progress without energy
+                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
                     }
                 }
             }
@@ -219,11 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
             document.querySelectorAll('.blocked').forEach(block => block.classList.remove('blocked'));
             document.querySelectorAll('.key').forEach(key => key.classList.remove('key'));
-            document.querySelectorAll('.energy').forEach(energyTile => energyTile.classList.remove('energy')); // Clear energy tiles
+            document.querySelectorAll('.energy').forEach(energyTile => energyTile.classList.remove('energy'));
 
             currentRow = 0;
             currentCol = 0;
             temporaryInventory = [];
+            energy = startingEnergy; // Reset energy on restart
+
             const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
             if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
