@@ -12,14 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const grid = document.querySelector('.grid');
         grid.innerHTML = '';  // Clear existing grid
 
-        // Calculate total grid dimensions
         const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
         const totalHeight = (rows - 1) * rowOffset + hexHeight;
         grid.style.width = `${totalWidth}px`;
         grid.style.height = `${totalHeight}px`;
         grid.style.position = 'relative';
 
-        // Generate the grid
         for (let row = 0; row < rows; row++) {
             const hexRow = document.createElement('div');
             hexRow.classList.add('hex-row');
@@ -125,6 +123,52 @@ document.addEventListener('DOMContentLoaded', () => {
         temporaryInventory = [];
         turnCount = 0;
         updateUI();
+
+        // Attach movement logic to the new grid
+        document.querySelectorAll('.hex-container').forEach(container => {
+            container.addEventListener('click', () => {
+                const clickedRow = parseInt(container.getAttribute('data-row'));
+                const clickedCol = parseInt(container.getAttribute('data-col'));
+                const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
+                const isAdjacent = adjacentTiles.some(tile => tile.row === clickedRow && tile.col === clickedCol);
+                const isBlocked = container.classList.contains('blocked');
+
+                if (isAdjacent && !isBlocked) {
+                    energy -= 1;
+                    const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                    currentHex.querySelector('.character').style.display = 'none';
+                    currentRow = clickedRow;
+                    currentCol = clickedCol;
+                    container.querySelector('.character').style.display = 'block';
+
+                    if (container.classList.contains('key')) {
+                        temporaryInventory.push('key');
+                        container.classList.remove('key');
+                    }
+                    if (container.classList.contains('energy')) {
+                        energy += 5;
+                        container.classList.remove('energy');
+                    }
+
+                    turnCount++;
+                    updateUI();
+
+                    if (currentRow === rows - 1 && currentCol === cols - 1) {
+                        const winScreen = document.getElementById('win-screen');
+                        if (winScreen) {
+                            const winMessage = temporaryInventory.includes('key') ? 'Victory with key!' : 'Victory!';
+                            winScreen.querySelector('p').textContent = winMessage;
+                            winScreen.style.display = 'block';
+                            xp += 10;
+                            if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
+                                traits.push('Keymaster');
+                            }
+                            localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
+                        }
+                    }
+                }
+            });
+        });
     }
 
     // Initial game start
@@ -147,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
     }
 
-    // Movement logic
+    // Movement logic variables
     let currentRow = 0;
     let currentCol = 0;
     function getAdjacentTiles(row, col) {
@@ -163,58 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
 
-    document.querySelectorAll('.hex-container').forEach(container => {
-        container.addEventListener('click', () => {
-            const clickedRow = parseInt(container.getAttribute('data-row'));
-            const clickedCol = parseInt(container.getAttribute('data-col'));
-            const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-            const isAdjacent = adjacentTiles.some(tile => tile.row === clickedRow && tile.col === clickedCol);
-            const isBlocked = container.classList.contains('blocked');
-
-            if (isAdjacent && !isBlocked) {
-                energy -= 1;
-                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
-                currentHex.querySelector('.character').style.display = 'none';
-                currentRow = clickedRow;
-                currentCol = clickedCol;
-                container.querySelector('.character').style.display = 'block';
-
-                if (container.classList.contains('key')) {
-                    temporaryInventory.push('key');
-                    container.classList.remove('key');
-                }
-                if (container.classList.contains('energy')) {
-                    energy += 5;
-                    container.classList.remove('energy');
-                }
-
-                turnCount++;
-                updateUI();
-
-                if (currentRow === rows - 1 && currentCol === cols - 1) {
-                    const winScreen = document.getElementById('win-screen');
-                    if (winScreen) {
-                        const winMessage = temporaryInventory.includes('key') ? 'Victory with key!' : 'Victory!';
-                        winScreen.querySelector('p').textContent = winMessage;
-                        winScreen.style.display = 'block';
-                        xp += 10;
-                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
-                            traits.push('Keymaster');
-                        }
-                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
-                    }
-                }
-            }
-        });
-    });
-
     // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
     if (resizeBtn) {
         resizeBtn.addEventListener('click', () => {
             const newRows = parseInt(document.getElementById('rows-input').value);
             const newCols = parseInt(document.getElementById('cols-input').value);
-            if (newRows >= 3 && newRows <= 20 && newCols >= 3 && newCols <= 20) {
+            if (newRows >= 3 && newCols >= 3 && newRows <= 20 && newCols <= 20) {
                 rows = newRows;
                 cols = newCols;
                 startGame();
