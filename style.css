@@ -142,18 +142,39 @@ body {
     fill: gray; /* Or any distinct color */
 }
 
-.hex-container.zoe svg path{
-    background-color: #ff69b4; /* Pink for Zoe */
+.hex-container.zoe svg path {
+    fill: #ff69b4; /* Bright pink fill */
+    stroke: #ff1493; /* Darker pink border */
+    stroke-width: 4; /* Thicker border */
+    filter: drop-shadow(0 0 5px #ff69b4); /* Soft pink glow */
 }
-.hex-container.goal-visible {
-    background-color: #ffd700; /* Gold for visible goal */
+
+.hex-container.zoe::after {
+    content: '✨'; /* Sparkle symbol */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #fff; /* White for contrast */
+    z-index: 1;
 }
+
 .hex-container.unexplored {
     opacity: 0.3; /* Fog of war */
 }
 
-.goal svg path {
-    fill: gold; /* If you want the hexagon itself to be golden */
+.hex-container.goal svg path {
+    fill: #3498db; /* Matches normal tiles */
+    stroke: #2c3e50; /* Same border as normal tiles */
+    stroke-width: 3;
+}
+
+.hex-container.goal-visible svg path {
+    fill: gold; /* Golden when Zoe is found */
+    stroke: #ffd700; /* Bright gold border */
+    stroke-width: 4; /* Thicker border */
+    filter: drop-shadow(0 0 5px gold); /* Golden glow */
 }
 
 svg {
