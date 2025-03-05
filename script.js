@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // **New Function: Create tileData array**
     function createTileData(rows, cols) {
         const tileData = [];
         for (let row = 0; row < rows; row++) {
@@ -57,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return tileData;
     }
 
-    // **New Function: Identify non-path positions**
     function getNonPathPositions(rows, cols) {
         const path = [];
         for (let col = 0; col < cols; col++) path.push({ row: 0, col });
@@ -76,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return nonPathPositions;
     }
 
-    // **Updated Function: Place tiles using tileData**
     function placeTiles(tileData, rows, cols) {
         tileData[rows - 1][cols - 1].type = 'goal';
         let nonPathPositions = getNonPathPositions(rows, cols);
@@ -110,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // **Updated Function: Build grid using tileData**
     function buildGrid(rows, cols, tileData) {
         const grid = document.querySelector('.grid');
         grid.innerHTML = '';
@@ -163,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // **Updated Function: Start or restart the game**
     function startGame() {
         const tileData = createTileData(rows, cols);
         placeTiles(tileData, rows, cols);
@@ -192,61 +187,63 @@ document.addEventListener('DOMContentLoaded', () => {
             highlightTiles('observe');
         });
 
-document.querySelectorAll('.hex-container').forEach(container => {
-    container.addEventListener('click', () => {
-        const clickedRow = parseInt(container.getAttribute('data-row'));
-        const clickedCol = parseInt(container.getAttribute('data-col'));
-        const tile = tileData[clickedRow][clickedCol];
-        const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-        const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
-        const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
+        document.querySelectorAll('.hex-container').forEach(container => {
+            container.addEventListener('click', () => {
+                const clickedRow = parseInt(container.getAttribute('data-row'));
+                const clickedCol = parseInt(container.getAttribute('data-col'));
+                const tile = tileData[clickedRow][clickedCol];
+                const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
+                const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
+                const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
-        if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
-            const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
-            currentHex.querySelector('.character').style.display = 'none';
-            currentRow = clickedRow;
-            currentCol = clickedCol;
-            container.querySelector('.character').style.display = 'block';
+                if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
+                    const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                    currentHex.querySelector('.character').style.display = 'none';
+                    currentRow = clickedRow;
+                    currentCol = clickedCol;
+                    container.querySelector('.character').style.display = 'block';
 
-            if (energy > 0) {
-                energy -= 1;
-            }
+                    if (energy > 0) {
+                        energy -= 1;
+                    }
 
-            if (tile.type === 'key') {
-                temporaryInventory.push('key');
-                tile.type = 'normal';
-                container.classList.remove('key');
-            }
-            if (tile.type === 'energy') {
-                energy += 5;
-                tile.type = 'normal';
-                container.classList.remove('energy');
-            }
+                    if (tile.type === 'key') {
+                        temporaryInventory.push('key');
+                        tile.type = 'normal';
+                        container.classList.remove('key');
+                    }
+                    if (tile.type === 'energy') {
+                        energy += 5;
+                        tile.type = 'normal';
+                        container.classList.remove('energy');
+                    }
 
-            turnCount++;
-            updateUI();
-            highlightTiles(currentAction);
-        } else if (currentAction === 'observe') {
-            const energyCost = isCurrentTile ? 4 : 2;
-            if (energy >= energyCost) {
-                energy -= energyCost;
-                playerProgress.observedTypes.push(tile.type);
-                playerProgress.observationsMade++;
-
-                const feedbackMessage = document.getElementById('feedback-message');
-                feedbackMessage.textContent = `Observed a ${tile.type} tile!`;
-                feedbackMessage.style.display = 'block';
-                setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-
-                if (!isCurrentTile) {
                     turnCount++;
+                    updateUI();
+                    highlightTiles(currentAction);
+                } else if (currentAction === 'observe') {
+                    const energyCost = isCurrentTile ? 4 : 2;
+                    if (energy >= energyCost) {
+                        energy -= energyCost;
+                        playerProgress.observedTypes.push(tile.type);
+                        playerProgress.observationsMade++;
+
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = `Observed a ${tile.type} tile!`;
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+
+                        if (!isCurrentTile) {
+                            turnCount++;
+                        }
+
+                        updateUI();
+                    } else {
+                        console.log("Not enough energy to observe!");
+                    }
                 }
 
-                updateUI();
-            } else {
-                console.log("Not enough energy to observe!");
-            }
-        }
+                // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
@@ -273,29 +270,28 @@ document.querySelectorAll('.hex-container').forEach(container => {
                             observationsMade: playerProgress.observationsMade
                         }));
                     }
-					    // Show the stats window
-    const statsWindow = document.getElementById('stats-window');
-    if (statsWindow) {
-        // Calculate breakdown of observed tile types
-        const typeCounts = {};
-        playerProgress.observedTypes.forEach(type => {
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
-        });
-        const observedTypesText = Object.entries(typeCounts)
-            .map(([type, count]) => `${type}: ${count}`)
-            .join(', ');
 
-        // Populate the stats
-        document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
-        document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
-        document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
-        statsWindow.style.display = 'block';
+                    // Show the stats window
+                    const statsWindow = document.getElementById('stats-window');
+                    if (statsWindow) {
+                        const typeCounts = {};
+                        playerProgress.observedTypes.forEach(type => {
+                            typeCounts[type] = (typeCounts[type] || 0) + 1;
+                        });
+                        const observedTypesText = Object.entries(typeCounts)
+                            .map(([type, count]) => `${type}: ${count}`)
+                            .join(', ');
+
+                        document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
+                        document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
+                        document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
+                        statsWindow.style.display = 'block';
+                    }
                 }
             });
         });
     }
 
-    // UI elements and update function
     const turnDisplay = document.getElementById('turn-counter');
     const statsDisplay = document.getElementById('stats-display');
     const traitsDisplay = document.getElementById('traits-display');
@@ -312,7 +308,6 @@ document.querySelectorAll('.hex-container').forEach(container => {
         if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
     }
 
-    // Adjacent tiles calculation
     function getAdjacentTiles(row, col) {
         const isOddRow = row % 2 === 1;
         const adjacent = [
@@ -328,6 +323,15 @@ document.querySelectorAll('.hex-container').forEach(container => {
 
     // Initialize the game
     startGame();
+
+    // Close stats window and restart
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
+        const statsWindow = document.getElementById('stats-window');
+        if (statsWindow) statsWindow.style.display = 'none';
+        const winScreen = document.getElementById('win-screen');
+        if (winScreen) winScreen.style.display = 'none';
+        startGame();
+    });
 
     // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
