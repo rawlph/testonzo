@@ -141,6 +141,16 @@ path {
     z-index: 1;
 }
 
+.hex-container.water svg path {
+    fill: #7bb2e7; /* Dodger blue for a water-like color */
+    stroke: #4682B4; /* Steel blue border */
+    stroke-width: 2;
+}
+
+.hex-container.water:hover path {
+    fill: #5dade2;
+}
+
 .character {
     display: none; /* Hidden by default */
     position: absolute;

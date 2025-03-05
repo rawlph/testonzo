@@ -67,6 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
             tileData[pos.row][pos.col].type = 'blocked';
         }
 
+		  // Add water tiles
+		const waterTileCount = Math.floor(blocksToPlace / 2); // Half as many as blocked tiles
+		for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
+			const pos = nonPathPositions.shift();
+			tileData[pos.row][pos.col].type = 'water';
+		 }
+
         // Place key tile
         if (nonPathPositions.length > 0) {
             const pos = nonPathPositions.shift();
@@ -174,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tile = tileData[clickedRow][clickedCol];
                 const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
                 const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
-                const isBlocked = tile.type === 'blocked';
+                const isBlocked = tile.type === 'blocked' || tile.type === 'water';
 
                 if (isAdjacent && !isBlocked && energy > 0) {
                     energy -= 1;
