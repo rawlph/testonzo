@@ -10,6 +10,37 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRow = 0;
     let currentCol = 0;
 
+    // Player progress and state
+    let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
+        stats: { movementRange: 1, luck: 0 },
+        traits: [],
+        persistentInventory: [],
+        xp: 0,
+        observedTypes: [],
+        observationsMade: 0
+    };
+    let { stats, traits, persistentInventory, xp, observedTypes, observationsMade } = playerProgress;
+    let temporaryInventory = [];
+    let energy = 5 * (rows + cols - 2); // Starting energy
+    let currentAction = null; // 'move' or 'observe'
+
+    // Function to highlight tiles based on the action
+    function highlightTiles(action) {
+        const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
+        document.querySelectorAll('.hex-container').forEach(container => {
+            const row = parseInt(container.getAttribute('data-row'));
+            const col = parseInt(container.getAttribute('data-col'));
+            container.classList.remove('highlight-move', 'highlight-observe');
+            if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
+                container.classList.add('highlight-move');
+            } else if (action === 'observe') {
+                if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
+                    container.classList.add('highlight-observe');
+                }
+            }
+        });
+    }
+
     // **New Function: Create tileData array**
     function createTileData(rows, cols) {
         const tileData = [];
@@ -17,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tileData[row] = [];
             for (let col = 0; col < cols; col++) {
                 tileData[row][col] = {
-                    type: 'normal',    // Default tile type
-                    effects: [],       // Placeholder for future effects
-                    state: 'active'    // Placeholder for future states
+                    type: 'normal',
+                    effects: [],
+                    state: 'active'
                 };
             }
         }
@@ -29,9 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // **New Function: Identify non-path positions**
     function getNonPathPositions(rows, cols) {
         const path = [];
-        // Top row
         for (let col = 0; col < cols; col++) path.push({ row: 0, col });
-        // Rightmost column (excluding top-right corner)
         for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
 
         const nonPathPositions = [];
@@ -49,38 +78,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // **Updated Function: Place tiles using tileData**
     function placeTiles(tileData, rows, cols) {
-        // Set the goal tile
         tileData[rows - 1][cols - 1].type = 'goal';
-
         let nonPathPositions = getNonPathPositions(rows, cols);
-        // Shuffle positions for randomness
         for (let i = nonPathPositions.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
         }
 
         const gridSize = Math.min(rows, cols);
-        // Place blocked tiles
         const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
         for (let i = 0; i < blocksToPlace && nonPathPositions.length > 0; i++) {
             const pos = nonPathPositions.shift();
             tileData[pos.row][pos.col].type = 'blocked';
         }
 
-		  // Add water tiles
-		const waterTileCount = Math.floor(blocksToPlace / 2); // Half as many as blocked tiles
-		for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
-			const pos = nonPathPositions.shift();
-			tileData[pos.row][pos.col].type = 'water';
-		 }
+        const waterTileCount = Math.floor(blocksToPlace / 2);
+        for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
+            const pos = nonPathPositions.shift();
+            tileData[pos.row][pos.col].type = 'water';
+        }
 
-        // Place key tile
         if (nonPathPositions.length > 0) {
             const pos = nonPathPositions.shift();
             tileData[pos.row][pos.col].type = 'key';
         }
 
-        // Place energy tiles
         const energyTileCount = Math.floor(gridSize / 2);
         for (let i = 0; i < energyTileCount && nonPathPositions.length > 0; i++) {
             const pos = nonPathPositions.shift();
@@ -92,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildGrid(rows, cols, tileData) {
         const grid = document.querySelector('.grid');
         grid.innerHTML = '';
-
         const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
         const totalHeight = (rows - 1) * rowOffset + hexHeight;
         grid.style.width = `${totalWidth}px`;
@@ -133,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 character.classList.add('character');
                 hexContainer.appendChild(character);
 
-                // Apply tile type as a class for styling
                 const tileType = tileData[row][col].type;
                 hexContainer.classList.add(tileType);
 
@@ -143,37 +163,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Player progress and state
-    let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
-        stats: { movementRange: 1, luck: 0 },
-        traits: [],
-        persistentInventory: [],
-        xp: 0
-    };
-    let { stats, traits, persistentInventory, xp } = playerProgress;
-    let temporaryInventory = [];
-    let energy = 5 * (rows + cols - 2); // Starting energy
-
     // **Updated Function: Start or restart the game**
     function startGame() {
         const tileData = createTileData(rows, cols);
         placeTiles(tileData, rows, cols);
         buildGrid(rows, cols, tileData);
 
-        // Reset character visibility
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
-        // Reset game state
         currentRow = 0;
         currentCol = 0;
         energy = 5 * (rows + cols - 2);
         temporaryInventory = [];
         turnCount = 0;
+        currentAction = null;
+        highlightTiles(null);
         updateUI();
 
-        // Attach click handlers using tileData
+        document.getElementById('move-btn').addEventListener('click', () => {
+            currentAction = 'move';
+            highlightTiles('move');
+        });
+
+        document.getElementById('observe-btn').addEventListener('click', () => {
+            currentAction = 'observe';
+            highlightTiles('observe');
+        });
+
         document.querySelectorAll('.hex-container').forEach(container => {
             container.addEventListener('click', () => {
                 const clickedRow = parseInt(container.getAttribute('data-row'));
@@ -181,9 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tile = tileData[clickedRow][clickedCol];
                 const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
                 const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
-                const isBlocked = tile.type === 'blocked' || tile.type === 'water';
+                const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
-                if (isAdjacent && !isBlocked && energy > 0) {
+                if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water' && energy > 0) {
                     energy -= 1;
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     currentHex.querySelector('.character').style.display = 'none';
@@ -191,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentCol = clickedCol;
                     container.querySelector('.character').style.display = 'block';
 
-                    // Handle interactions
                     if (tile.type === 'key') {
                         temporaryInventory.push('key');
                         tile.type = 'normal';
@@ -205,27 +222,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     turnCount++;
                     updateUI();
+                    highlightTiles(currentAction);
+                } else if (currentAction === 'observe') {
+                    const energyCost = isCurrentTile ? 2 : 1;
+                    if (energy >= energyCost) {
+                        energy -= energyCost;
+                        playerProgress.observedTypes.push(tile.type);
+                        playerProgress.observationsMade++;
+                        console.log(`Observed a ${tile.type} tile! Energy left: ${energy}`);
+                        updateUI();
+                    } else {
+                        console.log("Not enough energy to observe!");
+                    }
+                }
 
-                    // Check victory condition
-                    if (currentRow === rows - 1 && currentCol === cols - 1) {
-                        const winScreen = document.getElementById('win-screen');
-                        if (winScreen) {
-                            let winMessage = 'Victory! You reached the goal.';
-                            let xpGain = 10;
-                            if (temporaryInventory.includes('key')) {
-                                winMessage = 'Victory! You reached the goal with the key—amazing!';
-                                if (traits.includes('Keymaster')) {
-                                    xpGain += 5; // Bonus XP for Keymaster trait
-                                }
+                if (currentRow === rows - 1 && currentCol === cols - 1) {
+                    const winScreen = document.getElementById('win-screen');
+                    if (winScreen) {
+                        let winMessage = 'Victory! You reached the goal.';
+                        let xpGain = 10;
+                        if (temporaryInventory.includes('key')) {
+                            winMessage = 'Victory! You reached the goal with the key—amazing!';
+                            if (traits.includes('Keymaster')) {
+                                xpGain += 5;
                             }
-                            winScreen.querySelector('p').textContent = winMessage;
-                            winScreen.style.display = 'block';
-                            xp += xpGain;
-                            if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
-                                traits.push('Keymaster');
-                            }
-                            localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
                         }
+                        winScreen.querySelector('p').textContent = winMessage;
+                        winScreen.style.display = 'block';
+                        xp += xpGain;
+                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
+                            traits.push('Keymaster');
+                        }
+                        localStorage.setItem('playerProgress', JSON.stringify({
+                            stats,
+                            traits,
+                            persistentInventory,
+                            xp,
+                            observedTypes: playerProgress.observedTypes,
+                            observationsMade: playerProgress.observationsMade
+                        }));
                     }
                 }
             });
@@ -253,12 +288,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function getAdjacentTiles(row, col) {
         const isOddRow = row % 2 === 1;
         const adjacent = [
-            { row: row - 1, col: col },      // Top
-            { row: row + 1, col: col },      // Bottom
-            { row: row, col: col - 1 },      // Left
-            { row: row, col: col + 1 },      // Right
-            { row: row - 1, col: isOddRow ? col + 1 : col - 1 }, // Top diagonal
-            { row: row + 1, col: isOddRow ? col + 1 : col - 1 }  // Bottom diagonal
+            { row: row - 1, col: col },
+            { row: row + 1, col: col },
+            { row: row, col: col - 1 },
+            { row: row, col: col + 1 },
+            { row: row - 1, col: isOddRow ? col + 1 : col - 1 },
+            { row: row + 1, col: isOddRow ? col + 1 : col - 1 }
         ];
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
@@ -291,9 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 stats: { movementRange: 1, luck: 0 },
                 traits: [],
                 persistentInventory: [],
-                xp: 0
+                xp: 0,
+                observedTypes: [],
+                observationsMade: 0
             };
-            ({ stats, traits, persistentInventory, xp } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, observedTypes, observationsMade } = playerProgress);
             startGame();
         });
     }

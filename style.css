@@ -24,6 +24,22 @@ body {
     margin: 5px 0;
 }
 
+#action-console {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.highlight-move svg path {
+    fill: #90EE90; /* Light green for move */
+}
+
+.highlight-observe svg path {
+    fill: #ADD8E6; /* Light blue for observe */
+}
+
 .admin-tools {
     position: fixed;
     top: 10px;
