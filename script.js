@@ -1,17 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.querySelector('.grid');
-    const rows = 12;
-    const cols = 12;
+    const rows = 22;
+    const cols = 22;
     const hexVisualWidth = 86.6; // Width of the hexagon (point-to-point)
-    const hexHeight = 100;       // Height of the hexagon (flat-to-flat)
+    const hexHeight = 100;  // Height of the hexagon (flat-to-flat)
     const rowOffset = hexHeight * 0.75; // Vertical spacing between rows
-    const colOffset = hexVisualWidth;   // Horizontal spacing between columns
+    const colOffset = hexVisualWidth;  // Horizontal spacing between columns
+
+    // Load persistent progress or initialize
+    let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
+        stats: { movementRange: 1, luck: 0 },
+        traits: [],
+        persistentInventory: [],
+        xp: 0
+    };
+    let { stats, traits, persistentInventory, xp } = playerProgress;
+
+    // Temporary inventory for the level
+    let temporaryInventory = [];
 
     // Calculate total grid dimensions
     const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
     const totalHeight = (rows - 1) * rowOffset + hexHeight;
-
-    // Set grid size for centering
+	// Set grid size for centering							  
     grid.style.width = `${totalWidth}px`;
     grid.style.height = `${totalHeight}px`;
     grid.style.position = 'relative';
@@ -30,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.setAttribute('data-row', row);
             hexContainer.setAttribute('data-col', col);
 
-            // Calculate horizontal position
+			// Calculate horizontal position								
             const isOddRow = row % 2 === 1;
             const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
             const hexLeft = col * colOffset + rowShift;
@@ -39,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hexContainer.style.left = `${hexLeft}px`;
             hexContainer.style.top = '0';
 
-            // Create SVG hexagon
+			// Create SVG hexagon					 
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', hexVisualWidth);
             svg.setAttribute('height', hexHeight);
@@ -49,12 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(path);
             hexContainer.appendChild(svg);
 
-            // Add character placeholder
+			// Add character placeholder (each tile has character by default, shown only by JS			
             const character = document.createElement('div');
             character.classList.add('character');
             hexContainer.appendChild(character);
 
-            // Add 'goal' class to the last tile
+			// Add 'goal' class to the last tile									
             if (row === rows - 1 && col === cols - 1) {
                 hexContainer.classList.add('goal');
             }
@@ -64,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.appendChild(hexRow);
     }
 
-    // Add blocked tiles after grid generation
+    // Add blocked tiles and key
     const gridSize = Math.min(rows, cols);
     const path = [];
     for (let col = 0; col < cols; col++) path.push({ row: 0, col });
@@ -88,49 +99,32 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedTile.classList.add('blocked');
     }
 
-    // **Place the key on a random non-path, non-start, non-goal tile**
     if (nonPathTiles.length > 0) {
         const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
         const keyTile = nonPathTiles[randomIndex];
         keyTile.classList.add('key');
     }
 
-    // Spawn the character at (0,0)
+    // Game state
     const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
-    if (startingHex) {
-        startingHex.querySelector('.character').style.display = 'block';
-    } else {
-        console.error('Starting hexagon not found. Check your grid generation.');
-    }
+    if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
-    // Initialize game state
     let turnCount = 0;
     const turnDisplay = document.getElementById('turn-counter');
-    if (turnDisplay) {
-        turnDisplay.textContent = `Turns: ${turnCount}`;
-    } else {
-        console.error('Turn counter element not found. Add <p id="turn-counter">Turns: 0</p> to your HTML.');
-    }
+    if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
 
     let currentRow = 0;
     let currentCol = 0;
-    let inventory = []; // Array to hold picked up items (e.g., 'key')
 
-    // Function to get adjacent tiles
+	// Function to get adjacent tiles								 
     function getAdjacentTiles(row, col) {
         const adjacent = [];
         const isEvenRow = row % 2 === 0;
-
-        let directions;
-        if (isEvenRow) {
-            directions = [
-                [-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]
-            ];
-        } else {
-            directions = [
-                [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]
-            ];
-        }
+        let directions = isEvenRow ? [
+            [-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]
+        ] : [
+            [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]
+        ];
 
         directions.forEach(([dRow, dCol]) => {
             const newRow = row + dRow;
@@ -142,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return adjacent;
     }
 
-    // Add click listeners for movement
+	// Add click listeners for movement								   
     document.querySelectorAll('.hex-container').forEach(container => {
         container.addEventListener('click', () => {
             const clickedRow = parseInt(container.getAttribute('data-row'));
@@ -160,36 +154,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentCol = clickedCol;
                 container.querySelector('.character').style.display = 'block';
 
-                // **Check if the tile has a key and add it to inventory**
+				// **Check if the tile has a key and add it to inventory**													  
                 if (container.classList.contains('key')) {
-                    inventory.push('key');
+                    temporaryInventory.push('key');
                     container.classList.remove('key');
-                    console.log('Key picked up! Inventory:', inventory);
                 }
 
                 turnCount++;
-                if (turnDisplay) {
-                    turnDisplay.textContent = `Turns: ${turnCount}`;
-                }
+                if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
 
-                // **Updated victory condition with key check**
+				// **victory condition with key check**											   
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
-                        const winMessage = inventory.includes('key') 
+                        const winMessage = temporaryInventory.includes('key') 
                             ? 'Victory! You reached the goal with the key—amazing!' 
                             : 'Victory! You reached the goal.';
                         winScreen.querySelector('p').textContent = winMessage;
                         winScreen.style.display = 'block';
-                    } else {
-                        console.error('Win screen not found. Add <div id="win-screen"><p>Victory!</p><button id="restart-btn">Restart</button></div> to your HTML.');
+
+                        // Update persistent progress
+                        xp += 10; // 10 XP per victory
+                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
+                            traits.push('Keymaster');
+                        }
+                        localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
                     }
                 }
             }
         });
     });
 
-    // Restart button functionality
+	// Restart button functionality		   
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
@@ -202,16 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentRow = 0;
             currentCol = 0;
-            inventory = []; // Reset inventory
+            temporaryInventory = []; // Reset temporary inventory
             const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
-            if (startingHex) {
-                startingHex.querySelector('.character').style.display = 'block';
-            }
+            if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
             turnCount = 0;
             if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
 
-            // Re-add blocked tiles
+			// Re-add blocked tiles		   
             const nonPathTiles = [];
             document.querySelectorAll('.hex-container').forEach(container => {
                 const row = parseInt(container.getAttribute('data-row'));
@@ -229,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 blockedTile.classList.add('blocked');
             }
 
-            // **Place a new key on restart**
+            // **Place a new key on restart**											 
             if (nonPathTiles.length > 0) {
                 const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
                 const keyTile = nonPathTiles[randomIndex];
