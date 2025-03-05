@@ -86,8 +86,22 @@ path {
     fill: #5dade2;
 }
 
-.key {
-    fill: #6633CC; /* Or use a key icon */
+.hex-container.key svg path {
+    fill: #FFD700; /* Gold color for the key tile */
+	stroke: #FFA500; /* Orange border */
+    stroke-width: 4; /* Thicker border */
+    filter: drop-shadow(0 0 5px #FFD700); /* Glow effect */
+}
+
+.hex-container.key::after {
+    content: '🔑'; /* Unicode key symbol */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #000; /* Black for contrast */
+    z-index: 1;
 }
 
 .character {
