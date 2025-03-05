@@ -110,6 +110,23 @@ path {
     z-index: 1;
 }
 
+.hex-container.energy svg path {
+    fill: #00FF00; /* Bright green */
+    stroke: #008800; /* Darker green border */
+    stroke-width: 6;
+}
+
+.hex-container.energy::after {
+    content: '🗲'; /* Unicode lightning symbol */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #000; /* Black for contrast */
+    z-index: 1;
+}
+
 .character {
     display: none; /* Hidden by default */
     position: absolute;

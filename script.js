@@ -104,6 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
         keyTile.classList.add('key');
     }
 
+	const energyTileCount = Math.floor(gridSize / 2); // e.g., 11 for a 22x22 grid
+for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
+    const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+    const energyTile = nonPathTiles.splice(randomIndex, 1)[0];
+    energyTile.classList.add('energy');
+}
+
     // Game state
     const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
     if (startingHex) startingHex.querySelector('.character').style.display = 'block';
@@ -172,6 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     temporaryInventory.push('key');
                     container.classList.remove('key');
                 }
+				// **Check if the tile has Energy and add it to Character**
+				if (container.classList.contains('energy')) {
+					energy += 5; // Gain 5 Energy
+					container.classList.remove('energy'); // Remove tile after collection
+					console.log('Collected Energy! Total:', energy);
+				}
 
                 turnCount++;
                 updateUI();
@@ -194,6 +207,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('playerProgress', JSON.stringify({ stats, traits, persistentInventory, xp }));
                     }
                 }
+				if (currentRow === rows - 1 && currentCol === cols - 1) {
+    playerProgress[currentLevel] = { xp, energy, completed: true };
+    localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+    console.log('Level complete! Progress saved.');
+}
             }
         });
     });
