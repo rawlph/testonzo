@@ -233,4 +233,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 stats: { movementRange: 1, luck: 0 },
                 traits: [],
                 persistentInventory: [],
-                xp
+                xp: 0
+            };
+            ({ stats, traits, persistentInventory, xp } = playerProgress);
+            startGame();
+        });
+    }
+
+    // Restart button
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            const winScreen = document.getElementById('win-screen');
+            if (winScreen) winScreen.style.display = 'none';
+            startGame();
+        });
+    }
+});
