@@ -24,6 +24,20 @@ body {
     margin: 5px 0;
 }
 
+.admin-tools {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+.admin-tools input, .admin-tools button {
+    margin: 5px;
+}
+
 #turn-counter {
     font-size: 18px;
     margin-bottom: 10px; /* Space between turn counter and victory message */
