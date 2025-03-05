@@ -1,16 +1,90 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let rows = 5;  // Initial grid size
+    // Initial grid size and constants
+    let rows = 5;
     let cols = 5;
     const hexVisualWidth = 86.6;
     const hexHeight = 100;
     const rowOffset = hexHeight * 0.75;
     const colOffset = hexVisualWidth;
     let turnCount = 0;
+    let currentRow = 0;
+    let currentCol = 0;
 
-    // Function to build the grid based on rows and cols
-    function buildGrid(rows, cols) {
+    // **New Function: Create tileData array**
+    function createTileData(rows, cols) {
+        const tileData = [];
+        for (let row = 0; row < rows; row++) {
+            tileData[row] = [];
+            for (let col = 0; col < cols; col++) {
+                tileData[row][col] = {
+                    type: 'normal',    // Default tile type
+                    effects: [],       // Placeholder for future effects
+                    state: 'active'    // Placeholder for future states
+                };
+            }
+        }
+        return tileData;
+    }
+
+    // **New Function: Identify non-path positions**
+    function getNonPathPositions(rows, cols) {
+        const path = [];
+        // Top row
+        for (let col = 0; col < cols; col++) path.push({ row: 0, col });
+        // Rightmost column (excluding top-right corner)
+        for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
+
+        const nonPathPositions = [];
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const isPath = path.some(p => p.row === row && p.col === col);
+                const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+                if (!isPath && !isStartOrGoal) {
+                    nonPathPositions.push({ row, col });
+                }
+            }
+        }
+        return nonPathPositions;
+    }
+
+    // **Updated Function: Place tiles using tileData**
+    function placeTiles(tileData, rows, cols) {
+        // Set the goal tile
+        tileData[rows - 1][cols - 1].type = 'goal';
+
+        let nonPathPositions = getNonPathPositions(rows, cols);
+        // Shuffle positions for randomness
+        for (let i = nonPathPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
+        }
+
+        const gridSize = Math.min(rows, cols);
+        // Place blocked tiles
+        const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
+        for (let i = 0; i < blocksToPlace && nonPathPositions.length > 0; i++) {
+            const pos = nonPathPositions.shift();
+            tileData[pos.row][pos.col].type = 'blocked';
+        }
+
+        // Place key tile
+        if (nonPathPositions.length > 0) {
+            const pos = nonPathPositions.shift();
+            tileData[pos.row][pos.col].type = 'key';
+        }
+
+        // Place energy tiles
+        const energyTileCount = Math.floor(gridSize / 2);
+        for (let i = 0; i < energyTileCount && nonPathPositions.length > 0; i++) {
+            const pos = nonPathPositions.shift();
+            tileData[pos.row][pos.col].type = 'energy';
+        }
+    }
+
+    // **Updated Function: Build grid using tileData**
+    function buildGrid(rows, cols, tileData) {
         const grid = document.querySelector('.grid');
-        grid.innerHTML = '';  // Clear existing grid
+        grid.innerHTML = '';
 
         const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
         const totalHeight = (rows - 1) * rowOffset + hexHeight;
@@ -52,9 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 character.classList.add('character');
                 hexContainer.appendChild(character);
 
-                if (row === rows - 1 && col === cols - 1) {
-                    hexContainer.classList.add('goal');
-                }
+                // Apply tile type as a class for styling
+                const tileType = tileData[row][col].type;
+                hexContainer.classList.add(tileType);
 
                 hexRow.appendChild(hexContainer);
             }
@@ -62,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Load persistent progress or initialize
+    // Player progress and state
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
         stats: { movementRange: 1, luck: 0 },
         traits: [],
@@ -70,75 +144,39 @@ document.addEventListener('DOMContentLoaded', () => {
         xp: 0
     };
     let { stats, traits, persistentInventory, xp } = playerProgress;
-
     let temporaryInventory = [];
-    let energy = 5 * (rows + cols - 2);  // Starting energy
+    let energy = 5 * (rows + cols - 2); // Starting energy
 
-    // Function to place tiles (blocked, key, energy)
-    function placeTiles() {
-        const path = [];
-        for (let col = 0; col < cols; col++) path.push({ row: 0, col });
-        for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
-
-        const nonPathTiles = [];
-        document.querySelectorAll('.hex-container').forEach(container => {
-            const row = parseInt(container.getAttribute('data-row'));
-            const col = parseInt(container.getAttribute('data-col'));
-            const isPath = path.some(p => p.row === row && p.col === col);
-            const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
-            if (!isPath && !isStartOrGoal) {
-                nonPathTiles.push(container);
-            }
-        });
-
-        const gridSize = Math.min(rows, cols);
-        const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
-        for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
-            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-            const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
-            blockedTile.classList.add('blocked');
-        }
-
-        if (nonPathTiles.length > 0) {
-            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-            const keyTile = nonPathTiles.splice(randomIndex, 1)[0];
-            keyTile.classList.add('key');
-        }
-
-        const energyTileCount = Math.floor(gridSize / 2);
-        for (let i = 0; i < energyTileCount && nonPathTiles.length > 0; i++) {
-            const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-            const energyTile = nonPathTiles.splice(randomIndex, 1)[0];
-            energyTile.classList.add('energy');
-        }
-    }
-
-    // Function to start or restart the game
+    // **Updated Function: Start or restart the game**
     function startGame() {
-    buildGrid(rows, cols);
-    placeTiles();
-    // Hide all characters to ensure only one is visible
-    document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
-    const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
-    if (startingHex) startingHex.querySelector('.character').style.display = 'block';
-    // Reset current position
-    currentRow = 0;
-    currentCol = 0;
-    energy = 5 * (rows + cols - 2);  // Reset energy
-    temporaryInventory = [];
-    turnCount = 0;
-    updateUI();
+        const tileData = createTileData(rows, cols);
+        placeTiles(tileData, rows, cols);
+        buildGrid(rows, cols, tileData);
 
-        // Attach movement logic to the new grid
+        // Reset character visibility
+        document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
+        const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
+        if (startingHex) startingHex.querySelector('.character').style.display = 'block';
+
+        // Reset game state
+        currentRow = 0;
+        currentCol = 0;
+        energy = 5 * (rows + cols - 2);
+        temporaryInventory = [];
+        turnCount = 0;
+        updateUI();
+
+        // Attach click handlers using tileData
         document.querySelectorAll('.hex-container').forEach(container => {
             container.addEventListener('click', () => {
                 const clickedRow = parseInt(container.getAttribute('data-row'));
                 const clickedCol = parseInt(container.getAttribute('data-col'));
+                const tile = tileData[clickedRow][clickedCol];
                 const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-                const isAdjacent = adjacentTiles.some(tile => tile.row === clickedRow && tile.col === clickedCol);
-                const isBlocked = container.classList.contains('blocked');
+                const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
+                const isBlocked = tile.type === 'blocked';
 
-                if (isAdjacent && !isBlocked) {
+                if (isAdjacent && !isBlocked && energy > 0) {
                     energy -= 1;
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     currentHex.querySelector('.character').style.display = 'none';
@@ -146,25 +184,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentCol = clickedCol;
                     container.querySelector('.character').style.display = 'block';
 
-                    if (container.classList.contains('key')) {
+                    // Handle interactions
+                    if (tile.type === 'key') {
                         temporaryInventory.push('key');
+                        tile.type = 'normal';
                         container.classList.remove('key');
                     }
-                    if (container.classList.contains('energy')) {
+                    if (tile.type === 'energy') {
                         energy += 5;
+                        tile.type = 'normal';
                         container.classList.remove('energy');
                     }
 
                     turnCount++;
                     updateUI();
 
+                    // Check victory condition
                     if (currentRow === rows - 1 && currentCol === cols - 1) {
                         const winScreen = document.getElementById('win-screen');
                         if (winScreen) {
-                            const winMessage = temporaryInventory.includes('key') ? 'Victory with key!' : 'Victory!';
+                            let winMessage = 'Victory! You reached the goal.';
+                            let xpGain = 10;
+                            if (temporaryInventory.includes('key')) {
+                                winMessage = 'Victory! You reached the goal with the key—amazing!';
+                                if (traits.includes('Keymaster')) {
+                                    xpGain += 5; // Bonus XP for Keymaster trait
+                                }
+                            }
                             winScreen.querySelector('p').textContent = winMessage;
                             winScreen.style.display = 'block';
-                            xp += 10;
+                            xp += xpGain;
                             if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
                                 traits.push('Keymaster');
                             }
@@ -176,9 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    
-
-    // UI elements
+    // UI elements and update function
     const turnDisplay = document.getElementById('turn-counter');
     const statsDisplay = document.getElementById('stats-display');
     const traitsDisplay = document.getElementById('traits-display');
@@ -195,9 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
     }
 
-    // Movement logic variables
-    let currentRow = 0;
-    let currentCol = 0;
+    // Adjacent tiles calculation
     function getAdjacentTiles(row, col) {
         const isOddRow = row % 2 === 1;
         const adjacent = [
@@ -205,14 +250,15 @@ document.addEventListener('DOMContentLoaded', () => {
             { row: row + 1, col: col },      // Bottom
             { row: row, col: col - 1 },      // Left
             { row: row, col: col + 1 },      // Right
-            { row: row - 1, col: isOddRow ? col + 1 : col - 1 },  // Top diagonal
-            { row: row + 1, col: isOddRow ? col + 1 : col - 1 }   // Bottom diagonal
+            { row: row - 1, col: isOddRow ? col + 1 : col - 1 }, // Top diagonal
+            { row: row + 1, col: isOddRow ? col + 1 : col - 1 }  // Bottom diagonal
         ];
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
-// Initial game start
+
+    // Initialize the game
     startGame();
-	
+
     // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
     if (resizeBtn) {
