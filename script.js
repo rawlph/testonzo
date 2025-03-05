@@ -192,50 +192,61 @@ document.addEventListener('DOMContentLoaded', () => {
             highlightTiles('observe');
         });
 
-        document.querySelectorAll('.hex-container').forEach(container => {
-            container.addEventListener('click', () => {
-                const clickedRow = parseInt(container.getAttribute('data-row'));
-                const clickedCol = parseInt(container.getAttribute('data-col'));
-                const tile = tileData[clickedRow][clickedCol];
-                const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-                const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
-                const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
+document.querySelectorAll('.hex-container').forEach(container => {
+    container.addEventListener('click', () => {
+        const clickedRow = parseInt(container.getAttribute('data-row'));
+        const clickedCol = parseInt(container.getAttribute('data-col'));
+        const tile = tileData[clickedRow][clickedCol];
+        const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
+        const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
+        const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
-                if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water' && energy > 0) {
-                    energy -= 1;
-                    const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
-                    currentHex.querySelector('.character').style.display = 'none';
-                    currentRow = clickedRow;
-                    currentCol = clickedCol;
-                    container.querySelector('.character').style.display = 'block';
+        if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
+            const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
+            currentHex.querySelector('.character').style.display = 'none';
+            currentRow = clickedRow;
+            currentCol = clickedCol;
+            container.querySelector('.character').style.display = 'block';
 
-                    if (tile.type === 'key') {
-                        temporaryInventory.push('key');
-                        tile.type = 'normal';
-                        container.classList.remove('key');
-                    }
-                    if (tile.type === 'energy') {
-                        energy += 5;
-                        tile.type = 'normal';
-                        container.classList.remove('energy');
-                    }
+            if (energy > 0) {
+                energy -= 1;
+            }
 
+            if (tile.type === 'key') {
+                temporaryInventory.push('key');
+                tile.type = 'normal';
+                container.classList.remove('key');
+            }
+            if (tile.type === 'energy') {
+                energy += 5;
+                tile.type = 'normal';
+                container.classList.remove('energy');
+            }
+
+            turnCount++;
+            updateUI();
+            highlightTiles(currentAction);
+        } else if (currentAction === 'observe') {
+            const energyCost = isCurrentTile ? 4 : 2;
+            if (energy >= energyCost) {
+                energy -= energyCost;
+                playerProgress.observedTypes.push(tile.type);
+                playerProgress.observationsMade++;
+
+                const feedbackMessage = document.getElementById('feedback-message');
+                feedbackMessage.textContent = `Observed a ${tile.type} tile!`;
+                feedbackMessage.style.display = 'block';
+                setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+
+                if (!isCurrentTile) {
                     turnCount++;
-                    updateUI();
-                    highlightTiles(currentAction);
-                } else if (currentAction === 'observe') {
-                    const energyCost = isCurrentTile ? 2 : 1;
-                    if (energy >= energyCost) {
-                        energy -= energyCost;
-                        playerProgress.observedTypes.push(tile.type);
-                        playerProgress.observationsMade++;
-                        console.log(`Observed a ${tile.type} tile! Energy left: ${energy}`);
-                        updateUI();
-                    } else {
-                        console.log("Not enough energy to observe!");
-                    }
                 }
 
+                updateUI();
+            } else {
+                console.log("Not enough energy to observe!");
+            }
+        }
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
