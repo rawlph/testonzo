@@ -143,10 +143,10 @@ body {
 }
 
 .hex-container.zoe {
-    background-color: #ff69b4; /* Pink for Zoe */
+    fill: #ff69b4; /* Pink for Zoe */
 }
 .hex-container.goal-visible {
-    background-color: #ffd700; /* Gold for visible goal */
+    fill: #ffd700; /* Gold for visible goal */
 }
 .hex-container.unexplored {
     opacity: 0.3; /* Fog of war */
