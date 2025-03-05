@@ -33,7 +33,7 @@ svg {
 path {
     fill: #3498db;
     stroke: #2c3e50;
-    stroke-width: 4;
+    stroke-width: 3;
 }
 
 .hex-container:hover path {
