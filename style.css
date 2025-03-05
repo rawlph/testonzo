@@ -142,6 +142,16 @@ body {
     fill: gray; /* Or any distinct color */
 }
 
+.hex-container.zoe {
+    background-color: #ff69b4; /* Pink for Zoe */
+}
+.hex-container.goal-visible {
+    background-color: #ffd700; /* Gold for visible goal */
+}
+.hex-container.unexplored {
+    opacity: 0.3; /* Fog of war */
+}
+
 .goal svg path {
     fill: gold; /* If you want the hexagon itself to be golden */
 }

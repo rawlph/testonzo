@@ -17,9 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
         persistentInventory: [],
         xp: 0,
         observedTypes: [],
-        observationsMade: 0
+        observationsMade: 0,
+        hasFoundZoe: false,  // Track if Zoe has been found
+        zoeLevelsCompleted: 0  // Track levels completed with Zoe for traits
     };
-    let { stats, traits, persistentInventory, xp, observedTypes, observationsMade } = playerProgress;
+    let { stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted } = playerProgress;
     let temporaryInventory = [];
     let energy = 5 * (rows + cols - 2); // Starting energy
     let currentAction = null; // 'move' or 'observe'
@@ -39,6 +41,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+    }
+
+    // Vision mechanics: Update visible tiles based on range
+    function updateVision(tileData) {
+        const visionRange = traits.includes('zoeMaster') ? 3 : traits.includes('zoeInitiate') ? 2 : 1;
+        const visibleTiles = getTilesInRange(currentRow, currentCol, visionRange);
+
+        document.querySelectorAll('.hex-container').forEach(container => {
+            const row = parseInt(container.getAttribute('data-row'));
+            const col = parseInt(container.getAttribute('data-col'));
+            if (visibleTiles.some(t => t.row === row && t.col === col)) {
+                container.classList.remove('unexplored');
+            } else {
+                container.classList.add('unexplored');
+            }
+        });
+    }
+
+    // Helper to get tiles within a range (simplified for hex grid)
+    function getTilesInRange(row, col, range) {
+        const tiles = [];
+        for (let r = Math.max(0, row - range); r <= Math.min(rows - 1, row + range); r++) {
+            for (let c = Math.max(0, col - range); c <= Math.min(cols - 1, col + range); c++) {
+                const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
+                if (distance <= range) tiles.push({ row: r, col: c });
+            }
+        }
+        return tiles;
     }
 
     function createTileData(rows, cols) {
@@ -93,6 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
             const pos = nonPathPositions.shift();
             tileData[pos.row][pos.col].type = 'water';
+        }
+
+        // Place Zoe only if not found yet
+        if (!hasFoundZoe) {
+            const zoeRow = 2;
+            const zoeCol = 2;
+            tileData[zoeRow][zoeCol].type = 'zoe';
         }
 
         if (nonPathPositions.length > 0) {
@@ -175,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         turnCount = 0;
         currentAction = null;
         highlightTiles(null);
+        updateVision(tileData); // Initial vision update
         updateUI();
 
         document.getElementById('move-btn').addEventListener('click', () => {
@@ -207,6 +245,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         energy -= 1;
                     }
 
+                    if (tile.type === 'zoe') {
+                        temporaryInventory.push('zoe');
+                        tile.type = 'normal';
+                        container.classList.remove('zoe');
+                        const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
+                        goalTile.classList.add('goal-visible');
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = "You’ve grasped the spark of life, igniting a faint sense of purpose.";
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
+                    }
                     if (tile.type === 'key') {
                         temporaryInventory.push('key');
                         tile.type = 'normal';
@@ -219,10 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     turnCount++;
+                    updateVision(tileData);
                     updateUI();
                     highlightTiles(currentAction);
                 } else if (currentAction === 'observe') {
-                    const energyCost = isCurrentTile ? 4 : 2;
+                    const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
                         playerProgress.observedTypes.push(tile.type);
@@ -247,31 +297,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
-                        let winMessage = 'Victory! You reached the goal.';
-                        let xpGain = 10;
-                        if (temporaryInventory.includes('key')) {
-                            winMessage = 'Victory! You reached the goal with the key—amazing!';
-                            if (traits.includes('Keymaster')) {
-                                xpGain += 5;
+                        let winMessage = 'You reached the goal, but without Zoe, your journey feels incomplete.';
+                        let xpGain = 5;
+                        if (temporaryInventory.includes('zoe')) {
+                            winMessage = 'Victory! You reached the goal with Zoe—amazing!';
+                            xpGain = 10;
+                            playerProgress.hasFoundZoe = true;
+                            playerProgress.zoeLevelsCompleted += 1;
+                            if (playerProgress.zoeLevelsCompleted === 1 && !traits.includes('zoeInitiate')) {
+                                traits.push('zoeInitiate');
+                            } else if (playerProgress.zoeLevelsCompleted === 4 && !traits.includes('zoeAdept')) {
+                                traits.push('zoeAdept');
+                            } else if (playerProgress.zoeLevelsCompleted === 7 && !traits.includes('zoeMaster')) {
+                                traits.push('zoeMaster');
                             }
+                        } else if (temporaryInventory.includes('key')) {
+                            winMessage = 'Victory! You reached the goal with the key.';
+                            xpGain = 10;
+                            if (!traits.includes('Keymaster')) traits.push('Keymaster');
                         }
                         winScreen.querySelector('p').textContent = winMessage;
                         winScreen.style.display = 'block';
                         xp += xpGain;
-                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
-                            traits.push('Keymaster');
-                        }
-                        localStorage.setItem('playerProgress', JSON.stringify({
-                            stats,
-                            traits,
-                            persistentInventory,
-                            xp,
-                            observedTypes: playerProgress.observedTypes,
-                            observationsMade: playerProgress.observationsMade
-                        }));
+                        localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
                     }
 
-                    // Show the stats window
                     const statsWindow = document.getElementById('stats-window');
                     if (statsWindow) {
                         const typeCounts = {};
@@ -281,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const observedTypesText = Object.entries(typeCounts)
                             .map(([type, count]) => `${type}: ${count}`)
                             .join(', ');
-
                         document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
                         document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
                         document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
@@ -360,9 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 persistentInventory: [],
                 xp: 0,
                 observedTypes: [],
-                observationsMade: 0
+                observationsMade: 0,
+                hasFoundZoe: false,
+                zoeLevelsCompleted: 0
             };
-            ({ stats, traits, persistentInventory, xp, observedTypes, observationsMade } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted } = playerProgress);
             startGame();
         });
     }
