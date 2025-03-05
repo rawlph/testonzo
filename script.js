@@ -62,6 +62,38 @@ document.addEventListener('DOMContentLoaded', () => {
             hexRow.appendChild(hexContainer);
         }
         grid.appendChild(hexRow);
+		
+		// After generating the grid (e.g., in your generateGrid function)...
+		const rows = 7; // Example: 7x7 grid
+		const cols = 7;
+		const gridSize = Math.min(rows, cols);
+
+		// Define a simple path from (0,0) to (rows-1, cols-1)
+		const path = [];
+		for (let col = 0; col < cols; col++) path.push({ row: 0, col });
+		for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
+
+		// Get all non-path tiles (excluding start and goal)
+		const nonPathTiles = [];
+		document.querySelectorAll('.hex-container').forEach(container => {
+			const row = parseInt(container.getAttribute('data-row'));
+			const col = parseInt(container.getAttribute('data-col'));
+			const isPath = path.some(p => p.row === row && p.col === col);
+			const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+			if (!isPath && !isStartOrGoal) {
+				nonPathTiles.push(container);
+			}
+});
+
+// Calculate number of blocks
+const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
+
+// Place random blocks
+for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
+    const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+    const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
+    blockedTile.classList.add('blocked');
+}
     }
 
     // Spawn the character at (0,0)
@@ -120,6 +152,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return adjacent;
     }
+// Update movement logic (in your click listener)
+document.querySelectorAll('.hex-container').forEach(container => {
+    container.addEventListener('click', () => {
+        const isAdjacent = /* Your adjacency check */;
+        if (isAdjacent && !container.classList.contains('blocked')) {
+            // Move the character...
+        }
+    });
+});
 
     // Add click listeners to all hexagons
     document.querySelectorAll('.hex-container').forEach(container => {

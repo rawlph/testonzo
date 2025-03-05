@@ -59,6 +59,9 @@ body {
     height: 100px;
 }
 
+.hex-container.blocked svg path {
+    fill: gray; /* Or any distinct color */
+}
 
 .goal svg path {
     fill: gold; /* If you want the hexagon itself to be golden */
