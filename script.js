@@ -88,6 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedTile.classList.add('blocked');
     }
 
+    // **Place the key on a random non-path, non-start, non-goal tile**
+    if (nonPathTiles.length > 0) {
+        const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+        const keyTile = nonPathTiles[randomIndex];
+        keyTile.classList.add('key');
+    }
+
     // Spawn the character at (0,0)
     const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
     if (startingHex) {
@@ -107,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentRow = 0;
     let currentCol = 0;
+    let inventory = []; // Array to hold picked up items (e.g., 'key')
 
     // Function to get adjacent tiles
     function getAdjacentTiles(row, col) {
@@ -152,14 +160,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentCol = clickedCol;
                 container.querySelector('.character').style.display = 'block';
 
+                // **Check if the tile has a key and add it to inventory**
+                if (container.classList.contains('key')) {
+                    inventory.push('key');
+                    container.classList.remove('key');
+                    console.log('Key picked up! Inventory:', inventory);
+                }
+
                 turnCount++;
                 if (turnDisplay) {
                     turnDisplay.textContent = `Turns: ${turnCount}`;
                 }
 
+                // **Updated victory condition with key check**
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
+                        const winMessage = inventory.includes('key') 
+                            ? 'Victory! You reached the goal with the key—amazing!' 
+                            : 'Victory! You reached the goal.';
+                        winScreen.querySelector('p').textContent = winMessage;
                         winScreen.style.display = 'block';
                     } else {
                         console.error('Win screen not found. Add <div id="win-screen"><p>Victory!</p><button id="restart-btn">Restart</button></div> to your HTML.');
@@ -178,9 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
             document.querySelectorAll('.blocked').forEach(block => block.classList.remove('blocked'));
+            document.querySelectorAll('.key').forEach(key => key.classList.remove('key'));
 
             currentRow = 0;
             currentCol = 0;
+            inventory = []; // Reset inventory
             const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
             if (startingHex) {
                 startingHex.querySelector('.character').style.display = 'block';
@@ -205,6 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
                 const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
                 blockedTile.classList.add('blocked');
+            }
+
+            // **Place a new key on restart**
+            if (nonPathTiles.length > 0) {
+                const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+                const keyTile = nonPathTiles[randomIndex];
+                keyTile.classList.add('key');
             }
         });
     }

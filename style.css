@@ -11,6 +11,11 @@ body {
 .game-info {
     margin-top: 20px; /* Adds space between the grid and game info */
     text-align: center; /* Centers the text horizontally */
+	position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
 }
 
 #turn-counter {
@@ -79,6 +84,10 @@ path {
 
 .hex-container:hover path {
     fill: #5dade2;
+}
+
+.key {
+    background-color: #6633CC; /* Or use a key icon */
 }
 
 .character {
