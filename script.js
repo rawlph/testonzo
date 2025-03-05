@@ -115,14 +115,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to start or restart the game
     function startGame() {
-        buildGrid(rows, cols);
-        placeTiles();
-        const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
-        if (startingHex) startingHex.querySelector('.character').style.display = 'block';
-        energy = 5 * (rows + cols - 2);  // Reset energy
-        temporaryInventory = [];
-        turnCount = 0;
-        updateUI();
+    buildGrid(rows, cols);
+    placeTiles();
+    // Hide all characters to ensure only one is visible
+    document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
+    const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
+    if (startingHex) startingHex.querySelector('.character').style.display = 'block';
+    // Reset current position
+    currentRow = 0;
+    currentCol = 0;
+    energy = 5 * (rows + cols - 2);  // Reset energy
+    temporaryInventory = [];
+    turnCount = 0;
+    updateUI();
 
         // Attach movement logic to the new grid
         document.querySelectorAll('.hex-container').forEach(container => {
