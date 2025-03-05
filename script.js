@@ -62,38 +62,30 @@ document.addEventListener('DOMContentLoaded', () => {
             hexRow.appendChild(hexContainer);
         }
         grid.appendChild(hexRow);
-		
-		// After generating the grid (e.g., in your generateGrid function)...
-		const rows = 7; // Example: 7x7 grid
-		const cols = 7;
-		const gridSize = Math.min(rows, cols);
+    }
 
-		// Define a simple path from (0,0) to (rows-1, cols-1)
-		const path = [];
-		for (let col = 0; col < cols; col++) path.push({ row: 0, col });
-		for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
+    // Add blocked tiles after grid generation
+    const gridSize = Math.min(rows, cols);
+    const path = [];
+    for (let col = 0; col < cols; col++) path.push({ row: 0, col });
+    for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
 
-		// Get all non-path tiles (excluding start and goal)
-		const nonPathTiles = [];
-		document.querySelectorAll('.hex-container').forEach(container => {
-			const row = parseInt(container.getAttribute('data-row'));
-			const col = parseInt(container.getAttribute('data-col'));
-			const isPath = path.some(p => p.row === row && p.col === col);
-			const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
-			if (!isPath && !isStartOrGoal) {
-				nonPathTiles.push(container);
-			}
-});
+    const nonPathTiles = [];
+    document.querySelectorAll('.hex-container').forEach(container => {
+        const row = parseInt(container.getAttribute('data-row'));
+        const col = parseInt(container.getAttribute('data-col'));
+        const isPath = path.some(p => p.row === row && p.col === col);
+        const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+        if (!isPath && !isStartOrGoal) {
+            nonPathTiles.push(container);
+        }
+    });
 
-// Calculate number of blocks
-const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
-
-// Place random blocks
-for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
-    const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
-    const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
-    blockedTile.classList.add('blocked');
-}
+    const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
+    for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+        const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
+        blockedTile.classList.add('blocked');
     }
 
     // Spawn the character at (0,0)
@@ -116,79 +108,55 @@ for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
     let currentRow = 0;
     let currentCol = 0;
 
+    // Function to get adjacent tiles
     function getAdjacentTiles(row, col) {
         const adjacent = [];
         const isEvenRow = row % 2 === 0;
 
-        // Define neighbor directions based on row type
         let directions;
         if (isEvenRow) {
             directions = [
-                [-1, -1], // Northwest
-                [-1, 0],  // Northeast
-                [0, -1],  // West
-                [0, 1],   // East
-                [1, -1],  // Southwest
-                [1, 0]    // Southeast
+                [-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]
             ];
         } else {
             directions = [
-                [-1, 0],  // Northwest
-                [-1, 1],  // Northeast
-                [0, -1],  // West
-                [0, 1],   // East
-                [1, 0],   // Southwest
-                [1, 1]    // Southeast
+                [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]
             ];
         }
 
-        // Check each direction and ensure it’s within bounds
         directions.forEach(([dRow, dCol]) => {
             const newRow = row + dRow;
             const newCol = col + dCol;
-            if (newRow >= 0 && newRow < 7 && newCol >= 0 && newCol < 7) {
+            if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
                 adjacent.push({ row: newRow, col: newCol });
             }
         });
         return adjacent;
     }
-// Update movement logic (in your click listener)
-document.querySelectorAll('.hex-container').forEach(container => {
-    container.addEventListener('click', () => {
-        const isAdjacent = /* Your adjacency check */;
-        if (isAdjacent && !container.classList.contains('blocked')) {
-            // Move the character...
-        }
-    });
-});
 
-    // Add click listeners to all hexagons
+    // Add click listeners for movement
     document.querySelectorAll('.hex-container').forEach(container => {
-        container.addEventListener('click', (e) => { // Note: 'e' is defined here
+        container.addEventListener('click', () => {
             const clickedRow = parseInt(container.getAttribute('data-row'));
             const clickedCol = parseInt(container.getAttribute('data-col'));
 
-            // Check if the clicked tile is adjacent
             const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
             const isAdjacent = adjacentTiles.some(tile => tile.row === clickedRow && tile.col === clickedCol);
+            const isBlocked = container.classList.contains('blocked');
 
-            if (isAdjacent) {
-                // Hide the character at the current position
+            if (isAdjacent && !isBlocked) {
                 const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                 currentHex.querySelector('.character').style.display = 'none';
 
-                // Move to the new position
                 currentRow = clickedRow;
                 currentCol = clickedCol;
                 container.querySelector('.character').style.display = 'block';
 
-                // Update turn counter
                 turnCount++;
                 if (turnDisplay) {
                     turnDisplay.textContent = `Turns: ${turnCount}`;
                 }
 
-                // Check for victory
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     const winScreen = document.getElementById('win-screen');
                     if (winScreen) {
@@ -207,15 +175,37 @@ document.querySelectorAll('.hex-container').forEach(container => {
         restartBtn.addEventListener('click', () => {
             const winScreen = document.getElementById('win-screen');
             if (winScreen) winScreen.style.display = 'none';
+
             document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
+            document.querySelectorAll('.blocked').forEach(block => block.classList.remove('blocked'));
+
             currentRow = 0;
             currentCol = 0;
             const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
             if (startingHex) {
                 startingHex.querySelector('.character').style.display = 'block';
             }
+
             turnCount = 0;
             if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+
+            // Re-add blocked tiles
+            const nonPathTiles = [];
+            document.querySelectorAll('.hex-container').forEach(container => {
+                const row = parseInt(container.getAttribute('data-row'));
+                const col = parseInt(container.getAttribute('data-col'));
+                const isPath = path.some(p => p.row === row && p.col === col);
+                const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+                if (!isPath && !isStartOrGoal) {
+                    nonPathTiles.push(container);
+                }
+            });
+
+            for (let i = 0; i < blocksToPlace && nonPathTiles.length > 0; i++) {
+                const randomIndex = Math.floor(Math.random() * nonPathTiles.length);
+                const blockedTile = nonPathTiles.splice(randomIndex, 1)[0];
+                blockedTile.classList.add('blocked');
+            }
         });
     }
 });
