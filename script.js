@@ -171,8 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial game start
-    startGame();
+    
 
     // UI elements
     const turnDisplay = document.getElementById('turn-counter');
@@ -206,7 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
-
+// Initial game start
+    startGame();
+	
     // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
     if (resizeBtn) {
