@@ -142,11 +142,11 @@ body {
     fill: gray; /* Or any distinct color */
 }
 
-.hex-container.zoe {
-    fill: #ff69b4; /* Pink for Zoe */
+.hex-container.zoe svg path{
+    background-color: #ff69b4; /* Pink for Zoe */
 }
 .hex-container.goal-visible {
-    fill: #ffd700; /* Gold for visible goal */
+    background-color: #ffd700; /* Gold for visible goal */
 }
 .hex-container.unexplored {
     opacity: 0.3; /* Fog of war */
