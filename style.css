@@ -180,6 +180,14 @@ body {
     opacity: 0.1; /* Fog of war */
 }
 
+.hex-container.unexplored svg path {
+    animation: shimmer 2s infinite alternate;
+}
+@keyframes shimmer {
+    0% { filter: brightness(1); }
+    100% { filter: brightness(1.2); }
+}
+
 .hex-container.goal svg path {
     fill: #3498db; /* Matches normal tiles */
     stroke: #2c3e50; /* Same border as normal tiles */
