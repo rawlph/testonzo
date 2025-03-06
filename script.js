@@ -215,6 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Level complete—cannot end turn!");
             return;
         }
+		
+		if (movementPoints > 0 || energy > 0) {
+        const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
+        if (!confirmEnd) return; // Player cancels, so do nothing
+    }
         movementPoints = 1; // Reset MP to base value
         turnCount++;
         updateUI();
