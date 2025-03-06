@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
 
-                        if (currentLevelSenser >= 10 && !traits.includes('senser')) {
+                        if (currentLevelsenser >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
                         if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
