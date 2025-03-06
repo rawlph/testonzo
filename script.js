@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
 
-    **// New event listener for rest button**
+   // New event listener for rest button
     document.getElementById('rest-btn').addEventListener('click', rest);
 
     // Initialize the game
