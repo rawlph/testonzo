@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
-                        playerProgress.pokes pokesMade++;
+                        playerProgress.pokes PokesMade++;
                         const feedbackMessage = document.getElementById('feedback-message');
                         feedbackMessage.textContent = `Poked and revealed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';
