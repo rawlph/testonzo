@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Emoji&display=swap');
 /* Deep-Sea Body with Chaotic Background */
 body {
  display: flex;
@@ -255,25 +256,14 @@ body::before {
  100% { opacity: 1; }
 }
 
-/* Unexplored Tiles: Mysterious Fog */
-.hex-container.unexplored {
- opacity: 0.3;
- position: relative;
+.hex-container.unexplored svg path {
+    fill: #001022; /* Dark, deep-sea color */
+    filter: brightness(0.3) blur(2px); /* Dim and misty */
+    transition: filter 0.3s; /* Smooth reveal when explored */
 }
-.hex-container.unexplored::after {
- content: '';
- position: absolute;
- top: 0;
- left: 0;
- width: 100%;
- height: 100%;
- background: radial-gradient(circle, transparent, rgba(0,0,0,0.9));
- animation: fogSwirl 10s infinite ease-in-out;
-}
-@keyframes fogSwirl {
- 0% { transform: rotate(0deg); }
- 50% { transform: rotate(15deg); }
- 100% { transform: rotate(0deg); }
+
+.hex-container.unexplored:hover svg path {
+    filter: brightness(0.5) blur(1px); /* Slight tease on hover */
 }
 
 /* Goal Tiles */
@@ -362,25 +352,27 @@ body::before {
  fill: #5dade2;
 }
 
-/* Character: Glowing Jellyfish Entity */
 .character {
- display: block;
- position: absolute;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%);
- width: 40px;
- height: 40px;
- font-size: 30px;
- color: #00ffcc;
- text-shadow: 0 0 15px #00ffcc;
- content: '🪼'; /* Jellyfish emoji */
- animation: float 3s infinite ease-in-out;
- z-index: 10;
+    display: block; /* Make sure it’s visible */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center it perfectly */
+    width: 40px;
+    height: 40px;
+    font-size: 30px;
+    font-family: 'Noto Emoji', sans-serif; /* Ensure emoji renders */
+    color: #00ffcc; /* Teal glow */
+    text-shadow: 0 0 15px #00ffcc; /* Glowing effect */
+    content: '🪼'; /* Our jellyfish */
+    animation: float 3s infinite ease-in-out; /* Floating animation */
+    z-index: 10; /* Keep it above other elements */
 }
+
+/* Floating animation */
 @keyframes float {
- 0%, 100% { transform: translate(-50%, -50%) translateY(0); }
- 50% { transform: translate(-50%, -50%) translateY(-10px); }
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-10px); }
 }
 
 /* Particle Effects: Floating Bioluminescent Specks */
