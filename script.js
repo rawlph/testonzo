@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to highlight tiles based on the action
     function highlightTiles(action) {
-		console.log(`Highlighting for action: ${action}`);
         const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
@@ -51,10 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
             container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke');
             if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.add('highlight-move');
-				console.log(`Added highlight-move to (${row}, ${col})`);
+                console.log(`Added highlight-move to tile [${row}, ${col}]`);
             } else if (action === 'sense' || action === 'poke') {
                 if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
                     container.classList.add(action === 'sense' ? 'highlight-sense' : 'highlight-poke');
+                    console.log(`Added ${action === 'sense' ? 'highlight-sense' : 'highlight-poke'} to tile [${row}, ${col}]`);
                 }
             }
         });
@@ -220,12 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (movementPoints > 0) {
             const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
-            if (!confirmEnd) return;
+            if (!confirmEnd) return; // Player cancels, so do nothing
         }
-        movementPoints = 1;
+        movementPoints = 1; // Reset MP to base value
         turnCount++;
         updateUI();
-        highlightTiles(null);
+        highlightTiles(null); // Clear highlights
         console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
     }
 
@@ -236,9 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
         if (confirmRest) {
-            energy += 10;
-            movementPoints = 0;
-            endTurn();
+            energy += 10; // Regenerate 10 energy points
+            movementPoints = 0; // Consume all movement points
+            endTurn(); // End the turn
         }
     }
 
@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         placeTiles(tileData, rows, cols);
         buildGrid(rows, cols, tileData);
 
+        // Existing setup code (character placement, UI reset, etc.)
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) startingHex.querySelector('.character').style.display = 'block';
@@ -265,18 +266,21 @@ document.addEventListener('DOMContentLoaded', () => {
         moveCounter = 0;
         hasUsedsenserBonus = false;
         currentAction = null;
-        movementPoints = 1;
+        movementPoints = 1; // Reset MP per turn
         highlightTiles(null);
         updateVision(tileData);
         updateUI();
 
+        // Click event listeners for hex containers
         document.querySelectorAll('.hex-container').forEach(container => {
             container.addEventListener('click', () => {
+                // Check isGameActive FIRST
                 if (!isGameActive) {
                     console.log("Level complete—check your stats!");
-                    return;
+                    return; // Exit immediately if the game is not active
                 }
 
+                // Proceed with normal click handling
                 const clickedRow = parseInt(container.getAttribute('data-row'));
                 const clickedCol = parseInt(container.getAttribute('data-col'));
                 const tile = tileData[clickedRow][clickedCol];
@@ -308,11 +312,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentCol = clickedCol;
                     container.querySelector('.character').style.display = 'block';
 
+                    // Energy deduction
                     if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
                         energy -= 1;
                     }
-                    movementPoints -= 1;
+                    movementPoints -= 1; // Deduct MP
 
+                    // Tile interactions
                     if (tile.type === 'zoe') {
                         temporaryInventory.push('zoe');
                         tile.type = 'normal';
@@ -340,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateVision(tileData);
                     updateUI();
                     highlightTiles(currentAction);
-                } else if (currentAction === 'sense') {
+                } else if (currentAction === 'sense' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
@@ -369,8 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateUI();
                     } else {
                         console.log("Not enough energy to sense!");
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = "Not enough energy to sense!";
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                     }
-                } else if (currentAction === 'poke') {
+                } else if (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
@@ -382,7 +392,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateUI();
                     } else {
                         console.log("Not enough energy to poke!");
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = "Not enough energy to poke!";
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                     }
+                } else {
+                    const feedbackMessage = document.getElementById('feedback-message');
+                    feedbackMessage.textContent = currentAction === 'move' ? 
+                        "You can only move to adjacent, non-blocked tiles!" : 
+                        "You can only sense or poke adjacent tiles or your current tile!";
+                    feedbackMessage.style.display = 'block';
+                    setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                 }
 
                 // Victory condition
@@ -406,30 +427,37 @@ document.addEventListener('DOMContentLoaded', () => {
                             traits.push('explorer');
                         }
 
-                        let xpGain = 10;
-                        if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
-                            playerProgress.hasFoundZoe = true;
-                            playerProgress.zoeLevelsCompleted = 1;
-                            if (!traits.includes('zoeInitiate')) {
-                                traits.push('zoeInitiate');
+                        const winScreen = document.getElementById('win-screen');
+                        if (winScreen) {
+                            let winMessage = 'Victory! You reached the goal.';
+                            let xpGain = 10;
+                            if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
+                                winMessage = 'Victory! You reached the goal with Zoe — amazing!';
+                                playerProgress.hasFoundZoe = true;
+                                playerProgress.zoeLevelsCompleted = 1;
+                                if (!traits.includes('zoeInitiate')) {
+                                    traits.push('zoeInitiate');
+                                }
+                            } else if (playerProgress.hasFoundZoe) {
+                                playerProgress.zoeLevelsCompleted += 1;
+                                if (playerProgress.zoeLevelsCompleted === 4 && !traits.includes('zoeAdept')) {
+                                    traits.push('zoeAdept');
+                                } else if (playerProgress.zoeLevelsCompleted === 7 && !traits.includes('zoeMaster')) {
+                                    traits.push('zoeMaster');
+                                }
                             }
-                        } else if (playerProgress.hasFoundZoe) {
-                            playerProgress.zoeLevelsCompleted += 1;
-                            if (playerProgress.zoeLevelsCompleted === 4 && !traits.includes('zoeAdept')) {
-                                traits.push('zoeAdept');
-                            } else if (playerProgress.zoeLevelsCompleted === 7 && !traits.includes('zoeMaster')) {
-                                traits.push('zoeMaster');
+                            if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
+                                traits.push('Keymaster');
+                                xpGain += 5;
                             }
+                            winScreen.querySelector('p').textContent = winMessage;
+                            winScreen.style.display = 'block';
+                            playerProgress.xp += xpGain;
+                            xp = playerProgress.xp;
+                            playerProgress.traits = traits;
+                            playerProgress.uniquesensedTypes = uniquesensedTypes;
+                            localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
                         }
-                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
-                            traits.push('Keymaster');
-                            xpGain += 5;
-                        }
-                        playerProgress.xp += xpGain;
-                        xp = playerProgress.xp;
-                        playerProgress.traits = traits;
-                        playerProgress.uniquesensedTypes = uniquesensedTypes;
-                        localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
 
                         updateUI();
 
@@ -439,11 +467,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             playerProgress.sensedTypes.forEach(type => {
                                 typeCounts[type] = (typeCounts[type] || 0) + 1;
                             });
-                            const totalTiles = playerProgress.sensedTypes.length;
                             const sensedTypesText = Object.entries(typeCounts)
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
-                            document.getElementById('observed-tiles-stat').textContent = `You observed ${totalTiles} tiles in total (${sensedTypesText || 'None'}).`;
+                            document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
+                            document.getElementById('senses-stat').textContent = `Senses Made: ${playerProgress.sensesMade}`;
+                            document.getElementById('pokes-stat').textContent = `Pokes Made: ${playerProgress.pokesMade}`;
+                            document.getElementById('sensed-types-stat').textContent = `Sensed Types: ${sensedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
                         isGameActive = false; // Lock movement and actions
@@ -475,37 +505,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
 
-    // Button event listeners
+    // Button event listeners (moved outside startGame)
     document.getElementById('move-btn').addEventListener('click', () => {
-		console.log('Move button clicked');
         currentAction = 'move';
         highlightTiles('move');
     });
 
     document.getElementById('sense-btn').addEventListener('click', () => {
-		console.log('sense button clicked');
         currentAction = 'sense';
         highlightTiles('sense');
     });
 
     document.getElementById('poke-btn').addEventListener('click', () => {
-		console.log('poke button clicked');
         currentAction = 'poke';
         highlightTiles('poke');
     });
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
 
+    // New event listener for rest button
     document.getElementById('rest-btn').addEventListener('click', rest);
 
     // Initialize the game
     startGame();
 
-    // Next Level button
-    document.getElementById('next-level-btn').addEventListener('click', () => {
+    // Close stats window and restart
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
         const statsWindow = document.getElementById('stats-window');
         if (statsWindow) statsWindow.style.display = 'none';
-        isGameActive = true;
+        const winScreen = document.getElementById('win-screen');
+        if (winScreen) winScreen.style.display = 'none';
+        isGameActive = true; // Unlock movement for the next level
         startGame();
     });
 

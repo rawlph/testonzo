@@ -39,15 +39,16 @@ body {
     gap: 10px; /* Keeps spacing between buttons */
 }
 
-.highlight-move svg path {
+/* Highlight styles with increased specificity */
+.hex-container.highlight-move svg path {
     fill: #90EE90; /* Light green for move */
 }
 
-.highlight-sense svg path {
+.hex-container.highlight-sense svg path {
     fill: #ADD8E6; /* Light blue for sense */
 }
 
-.highlight-poke svg path {
+.hex-container.highlight-poke svg path {
     fill: #FFA500; /* Orange for poke */
 }
 
