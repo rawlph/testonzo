@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             winScreen.querySelector('p').textContent = winMessage;
                             winScreen.style.display = 'block';
-                            xp += xpGain;
+                            playerProgress.xp += xpGain;
                             playerProgress.traits = traits; // Update traits in playerProgress
                             playerProgress.uniqueObservedTypes = uniqueObservedTypes; // Persist unique types
                             localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
