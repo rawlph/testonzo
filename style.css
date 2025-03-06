@@ -304,217 +304,87 @@ body::before {
 
 .grid {
     position: relative;
-    display: block;
     margin: 20px auto;
+    width: 80%;
+    min-height: 400px;
+    overflow: visible;
 }
 
 .hex-row {
-    position: absolute;
+    position: relative;
 }
 
 .hex-container {
     position: absolute;
-    width: 86.6px;
-    height: 100px;
-    opacity: 1;
+    z-index: 1;
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
-/* Default tile outline */
-.hex-container svg path {
-    stroke: rgba(0, 255, 204, 0.1);
+.hex-container svg {
+    fill: #e0e0e0;
+    stroke: #333;
     stroke-width: 2;
-    animation: pulseOutline 4s infinite ease-in-out;
+    transition: fill 0.3s;
+    pointer-events: none;
 }
 
-/* Normal Tiles */
-.hex-container.normal svg path {
-    fill: #c2a77d;
-    stroke: #8b5e3c;
+.hex-container.empty svg {
+    fill: #f5f5f5;
+}
+
+.hex-container.blocked svg {
+    fill: #888;
+}
+
+.hex-container.water svg {
+    fill: #99ccff;
+}
+
+.hex-container.treasure svg {
+    fill: gold;
+}
+
+.hex-container.goal svg {
+    fill: #8cff8c;
+}
+
+.hex-container.zoe-tile svg,
+.hex-container.zoe svg {
+    fill: #ff99cc;
+}
+
+.hex-container.unexplored svg {
+    fill: #333;
+}
+
+.hex-container.move-highlight svg {
+    fill: #aaffaa;
+    stroke: #00cc00;
     stroke-width: 3;
-    filter: url(#glow-normal);
 }
 
-/* Highlight Styles */
-.hex-container.highlight-move svg path {
-    fill: #00ff7f;
-    filter: url(#glow-highlight-move);
-}
-
-.hex-container.highlight-sense svg path {
-    fill: #00ccff;
-    filter: url(#glow-highlight-sense);
-}
-
-.hex-container.highlight-poke svg path {
-    fill: #ff4500;
-    filter: url(#glow-highlight-poke);
-}
-
-/* Blocked Tiles: Darker coral */
-.hex-container.blocked svg path {
-    fill: #0a1a2a;
-    stroke: #050f15;
-    stroke-width: 4;
-    filter: url(#glow-blocked);
-    animation: coralPulse 6s infinite ease-in-out;
-}
-
-@keyframes coralPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-}
-
-/* Zoe Tile */
-.hex-container.zoe svg path {
-    fill: #ff6cb5;
-    stroke: #ff1493;
-    stroke-width: 4;
-    filter: url(#glow-zoe);
-    animation: zoePulse 2s infinite;
-}
-
-.hex-container.zoe::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    width: 96.6px;
-    height: 110px;
-    border: 2px dashed #ff6cb5;
-    border-radius: 50%;
-    animation: rotateHalo 4s infinite linear;
-}
-
-.hex-container.zoe::after {
-    content: '🌟';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 28px;
-    color: #fff;
-    z-index: 1;
-    animation: sparkle 1s infinite alternate;
-}
-
-@keyframes zoePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes rotateHalo {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes sparkle {
-    0% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-/* Goal Tiles */
-.hex-container.goal svg path {
-    fill: #00ccff;
-    stroke: #006688;
+.hex-container.sense-highlight svg {
+    fill: #aaaaff;
+    stroke: #0000cc;
     stroke-width: 3;
-    filter: url(#glow-goal);
 }
 
-.hex-container.goal-visible svg path {
-    fill: #ffcc00;
-    stroke: #ff9900;
-    stroke-width: 4;
-    filter: url(#glow-goal-visible);
+.hex-container.poke-highlight svg {
+    fill: #ffaaaa;
+    stroke: #cc0000;
+    stroke-width: 3;
 }
 
-/* Key Tile */
-.hex-container.key svg path {
-    fill: #ffd700;
-    stroke: #ff9900;
-    stroke-width: 4;
-    filter: url(#glow-key);
-}
-
-.hex-container.key::after {
-    content: '🗝️';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 26px;
-    color: #000;
-    z-index: 1;
-}
-
-/* Energy Tile */
-.hex-container.energy svg path {
-    fill: #00ff7f;
-    stroke: #009f4d;
-    stroke-width: 6;
-    filter: url(#glow-energy);
-}
-
-.hex-container.energy::after {
-    content: '⚡';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 26px;
-    color: #000;
-    z-index: 1;
-}
-
-/* Water Tiles */
-.hex-container.water svg path {
-    fill: #3fa9f5;
-    stroke: #1b75bc;
-    stroke-width: 2;
-    filter: url(#glow-water);
-    animation: waterWobble 2s infinite;
-}
-
-@keyframes waterWobble {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-}
-
-.hex-container.water:hover path {
-    fill: #5dade2;
-}
-
-/* Character (Jellyfish) */
 .character {
-    display: block;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
     z-index: 10;
-}
-
-.character::before {
-    content: '🪼';
-    font-size: 30px;
-    font-family: 'Noto Emoji', sans-serif;
-    color: #00ffcc;
-    text-shadow: 0 0 15px #00ffcc;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: float 3s infinite ease-in-out;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    font-size: 24px;
+    color: #333;
+    pointer-events: none;
 }
 
 /* ------------------------- Particle Effects ------------------------- */

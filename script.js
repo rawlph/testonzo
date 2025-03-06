@@ -3,8 +3,8 @@ let tileData; // Declare tileData in the outer scope
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
-    const rows = 10;
-    const cols = 10;
+    let rows = 10;
+    let cols = 10;
     const hexHeight = 100;  // Adjust for visual size
     const hexVisualWidth = 86.6;  // Hex width for visual display: 100 * cos(30) * 2
     const colOffset = hexVisualWidth * 0.75;  // 75% of hex width for tight packing
@@ -99,26 +99,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to highlight tiles based on the action
     function highlightTiles(action) {
-        // Remove all highlights first
+        // Clear all highlights first
         document.querySelectorAll('.hex-container').forEach(container => {
             container.classList.remove('move-highlight', 'sense-highlight', 'poke-highlight');
         });
-        
+
         if (!action || !playerTile) return;
-        
-        const range = action === 'move' ? 1 : (traits.includes('senser') && action === 'sense') ? 2 : 1;
+
+        // Get adjacent tiles
+        const range = action === 'sense' && traits.includes('senser') ? 2 : 1;
         const adjacentTiles = getAdjacentTiles(playerTile, range);
-        
-        const highlightClass = `${action}-highlight`;
+
+        // Apply appropriate highlight class based on the action
         adjacentTiles.forEach(tile => {
             if (action === 'move') {
-                // Only highlight empty, non-blocked tiles for movement
-                if (tile.dataset.type !== 'blocked' && tile.dataset.type !== 'water') {
-                    tile.classList.add(highlightClass);
+                // Can't move to blocked tiles or water
+                if (tile.getAttribute('data-type') !== 'blocked' && 
+                    tile.getAttribute('data-type') !== 'water') {
+                    tile.classList.add('move-highlight');
                 }
-            } else {
-                // Highlight all adjacent tiles for sense and poke
-                tile.classList.add(highlightClass);
+            } else if (action === 'sense') {
+                tile.classList.add('sense-highlight');
+            } else if (action === 'poke') {
+                tile.classList.add('poke-highlight');
             }
         });
     }
@@ -161,10 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tileData[row] = [];
             for (let col = 0; col < cols; col++) {
                 tileData[row][col] = {
-                    type: 'normal',
+                    type: 'empty',
                     effects: [],
                     state: 'active',
-                    explored: false
+                    explored: row === 0 && col === 0 ? true : false
                 };
             }
         }
@@ -191,7 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function placeTiles(tileData, rows, cols) {
         tileData[rows - 1][cols - 1].type = 'goal';
+        
         let nonPathPositions = getNonPathPositions(rows, cols);
+        
         for (let i = nonPathPositions.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
@@ -199,34 +204,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const gridSize = Math.min(rows, cols);
         const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
-        for (let i = 0; i < blocksToPlace && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
+        const treasureToPlace = Math.max(1, Math.floor(gridSize / 3));
+        const waterToPlace = Math.max(1, Math.floor(gridSize / 4));
+        
+        for (let i = 0; i < blocksToPlace && i < nonPathPositions.length; i++) {
+            const pos = nonPathPositions[i];
             tileData[pos.row][pos.col].type = 'blocked';
         }
-
-        const waterTileCount = Math.floor(blocksToPlace / 2);
-        for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
+        
+        for (let i = blocksToPlace; i < blocksToPlace + treasureToPlace && i < nonPathPositions.length; i++) {
+            const pos = nonPathPositions[i];
+            tileData[pos.row][pos.col].type = 'treasure';
+        }
+        
+        for (let i = blocksToPlace + treasureToPlace; i < blocksToPlace + treasureToPlace + waterToPlace && i < nonPathPositions.length; i++) {
+            const pos = nonPathPositions[i];
             tileData[pos.row][pos.col].type = 'water';
         }
-
-        if (!playerProgress.hasFoundZoe) {
-            const zoeRow = 2;
-            const zoeCol = 2;
-            tileData[zoeRow][zoeCol].type = 'zoe';
-            nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
+        
+        if (!playerProgress.hasFoundZoe && nonPathPositions.length > blocksToPlace + treasureToPlace + waterToPlace) {
+            const zoeIndex = blocksToPlace + treasureToPlace + waterToPlace + Math.floor(Math.random() * (nonPathPositions.length - blocksToPlace - treasureToPlace - waterToPlace));
+            if (zoeIndex < nonPathPositions.length) {
+                const pos = nonPathPositions[zoeIndex];
+                tileData[pos.row][pos.col].type = 'zoe';
+            }
         }
-
-        if (nonPathPositions.length > 0) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'key';
-        }
-
-        const energyTileCount = Math.floor(gridSize / 2);
-        for (let i = 0; i < energyTileCount && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'energy';
-        }
+        
+        return tileData;
     }
 
     function buildGrid(rows, cols, tileData) {
@@ -236,8 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         grid.innerHTML = '';
-        const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
-        const totalHeight = (rows - 1) * rowOffset + hexHeight;
+        const totalWidth = (cols * colOffset) + hexVisualWidth;
+        const totalHeight = (rows * rowOffset) + hexHeight;
         grid.style.width = `${totalWidth}px`;
         grid.style.height = `${totalHeight}px`;
         grid.style.position = 'relative';
@@ -254,6 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hexContainer.classList.add('hex-container');
                 hexContainer.setAttribute('data-row', row);
                 hexContainer.setAttribute('data-col', col);
+                hexContainer.setAttribute('id', `hex-${row}-${col}`);
+                hexContainer.setAttribute('data-type', tileData[row][col].type);
 
                 const isOddRow = row % 2 === 1;
                 const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
@@ -267,14 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 svg.setAttribute('width', hexVisualWidth);
                 svg.setAttribute('height', hexHeight);
                 svg.setAttribute('viewBox', '0 0 86.6 100');
-                svg.style.overflow = 'visible';
+                svg.style.pointerEvents = 'none'; // Make sure clicks go through to container
+                svg.style.display = 'block'; // Ensure consistent rendering
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
+                path.style.strokeWidth = '2';
+                path.style.stroke = '#333';
                 svg.appendChild(path);
                 hexContainer.appendChild(svg);
 
                 const character = document.createElement('div');
                 character.classList.add('character');
+                character.style.pointerEvents = 'none'; // Make sure clicks go through to container
+                character.style.display = 'none'; // Hide by default
                 hexContainer.appendChild(character);
 
                 const tileType = tileData[row][col].type;
@@ -284,45 +295,123 @@ document.addEventListener('DOMContentLoaded', () => {
                     hexContainer.classList.add('unexplored');
                 }
 
+                hexContainer.addEventListener('click', handleTileClick);
+
                 hexRow.appendChild(hexContainer);
             }
             grid.appendChild(hexRow);
         }
     }
 
+    function generateGrid() {
+        tileData = createTileData(rows, cols);
+        tileData = placeTiles(tileData, rows, cols);
+        buildGrid(rows, cols, tileData);
+    }
+
+    function initializeGame() {
+        console.log("Initializing game...");
+        
+        isGameActive = true;
+        zoeFound = false;
+        energy = 20;
+        turnCount = 1;
+        movementPoints = 1;
+        currentAction = null;
+        temporaryInventory = [];
+        persistentInventory = [];
+        
+        levelStats = {
+            turns: 1,
+            energyUsed: 0,
+            tilesMoved: 0,
+            tilesSensed: 0,
+            tilesInteracted: 0,
+            restsUsed: 0,
+            zoeFound: false,
+            goalReached: false
+        };
+        
+        const savedProgress = localStorage.getItem('playerProgress');
+        if (savedProgress) {
+            try {
+                playerProgress = JSON.parse(savedProgress);
+                traits = Array.isArray(playerProgress.traits) ? [...playerProgress.traits] : [];
+                console.log("Loaded player progress:", playerProgress);
+            } catch (e) {
+                console.error("Error loading player progress:", e);
+                traits = [];
+            }
+        }
+        
+        generateGrid();
+        
+        let validTiles = Array.from(document.querySelectorAll('.hex-container[data-type="empty"]'));
+        
+        if (validTiles.length === 0) {
+            validTiles = Array.from(document.querySelectorAll('.hex-container'));
+            validTiles = validTiles.filter(tile => 
+                tile.getAttribute('data-type') !== 'blocked' && 
+                tile.getAttribute('data-type') !== 'water'
+            );
+        }
+        
+        if (validTiles.length === 0) {
+            console.error("No valid tiles found for player placement");
+            const startTile = document.getElementById('hex-0-0');
+            if (startTile) {
+                startTile.setAttribute('data-type', 'empty');
+                startTile.className = 'hex-container empty';
+                validTiles = [startTile];
+            }
+        }
+        
+        if (validTiles.length > 0) {
+            playerTile = validTiles[Math.floor(Math.random() * validTiles.length)];
+            const character = playerTile.querySelector('.character');
+            if (character) {
+                character.innerHTML = '<i class="fas fa-user"></i>';
+                character.style.display = 'block';
+            } else {
+                const newCharacter = document.createElement('div');
+                newCharacter.className = 'character';
+                newCharacter.innerHTML = '<i class="fas fa-user"></i>';
+                newCharacter.style.pointerEvents = 'none';
+                playerTile.appendChild(newCharacter);
+            }
+            
+            const playerRow = parseInt(playerTile.getAttribute('data-row'));
+            const playerCol = parseInt(playerTile.getAttribute('data-col'));
+            currentRow = playerRow;
+            currentCol = playerCol;
+        }
+        
+        updateFogOfWar();
+        updateUI();
+        
+        const statsWindow = document.getElementById('stats-window');
+        if (statsWindow) statsWindow.style.display = 'none';
+        
+        console.log("Game initialization complete");
+    }
+
     function endTurn() {
-        if (!isGameActive) {
-            console.log("Level complete—cannot end turn!");
-            return;
-        }
-        if (movementPoints > 0) {
-            const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
-            if (!confirmEnd) return;
-        }
+        energy--;
         turnCount++;
+        movementPoints = 1; // Reset movement points
         levelStats.turns++;
         
-        movementPoints = stats.movementRange;
-        highlightTiles(null);
-        currentAction = null;
+        updateUI();
         
-        // Energy cost per turn
-        energy -= 1;
-        levelStats.energyUsed += 1;
+        currentAction = null;
+        highlightTiles(null);
         
         if (energy <= 0) {
             showLoseScreen();
-            return;
         }
-        
-        updateUI();
     }
 
     function rest() {
-        if (!isGameActive) {
-            console.log("Level complete—cannot rest!");
-            return;
-        }
         const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
         if (confirmRest) {
             turnCount++;
@@ -332,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             energy += 2;
             if (traits.includes('explorer')) energy += 1;
             
-            movementPoints = stats.movementRange;
+            movementPoints = 1;
             highlightTiles(null);
             currentAction = null;
             
@@ -361,152 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameActive = false;
     }
 
-    function initializeGame() {
-        console.log("Initializing game...");
-        
-        // Reset game state
-        isGameActive = true;
-        zoeFound = false;
-        energy = 20;
-        turnCount = 1;
-        movementPoints = 1;
-        currentAction = null;
-        temporaryInventory = [];
-        persistentInventory = [];
-        
-        // Initialize level stats
-        levelStats = {
-            turns: 1,
-            energyUsed: 0,
-            tilesMoved: 0,
-            tilesSensed: 0,
-            tilesInteracted: 0,
-            restsUsed: 0,
-            zoeFound: false,
-            goalReached: false
-        };
-        
-        // Load saved progress or initialize new player
-        const savedProgress = localStorage.getItem('playerProgress');
-        if (savedProgress) {
-            try {
-                playerProgress = JSON.parse(savedProgress);
-                traits = Array.isArray(playerProgress.traits) ? [...playerProgress.traits] : [];
-                console.log("Loaded player progress:", playerProgress);
-            } catch (e) {
-                console.error("Error loading player progress:", e);
-                traits = [];
-            }
-        }
-        
-        // Generate the game grid
-        generateGrid();
-        
-        // Place player on a valid tile
-        const validTiles = Array.from(document.querySelectorAll('.hex-container[data-type="empty"]'));
-        if (validTiles.length === 0) {
-            console.error("No valid tiles found for player placement");
-            return;
-        }
-        
-        playerTile = validTiles[Math.floor(Math.random() * validTiles.length)];
-        const character = document.createElement('div');
-        character.className = 'character';
-        character.innerHTML = '<i class="fas fa-user"></i>';
-        playerTile.appendChild(character);
-        
-        // Initialize UI
-        updateFogOfWar();
-        updateUI();
-        
-        // Hide any stats windows
-        const statsWindow = document.getElementById('stats-window');
-        if (statsWindow) statsWindow.style.display = 'none';
-        
-        console.log("Game initialization complete");
-    }
-
-    function generateGrid() {
-        // Create tile data
-        tileData = createTileData(rows, cols);
-        
-        // Clear the existing grid
-        const grid = document.querySelector('.grid');
-        if (!grid) {
-            console.error('Grid element not found in HTML');
-            return;
-        }
-        grid.innerHTML = '';
-        
-        // Set grid dimensions
-        const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
-        const totalHeight = (rows - 1) * rowOffset + hexHeight;
-        grid.style.width = `${totalWidth}px`;
-        grid.style.height = `${totalHeight}px`;
-        grid.style.position = 'relative';
-
-        // Build the hex grid
-        for (let row = 0; row < rows; row++) {
-            const hexRow = document.createElement('div');
-            hexRow.classList.add('hex-row');
-            hexRow.style.position = 'absolute';
-            hexRow.style.top = `${row * rowOffset}px`;
-            hexRow.style.left = '0';
-
-            for (let col = 0; col < cols; col++) {
-                const hexContainer = document.createElement('div');
-                hexContainer.classList.add('hex-container');
-                hexContainer.setAttribute('data-row', row);
-                hexContainer.setAttribute('data-col', col);
-                hexContainer.setAttribute('id', `hex-${row}-${col}`);
-
-                // Position hex
-                const isOddRow = row % 2 === 1;
-                const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
-                const hexLeft = col * colOffset + rowShift;
-
-                hexContainer.style.position = 'absolute';
-                hexContainer.style.left = `${hexLeft}px`;
-                hexContainer.style.top = '0';
-
-                // Create SVG for hex shape
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('width', hexVisualWidth);
-                svg.setAttribute('height', hexHeight);
-                svg.setAttribute('viewBox', '0 0 86.6 100');
-                svg.style.pointerEvents = 'none'; // Make sure clicks go through to container
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
-                svg.appendChild(path);
-                hexContainer.appendChild(svg);
-
-                // Create empty character div
-                const character = document.createElement('div');
-                character.classList.add('character');
-                character.style.pointerEvents = 'none'; // Make sure clicks go through to container
-                hexContainer.appendChild(character);
-
-                // Set tile type from data
-                const tileType = tileData[row][col].type;
-                hexContainer.dataset.type = tileType;
-                hexContainer.classList.add(tileType);
-
-                // Add fog of war if not explored
-                if (!tileData[row][col].explored) {
-                    hexContainer.classList.add('unexplored');
-                }
-
-                // Add explicit click handler to each hex
-                hexContainer.addEventListener('click', handleTileClick);
-
-                hexRow.appendChild(hexContainer);
-            }
-            grid.appendChild(hexRow);
-        }
-        
-        console.log("Grid generated with click handlers attached");
-    }
-
     function updateUI() {
         try {
             if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount || 0}`;
@@ -523,23 +466,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getAdjacentTiles(centerTile, range = 1) {
-        // Get adjacent tiles based on a hex grid structure
         if (!centerTile) return [];
         
         const row = parseInt(centerTile.getAttribute('data-row'));
         const col = parseInt(centerTile.getAttribute('data-col'));
         const adjacent = [];
         
-        // Add tiles in range
         for (let r = row - range; r <= row + range; r++) {
             for (let c = col - range; c <= col + range; c++) {
-                // Skip the center tile
                 if (r === row && c === col) continue;
                 
-                // Skip tiles that are out of range for hex grid
                 if (Math.abs(r - row) + Math.abs(c - col) > range * 2) continue;
                 
-                // Find the tile element
                 const tile = document.querySelector(`.hex-container[data-row="${r}"][data-col="${c}"]`);
                 if (tile) {
                     adjacent.push(tile);
@@ -555,7 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const moveRange = 1; // Standard move range is 1
         const movableTiles = getAdjacentTiles(playerTile, moveRange);
         
-        // Only allow movement to non-blocked tiles
         const validMoveTiles = movableTiles.filter(tile => 
             tile.dataset.type !== 'blocked' && 
             tile.dataset.type !== 'water'
@@ -581,7 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTileClick(event) {
         if (!isGameActive) return;
         
-        // Handle click on hex container
         const container = event.currentTarget;
         if (!container) {
             console.log("No container found for click");
@@ -591,7 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const tileId = container.getAttribute('id');
         console.log(`Clicked on tile ${tileId}`);
         
-        // Handle based on current action
         if (currentAction === 'move') {
             if (container.classList.contains('move-highlight')) {
                 moveToTile(container);
@@ -616,7 +551,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (distance > 1) return; // Cannot move more than 1 tile at once
         
-        // Update player position
         playerTile.querySelector('.character')?.remove();
         playerTile = targetTile;
         const character = document.createElement('div');
@@ -624,28 +558,23 @@ document.addEventListener('DOMContentLoaded', () => {
         character.innerHTML = '<i class="fas fa-user"></i>';
         playerTile.appendChild(character);
         
-        // Update game state
         const energyCost = traits.includes('pathfinder') ? 1 : 2;
         energy -= energyCost;
         levelStats.energyUsed += energyCost;
         movementPoints--;
         levelStats.tilesMoved++;
         
-        // Check for zoe on the tile
         if (targetTile.dataset.type === 'zoe') {
             targetTile.dataset.type = 'empty';
             targetTile.classList.remove('zoe-tile');
             zoeFound = true;
-            // Reveal the goal tile
             const goalTile = document.querySelector('[data-type="goal"]');
             goalTile.classList.add('goal-tile');
             
             levelStats.zoeFound = true;
         }
         
-        // Check for goal on the tile
         if (targetTile.dataset.type === 'goal' && zoeFound) {
-            // Victory!
             levelStats.goalReached = true;
             showVictoryScreen();
             return;
@@ -658,20 +587,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function performSense(targetTile) {
         if (!targetTile || targetTile === playerTile) return;
         
-        // Energy cost
         const energyCost = traits.includes('senser') ? 1 : 2;
         energy -= energyCost;
         levelStats.energyUsed += energyCost;
         levelStats.tilesSensed++;
         
-        // Reveal the tile type
         if (targetTile.dataset.type === 'zoe') {
             targetTile.classList.add('zoe-tile');
         } else if (targetTile.dataset.type === 'goal' && zoeFound) {
             targetTile.classList.add('goal-tile');
         }
         
-        // Clear the action
         currentAction = null;
         highlightTiles(null);
         updateUI();
@@ -680,31 +606,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function performPoke(targetTile) {
         if (!targetTile || targetTile === playerTile) return;
         
-        // Energy cost
         const energyCost = traits.includes('explorer') ? 1 : 2;
         energy -= energyCost;
         levelStats.energyUsed += energyCost;
         levelStats.tilesInteracted++;
         
-        // Interaction effect based on tile type
         if (targetTile.dataset.type === 'zoe') {
-            // Found Zoe by poking!
             targetTile.classList.add('zoe-tile');
             targetTile.dataset.type = 'empty';
             zoeFound = true;
-            // Reveal the goal tile
             const goalTile = document.querySelector('[data-type="goal"]');
             goalTile.classList.add('goal-tile');
             
             levelStats.zoeFound = true;
         } else if (targetTile.dataset.type === 'goal' && zoeFound) {
-            // Victory through poking!
             levelStats.goalReached = true;
             showVictoryScreen();
             return;
         }
         
-        // Clear the action
         currentAction = null;
         highlightTiles(null);
         updateUI();
@@ -722,7 +642,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateFogOfWar() {
-        // Update fog of war based on player position and vision range
         const visionRange = traits.includes('zoeMaster') ? 3 : traits.includes('zoeInitiate') ? 2 : 1;
         const visibleTiles = getTilesInRange(currentRow, currentCol, visionRange);
 
@@ -732,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Button event listeners
     document.getElementById('move-btn')?.addEventListener('click', () => {
         moveAction();
     });
@@ -753,10 +671,8 @@ document.addEventListener('DOMContentLoaded', () => {
         endTurn();
     });
 
-    // Initialize the game
     initializeGame();
 
-    // Next Level button
     const statsWindow = document.getElementById('stats-window');
     statsWindow.addEventListener('click', (e) => {
         if (e.target.id === 'next-level-btn') {
@@ -766,7 +682,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
     if (resizeBtn) {
         resizeBtn.addEventListener('click', () => {
@@ -782,7 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Admin tool: Reset stats
     const resetStatsBtn = document.getElementById('reset-stats-btn');
     if (resetStatsBtn) {
         resetStatsBtn.addEventListener('click', () => {
@@ -798,13 +712,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 sensesMade: 0,
                 pokesMade: 0,
                 
-                // Enhanced generational stats
                 generation: 1,
-                evolutionStage: 'basic', // 'basic', 'aware', 'sentient', 'conscious'
+                evolutionStage: 'basic', 
                 generationHistory: [],
                 ancestralTraits: [],
                 
-                // Game performance metrics
                 levelsCompleted: 0,
                 totalTurns: 0,
                 totalEnergy: 0,
@@ -812,7 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 optimPathRatio: 0,
                 explorationPercentage: 0,
                 
-                // Evolution potential metrics
                 traitAffinities: {
                     explorer: 0,
                     senser: 0,
@@ -826,25 +737,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showVictoryScreen() {
-        // Calculate performance metrics
         const performance = calculatePerformance();
         
-        // Update player progress with this level's stats
-        savePlayerStats(performance);
+        playerProgress.generationalStats.totalTurns += levelStats.turns;
+        playerProgress.generationalStats.totalEnergy += levelStats.energyUsed;
+        playerProgress.generationalStats.totalMoves += levelStats.tilesMoved;
+        playerProgress.generationalStats.totalSenses += levelStats.tilesSensed;
+        playerProgress.generationalStats.totalInteractions += levelStats.tilesInteracted;
+        playerProgress.generationalStats.totalRests += levelStats.restsUsed;
+        playerProgress.generationalStats.levelsCompleted += 1;
         
-        // Create victory overlay
+        playerProgress.evolutionPotential.pathfinderAffinity = 
+            (playerProgress.evolutionPotential.pathfinderAffinity + performance.pathfinderAffinity) / 2;
+        playerProgress.evolutionPotential.senserAffinity = 
+            (playerProgress.evolutionPotential.senserAffinity + performance.senserAffinity) / 2;
+        playerProgress.evolutionPotential.explorerAffinity = 
+            (playerProgress.evolutionPotential.explorerAffinity + performance.explorerAffinity) / 2;
+        
+        if (playerProgress.evolutionPotential.pathfinderAffinity >= 60 && !traits.includes('pathfinder')) {
+            traits.push('pathfinder');
+            playerProgress.traits.push('pathfinder');
+        }
+        
+        if (playerProgress.evolutionPotential.senserAffinity >= 60 && !traits.includes('senser')) {
+            traits.push('senser');
+            playerProgress.traits.push('senser');
+        }
+        
+        if (playerProgress.evolutionPotential.explorerAffinity >= 60 && !traits.includes('explorer')) {
+            traits.push('explorer');
+            playerProgress.traits.push('explorer');
+        }
+        
+        localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+        
         const overlay = document.createElement('div');
         overlay.className = 'overlay';
         
         const victoryBox = document.createElement('div');
         victoryBox.className = 'victory-box';
         
-        // Title
         const title = document.createElement('h2');
         title.textContent = 'Level Complete!';
         victoryBox.appendChild(title);
         
-        // Stats display
         const statsDiv = document.createElement('div');
         statsDiv.className = 'stats-container';
         
@@ -891,7 +827,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statsDiv.innerHTML = statsContent;
         victoryBox.appendChild(statsDiv);
         
-        // Continue button
         const continueBtn = document.createElement('button');
         continueBtn.textContent = 'Continue to Next Level';
         continueBtn.addEventListener('click', () => {
@@ -916,39 +851,5 @@ document.addEventListener('DOMContentLoaded', () => {
             senserAffinity,
             explorerAffinity
         };
-    }
-
-    function savePlayerStats(performance) {
-        playerProgress.generationalStats.totalTurns += levelStats.turns;
-        playerProgress.generationalStats.totalEnergy += levelStats.energyUsed;
-        playerProgress.generationalStats.totalMoves += levelStats.tilesMoved;
-        playerProgress.generationalStats.totalSenses += levelStats.tilesSensed;
-        playerProgress.generationalStats.totalInteractions += levelStats.tilesInteracted;
-        playerProgress.generationalStats.totalRests += levelStats.restsUsed;
-        playerProgress.generationalStats.levelsCompleted += 1;
-        
-        playerProgress.evolutionPotential.pathfinderAffinity = 
-            (playerProgress.evolutionPotential.pathfinderAffinity + performance.pathfinderAffinity) / 2;
-        playerProgress.evolutionPotential.senserAffinity = 
-            (playerProgress.evolutionPotential.senserAffinity + performance.senserAffinity) / 2;
-        playerProgress.evolutionPotential.explorerAffinity = 
-            (playerProgress.evolutionPotential.explorerAffinity + performance.explorerAffinity) / 2;
-        
-        if (playerProgress.evolutionPotential.pathfinderAffinity >= 60 && !traits.includes('pathfinder')) {
-            traits.push('pathfinder');
-            playerProgress.traits.push('pathfinder');
-        }
-        
-        if (playerProgress.evolutionPotential.senserAffinity >= 60 && !traits.includes('senser')) {
-            traits.push('senser');
-            playerProgress.traits.push('senser');
-        }
-        
-        if (playerProgress.evolutionPotential.explorerAffinity >= 60 && !traits.includes('explorer')) {
-            traits.push('explorer');
-            playerProgress.traits.push('explorer');
-        }
-        
-        localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
     }
 });
