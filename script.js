@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 		
-		if (movementPoints > 0 || energy > 0) {
+		if (movementPoints > 0) {
         const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
         if (!confirmEnd) return; // Player cancels, so do nothing
     }

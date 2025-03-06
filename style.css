@@ -6,6 +6,7 @@ body {
     height: 100vh;
     margin: 0;
     background-color: #f0f0f0;
+	padding-bottom: 60px; /* Adds space at the bottom to prevent overlap with .ui-panel */
 }
 
 .ui-panel {
@@ -22,6 +23,20 @@ body {
 }
 .ui-panel p {
     margin: 5px 0;
+}
+
+#game-area {
+    position: relative;
+    display: inline-block; /* Shrinks to fit the grid’s width */
+}
+
+#action-console {
+    position: absolute;
+    bottom: -50px; /* Positions it just below the grid—adjust this as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px; /* Keeps spacing between buttons */
 }
 
 #action-console {
