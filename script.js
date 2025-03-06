@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLevelSenses = 0; // For Explorer trait
     let moveCounter = 0; // For Pathfinder energy cost
     let hasUsedsenserBonus = false; // For senser free reveal
-    let currentAction = null; // 'move' or 'sense'
+    let currentAction = null; // 'move', 'sense', or 'poke'
     let energy = 5 * (rows + cols - 2); // Starting energy
     let movementPoints = 1; // Base MP per turn
 
@@ -25,11 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
         xp: 0,
         sensedTypes: [],
         sensesMade: 0,
+        pokesMade: 0, // Added to track total pokes
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
         uniquesensedTypes: [] // For senser trait
     };
-    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
+    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
     let temporaryInventory = [];
 
     // DOM elements
@@ -46,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
             const col = parseInt(container.getAttribute('data-col'));
-            container.classList.remove('highlight-move', 'highlight-sense');
+            container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke');
             if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.add('highlight-move');
-            } else if (action === 'sense') {
+            } else if (action === 'sense' || action === 'poke') {
                 if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
-                    container.classList.add('highlight-sense');
+                    container.classList.add(action === 'sense' ? 'highlight-sense' : 'highlight-poke');
                 }
             }
         });
@@ -354,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             uniquesensedTypes.push(tile.type);
                         }
                         const feedbackMessage = document.getElementById('feedback-message');
-                        feedbackMessage.textContent = `sensed a ${tile.type} tile!`;
+                        feedbackMessage.textContent = `Sensed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';
                         if (traits.includes('senser') && !hasUsedsenserBonus && !isCurrentTile) {
                             hasUsedsenserBonus = true;
@@ -366,25 +367,27 @@ document.addEventListener('DOMContentLoaded', () => {
                                 uniquesensedTypes.push(adjTile.type);
                             }
                             currentLevelSenses++;
-                            feedbackMessage.textContent += ` Bonus: sensed an adjacent ${adjTile.type} tile for free!`;
+                            feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free!`;
                         }
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                         updateUI();
                     } else {
                         console.log("Not enough energy to sense!");
                     }
+                } else if (currentAction === 'poke') {
+                    const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
+                    if (energy >= energyCost) {
+                        energy -= energyCost;
+                        playerProgress.pokesMade++;
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = `Poked and revealed a ${tile.type} tile!`;
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+                        updateUI();
+                    } else {
+                        console.log("Not enough energy to poke!");
+                    }
                 }
-
- else if (currentAction === 'poke') {
-    if (Math.random() < 0.5) {
-        feedbackMessage.textContent = `You poked and sensed a ${tile.type} tile!`;
-    } else {
-        feedbackMessage.textContent = "You poked but couldn’t sense anything.";
-    }
-    feedbackMessage.style.display = 'block';
-    setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-    // Add energy cost if your game uses that
-}
 
                 // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
@@ -397,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
 
-                        if (currentLevelsenser >= 10 && !traits.includes('senser')) {
+                        if (currentLevelSenses >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
                         if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
@@ -451,7 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
                             document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
-                            document.getElementById('senses-stat').textContent = `Sensed this many times: ${playerProgress.sensesMade}`;
+                            document.getElementById('senses-stat').textContent = `Senses Made: ${playerProgress.sensesMade}`;
+                            document.getElementById('pokes-stat').textContent = `Pokes Made: ${playerProgress.pokesMade}`;
                             document.getElementById('sensed-types-stat').textContent = `Sensed Types: ${sensedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
@@ -494,15 +498,15 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAction = 'sense';
         highlightTiles('sense');
     });
-	
-	document.getElementById('poke-btn').addEventListener('click', () => {
-    currentAction = 'poke';
-    highlightTiles('poke'); // Reuse or tweak highlighting
-});
+
+    document.getElementById('poke-btn').addEventListener('click', () => {
+        currentAction = 'poke';
+        highlightTiles('poke');
+    });
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
 
-   // New event listener for rest button
+    // New event listener for rest button
     document.getElementById('rest-btn').addEventListener('click', rest);
 
     // Initialize the game
@@ -546,11 +550,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 xp: 0,
                 sensedTypes: [],
                 sensesMade: 0,
+                pokesMade: 0, // Reset pokesMade
                 hasFoundZoe: false,
                 zoeLevelsCompleted: 0,
                 uniquesensedTypes: []
             };
-            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
             startGame();
         });
     }

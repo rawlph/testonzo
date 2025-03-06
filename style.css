@@ -244,6 +244,10 @@ path {
     fill: #5dade2;
 }
 
+.highlight-poke svg path {
+    fill: #FFA500; /* Orange for poke */
+}
+
 .character {
     display: none; /* Hidden by default */
     position: absolute;
