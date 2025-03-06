@@ -133,6 +133,7 @@ body {
 
 .grid {
     position: relative;
+	display: block;
 }
 
 .hex-row {

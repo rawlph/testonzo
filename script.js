@@ -226,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
     }
 
-    **// New rest function**
     function rest() {
         if (!isGameActive) {
             console.log("Level complete—cannot rest!");
