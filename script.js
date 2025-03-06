@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCol = 0;
     let currentLevelObservations = 0; // For Explorer trait
     let moveCounter = 0; // For Pathfinder energy cost
-    let hasUsedObserverBonus = false; // For Observer free reveal
-    let currentAction = null; // 'move' or 'observe'
+    let hasUsedsenserBonus = false; // For senser free reveal
+    let currentAction = null; // 'move' or 'sense'
     let energy = 5 * (rows + cols - 2); // Starting energy
     let movementPoints = 1; // Base MP per turn
 
@@ -23,13 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
         traits: [],
         persistentInventory: [],
         xp: 0,
-        observedTypes: [],
+        sensedTypes: [],
         observationsMade: 0,
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
-        uniqueObservedTypes: [] // For Observer trait
+        uniquesensedTypes: [] // For senser trait
     };
-    let { stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniqueObservedTypes } = playerProgress;
+    let { stats, traits, persistentInventory, xp, sensedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
     let temporaryInventory = [];
 
     // DOM elements
@@ -46,12 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
             const col = parseInt(container.getAttribute('data-col'));
-            container.classList.remove('highlight-move', 'highlight-observe');
+            container.classList.remove('highlight-move', 'highlight-sense');
             if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.add('highlight-move');
-            } else if (action === 'observe') {
+            } else if (action === 'sense') {
                 if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
-                    container.classList.add('highlight-observe');
+                    container.classList.add('highlight-sense');
                 }
             }
         });
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         turnCount = 0;
         currentLevelObservations = 0;
         moveCounter = 0;
-        hasUsedObserverBonus = false;
+        hasUsedsenserBonus = false;
         currentAction = null;
         movementPoints = 1; // Reset MP per turn
         highlightTiles(null);
@@ -343,35 +343,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateVision(tileData);
                     updateUI();
                     highlightTiles(currentAction);
-                } else if (currentAction === 'observe') {
+                } else if (currentAction === 'sense') {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
-                        playerProgress.observedTypes.push(tile.type);
+                        playerProgress.sensedTypes.push(tile.type);
                         playerProgress.observationsMade++;
                         currentLevelObservations++;
-                        if (!uniqueObservedTypes.includes(tile.type)) {
-                            uniqueObservedTypes.push(tile.type);
+                        if (!uniquesensedTypes.includes(tile.type)) {
+                            uniquesensedTypes.push(tile.type);
                         }
                         const feedbackMessage = document.getElementById('feedback-message');
-                        feedbackMessage.textContent = `Observed a ${tile.type} tile!`;
+                        feedbackMessage.textContent = `sensed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';
-                        if (traits.includes('observer') && !hasUsedObserverBonus && !isCurrentTile) {
-                            hasUsedObserverBonus = true;
+                        if (traits.includes('senser') && !hasUsedsenserBonus && !isCurrentTile) {
+                            hasUsedsenserBonus = true;
                             const adjacent = getAdjacentTiles(currentRow, currentCol);
                             const randomAdj = adjacent[Math.floor(Math.random() * adjacent.length)];
                             const adjTile = tileData[randomAdj.row][randomAdj.col];
-                            playerProgress.observedTypes.push(adjTile.type);
-                            if (!uniqueObservedTypes.includes(adjTile.type)) {
-                                uniqueObservedTypes.push(adjTile.type);
+                            playerProgress.sensedTypes.push(adjTile.type);
+                            if (!uniquesensedTypes.includes(adjTile.type)) {
+                                uniquesensedTypes.push(adjTile.type);
                             }
                             currentLevelObservations++;
-                            feedbackMessage.textContent += ` Bonus: Observed an adjacent ${adjTile.type} tile for free!`;
+                            feedbackMessage.textContent += ` Bonus: sensed an adjacent ${adjTile.type} tile for free!`;
                         }
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                         updateUI();
                     } else {
-                        console.log("Not enough energy to observe!");
+                        console.log("Not enough energy to sense!");
                     }
                 }
 
@@ -392,8 +392,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
                             traits.push('pathfinder');
                         }
-                        if (uniqueObservedTypes.length >= 5 && !traits.includes('observer')) {
-                            traits.push('observer');
+                        if (uniquesensedTypes.length >= 5 && !traits.includes('senser')) {
+                            traits.push('senser');
                         }
 
                         const winScreen = document.getElementById('win-screen');
@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             playerProgress.xp += xpGain;
                             xp = playerProgress.xp;
                             playerProgress.traits = traits;
-                            playerProgress.uniqueObservedTypes = uniqueObservedTypes;
+                            playerProgress.uniquesensedTypes = uniquesensedTypes;
                             localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
                         }
 
@@ -433,15 +433,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const statsWindow = document.getElementById('stats-window');
                         if (statsWindow) {
                             const typeCounts = {};
-                            playerProgress.observedTypes.forEach(type => {
+                            playerProgress.sensedTypes.forEach(type => {
                                 typeCounts[type] = (typeCounts[type] || 0) + 1;
                             });
-                            const observedTypesText = Object.entries(typeCounts)
+                            const sensedTypesText = Object.entries(typeCounts)
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
                             document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
                             document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
-                            document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
+                            document.getElementById('sensed-types-stat').textContent = `sensed Types: ${sensedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
                         isGameActive = false; // Lock movement and actions
@@ -479,9 +479,9 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightTiles('move');
     });
 
-    document.getElementById('observe-btn').addEventListener('click', () => {
-        currentAction = 'observe';
-        highlightTiles('observe');
+    document.getElementById('sense-btn').addEventListener('click', () => {
+        currentAction = 'sense';
+        highlightTiles('sense');
     });
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
@@ -528,13 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 traits: [],
                 persistentInventory: [],
                 xp: 0,
-                observedTypes: [],
+                sensedTypes: [],
                 observationsMade: 0,
                 hasFoundZoe: false,
                 zoeLevelsCompleted: 0,
-                uniqueObservedTypes: []
+                uniquesensedTypes: []
             };
-            ({ stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniqueObservedTypes } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, sensedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
             startGame();
         });
     }

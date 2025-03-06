@@ -43,8 +43,8 @@ body {
     fill: #90EE90; /* Light green for move */
 }
 
-.highlight-observe svg path {
-    fill: #ADD8E6; /* Light blue for observe */
+.highlight-sense svg path {
+    fill: #ADD8E6; /* Light blue for sense */
 }
 
 .admin-tools {
