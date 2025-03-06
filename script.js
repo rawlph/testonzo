@@ -1,4 +1,5 @@
 let isGameActive = true; // Tracks if the game is active or finished
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
     let rows = 5;
@@ -16,6 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAction = null; // 'move', 'sense', or 'poke'
     let energy = 5 * (rows + cols - 2); // Starting energy
     let movementPoints = 1; // Base MP per turn
+
+function createParticles(count) {
+ const container = document.createElement('div');
+ container.classList.add('particle-container');
+ document.body.appendChild(container);
+ for (let i = 0; i < count; i++) {
+ const particle = document.createElement('div');
+ particle.classList.add('particle');
+ particle.style.left = `${Math.random() * 100}%`;
+ particle.style.animationDuration = `${5 + Math.random() * 8}s`;
+ particle.style.animationDelay = `${Math.random() * 5}s`;
+ container.appendChild(particle);
+ }
+}
+createParticles(25); // Adjust count for more or fewer particles
 
     // Player progress and state
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
