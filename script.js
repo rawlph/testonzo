@@ -207,6 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
+		// Set goal tile visibility based on whether Zoe has been found
+		if (playerProgress.hasFoundZoe) {
+			const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
+			if (goalTile) goalTile.classList.add('goal-visible');
+		}
+
         currentRow = 0;
         currentCol = 0;
         energy = 5 * (rows + cols - 2);
