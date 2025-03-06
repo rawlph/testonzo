@@ -207,7 +207,7 @@ path {
     stroke-width: 3;
 }
 
-.hex-container:hover path {
+.hex-container.normal:hover path {
     fill: #5dade2;
 }
 
