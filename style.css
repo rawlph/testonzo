@@ -449,7 +449,7 @@ path {
 
 .hex-container.unexplored {
     opacity: 0.15; /* Fully invisible */
-    pointer-events: none; /* No interaction with hidden tiles */
+    /* pointer-events: none; */
     transition: opacity 0.3s; /* Smooth reveal */
 }
 
