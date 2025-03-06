@@ -383,10 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             winScreen.querySelector('p').textContent = winMessage;
                             winScreen.style.display = 'block';
                             playerProgress.xp += xpGain;
+							xp = playerProgress.xp;
                             playerProgress.traits = traits; // Update traits in playerProgress
                             playerProgress.uniqueObservedTypes = uniqueObservedTypes; // Persist unique types
                             localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
                         }
+
+updateUI();  // Refresh the UI
 
                         const statsWindow = document.getElementById('stats-window');
                         if (statsWindow) {
