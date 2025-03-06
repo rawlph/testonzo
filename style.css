@@ -32,7 +32,7 @@ body {
 
 #action-console {
     position: absolute;
-    bottom: 20 px; /* Positions it just below the grid—adjust this as needed */
+    bottom: -100px; /* Positions it just below the grid—adjust this as needed */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
