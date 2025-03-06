@@ -32,20 +32,11 @@ body {
 
 #action-console {
     position: absolute;
-    bottom: -100px; /* Positions it just below the grid—adjust this as needed */
+    bottom: -150px; /* Positions it just below the grid—adjust this as needed */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: 10px; /* Keeps spacing between buttons */
-}
-
-#action-console {
-    position: absolute;
-    bottom: 20px; /* Puts it just below the grid */
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 10px; /* Space between buttons */
 }
 
 .highlight-move svg path {
