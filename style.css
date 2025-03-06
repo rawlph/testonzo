@@ -161,7 +161,8 @@ body {
 }
 
 .hex-container.unexplored {
-    opacity: 0.3; /* Fog of war */
+    opacity: 0.1; /* Fog of war */
+	  background-color: black;
 }
 
 .hex-container.goal svg path {
