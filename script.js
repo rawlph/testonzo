@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let turnCount = 0;
     let currentRow = 0;
     let currentCol = 0;
-    let currentLevelObservations = 0; // For Explorer trait
+    let currentLevelSenses = 0; // For Explorer trait
     let moveCounter = 0; // For Pathfinder energy cost
     let hasUsedsenserBonus = false; // For senser free reveal
     let currentAction = null; // 'move' or 'sense'
@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
         persistentInventory: [],
         xp: 0,
         sensedTypes: [],
-        observationsMade: 0,
+        sensesMade: 0,
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
         uniquesensedTypes: [] // For senser trait
     };
-    let { stats, traits, persistentInventory, xp, sensedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
+    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
     let temporaryInventory = [];
 
     // DOM elements
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         energy = 5 * (rows + cols - 2);
         temporaryInventory = [];
         turnCount = 0;
-        currentLevelObservations = 0;
+        currentLevelSenses = 0;
         moveCounter = 0;
         hasUsedsenserBonus = false;
         currentAction = null;
@@ -348,8 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (energy >= energyCost) {
                         energy -= energyCost;
                         playerProgress.sensedTypes.push(tile.type);
-                        playerProgress.observationsMade++;
-                        currentLevelObservations++;
+                        playerProgress.sensesMade++;
+                        currentLevelSenses++;
                         if (!uniquesensedTypes.includes(tile.type)) {
                             uniquesensedTypes.push(tile.type);
                         }
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (!uniquesensedTypes.includes(adjTile.type)) {
                                 uniquesensedTypes.push(adjTile.type);
                             }
-                            currentLevelObservations++;
+                            currentLevelSenses++;
                             feedbackMessage.textContent += ` Bonus: sensed an adjacent ${adjTile.type} tile for free!`;
                         }
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
@@ -397,14 +397,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
 
-                        if (currentLevelObservations >= 10 && !traits.includes('explorer')) {
-                            traits.push('explorer');
+                        if (currentLevelSenser >= 10 && !traits.includes('senser')) {
+                            traits.push('senser');
                         }
                         if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
                             traits.push('pathfinder');
                         }
-                        if (uniquesensedTypes.length >= 5 && !traits.includes('senser')) {
-                            traits.push('senser');
+                        if (uniquesensedTypes.length >= 5 && !traits.includes('explorer')) {
+                            traits.push('explorer');
                         }
 
                         const winScreen = document.getElementById('win-screen');
@@ -451,8 +451,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
                             document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
-                            document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
-                            document.getElementById('sensed-types-stat').textContent = `sensed Types: ${sensedTypesText || 'None'}`;
+                            document.getElementById('senses-stat').textContent = `Sensed this many times: ${playerProgress.sensesMade}`;
+                            document.getElementById('sensed-types-stat').textContent = `Sensed Types: ${sensedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
                         isGameActive = false; // Lock movement and actions
@@ -545,12 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 persistentInventory: [],
                 xp: 0,
                 sensedTypes: [],
-                observationsMade: 0,
+                sensesMade: 0,
                 hasFoundZoe: false,
                 zoeLevelsCompleted: 0,
                 uniquesensedTypes: []
             };
-            ({ stats, traits, persistentInventory, xp, sensedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
             startGame();
         });
     }
