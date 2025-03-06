@@ -39,18 +39,6 @@ body {
     gap: 10px; /* Keeps spacing between buttons */
 }
 
-/* Highlight styles with increased specificity */
-.hex-container.highlight-move svg path {
-    fill: #90EE90; /* Light green for move */
-}
-
-.hex-container.highlight-sense svg path {
-    fill: #ADD8E6; /* Light blue for sense */
-}
-
-.hex-container.highlight-poke svg path {
-    fill: #FFA500; /* Orange for poke */
-}
 
 .admin-tools {
     position: fixed;
@@ -147,6 +135,19 @@ body {
     stroke: #8b5e3c; /* deep brown shadow */
     stroke-width: 3;
     filter: drop-shadow(0 0 3px rgba(0,0,0,0.5));
+}
+
+/* Highlight styles with increased specificity */
+.hex-container.highlight-move svg path {
+    fill: #90EE90; /* Light green for move */
+}
+
+.hex-container.highlight-sense svg path {
+    fill: #ADD8E6; /* Light blue for sense */
+}
+
+.hex-container.highlight-poke svg path {
+    fill: #FFA500; /* Orange for poke */
 }
 
 /* Blocked tiles: rocky or coral-like obstacles */
