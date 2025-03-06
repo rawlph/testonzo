@@ -66,32 +66,7 @@ body {
     margin-bottom: 10px; /* Space between turn counter and victory message */
 }
 
-#win-screen {
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    display: none; /* Hidden until victory */
-}
 
-#win-screen p {
-    font-size: 24px;
-    margin: 0;
-}
-
-#win-screen button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-#win-screen button:hover {
-    background-color: #5dade2;
-}
 
 #feedback-message {
     position: absolute;
@@ -104,31 +79,46 @@ body {
     border-radius: 5px;
     display: none; /* Hidden by default */
 }
-
 #stats-window {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.9);
     padding: 20px;
-    border: 2px solid black;
+    border: 2px solid #333;
     border-radius: 10px;
     z-index: 1000;
     text-align: center;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 #stats-window h2 {
     margin: 0 0 10px 0;
+    font-size: 24px;
+    color: #333;
 }
 
 #stats-window p {
     margin: 5px 0;
+    font-size: 16px;
+    color: #555;
 }
 
 #stats-window button {
-    margin-top: 10px;
-    padding: 5px 10px;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#stats-window button:hover {
+    background-color: #5dade2;
 }
 
 .grid {

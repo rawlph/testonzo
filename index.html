@@ -9,30 +9,28 @@
 <body>
 <div id="game-area">
     <div class="grid"></div>
-	<div class="admin-tools">
-    <label for="rows-input">Rows:</label>
-    <input type="number" id="rows-input" value="5" min="3" max="20">
-    <label for="cols-input">Columns:</label>
-    <input type="number" id="cols-input" value="5" min="3" max="20">
-    <button id="resize-btn">Resize Grid</button>
-    <button id="reset-stats-btn">Reset Stats</button>
-</div>
-	<div id="stats-window" style="display: none;">
-    <h2>Level Complete!</h2>
-    <p id="turns-stat"></p>
-    <p id="senses-stat"></p>
-    <p id="sensed-types-stat"></p>
-    <button id="close-stats-btn">Close</button>
-	</div>
-	<div id="action-console">
-    <button id="move-btn">Move</button>
-    <button id="sense-btn">sense</button>
-    <button id="end-turn-btn">End Turn</button>
-	<button id="poke-btn">Poke</button>
-	<button id="rest-btn">Rest</button><!-- New button -->
-</div>
-	<div id="feedback-message"></div>
+    <div class="admin-tools">
+        <label for="rows-input">Rows:</label>
+        <input type="number" id="rows-input" value="5" min="3" max="20">
+        <label for="cols-input">Columns:</label>
+        <input type="number" id="cols-input" value="5" min="3" max="20">
+        <button id="resize-btn">Resize Grid</button>
+        <button id="reset-stats-btn">Reset Stats</button>
     </div>
+    <div id="stats-window" style="display: none;">
+        <h2>Level Finished!</h2>
+        <p id="observed-tiles-stat"></p>
+        <button id="next-level-btn">Next Level</button>
+    </div>
+    <div id="action-console">
+        <button id="move-btn">Move</button>
+        <button id="sense-btn">sense</button>
+        <button id="end-turn-btn">End Turn</button>
+        <button id="poke-btn">Poke</button>
+        <button id="rest-btn">Rest</button>
+    </div>
+    <div id="feedback-message"></div>
+</div>
 	
     <div class="ui-panel">
         <p id="stats-display">Moves: 1 | Luck: 0 | XP: 0</p>
