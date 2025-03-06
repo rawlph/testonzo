@@ -9,28 +9,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let turnCount = 0;
     let currentRow = 0;
     let currentCol = 0;
-    let currentLevelObservations = 0;  // Observations in the current level (for Explorer)
-    let moveCounter = 0;  // Moves made (for Pathfinder energy cost)
-    let hasUsedObserverBonus = false;  // Flag for Observer’s free reveal
+    let currentLevelObservations = 0; // For Explorer trait
+    let moveCounter = 0; // For Pathfinder energy cost
+    let hasUsedObserverBonus = false; // For Observer free reveal
 
     // Player progress and state
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
         stats: { movementRange: 1, luck: 0 },
-        traits: [],  // Stores unlocked traits like 'explorer', 'pathfinder', 'observer'
+        traits: [],
         persistentInventory: [],
         xp: 0,
         observedTypes: [],
         observationsMade: 0,
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
-        uniqueObservedTypes: []  // Unique tile types observed across all levels (for Observer)
+        uniqueObservedTypes: [] // For Observer trait
     };
     let { stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniqueObservedTypes } = playerProgress;
     let temporaryInventory = [];
     let energy = 5 * (rows + cols - 2); // Starting energy
     let currentAction = null; // 'move' or 'observe'
 
-    // Highlight tiles based on the selected action
+    // Function to highlight tiles based on the action
     function highlightTiles(action) {
         const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
         document.querySelectorAll('.hex-container').forEach(container => {
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Update visible tiles based on vision range
+    // Vision mechanics: Update visible tiles based on range
     function updateVision(tileData) {
         const visionRange = traits.includes('zoeMaster') ? 3 : traits.includes('zoeInitiate') ? 2 : 1;
         const visibleTiles = getTilesInRange(currentRow, currentCol, visionRange);
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Get tiles within a specified range (simplified for hex grid)
+    // Helper to get tiles within a range (simplified for hex grid)
     function getTilesInRange(row, col, range) {
         const tiles = [];
         for (let r = Math.max(0, row - range); r <= Math.min(rows - 1, row + range); r++) {
@@ -75,19 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return tiles;
     }
 
-    // Get adjacent tiles (simplified hex grid adjacency)
-    function getAdjacentTiles(row, col) {
-        const directions = [
-            { row: -1, col: 0 }, { row: 1, col: 0 },  // Up, Down
-            { row: 0, col: -1 }, { row: 0, col: 1 },  // Left, Right
-            { row: -1, col: row % 2 === 0 ? -1 : 1 }, { row: 1, col: row % 2 === 0 ? -1 : 1 }  // Diagonals
-        ];
-        return directions
-            .map(dir => ({ row: row + dir.row, col: col + dir.col }))
-            .filter(pos => pos.row >= 0 && pos.row < rows && pos.col >= 0 && pos.col < cols);
-    }
-
-    // Initialize tile data
     function createTileData(rows, cols) {
         const tileData = [];
         for (let row = 0; row < rows; row++) {
@@ -103,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return tileData;
     }
 
-    // Get positions not on the default path
     function getNonPathPositions(rows, cols) {
         const path = [];
         for (let col = 0; col < cols; col++) path.push({ row: 0, col });
@@ -122,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return nonPathPositions;
     }
 
-    // Place special tiles on the grid
     function placeTiles(tileData, rows, cols) {
         tileData[rows - 1][cols - 1].type = 'goal';
         let nonPathPositions = getNonPathPositions(rows, cols);
@@ -163,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Build the visual grid
     function buildGrid(rows, cols, tileData) {
         const grid = document.querySelector('.grid');
         grid.innerHTML = '';
@@ -216,17 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Update the UI (simplified placeholder)
-    function updateUI() {
-        const energyDisplay = document.getElementById('energy');
-        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
-        const turnDisplay = document.getElementById('turn-count');
-        if (turnDisplay) turnDisplay.textContent = `Turn: ${turnCount}`;
-        const traitsDisplay = document.getElementById('traits');
-        if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.join(', ') || 'None'}`;
-    }
-
-    // Start the game
     function startGame() {
         const tileData = createTileData(rows, cols);
         placeTiles(tileData, rows, cols);
@@ -236,14 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) startingHex.querySelector('.character').style.display = 'block';
 
+        if (playerProgress.hasFoundZoe) {
+            const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
+            if (goalTile) goalTile.classList.add('goal-visible');
+        }
+
         currentRow = 0;
         currentCol = 0;
         energy = 5 * (rows + cols - 2);
         temporaryInventory = [];
         turnCount = 0;
-        currentLevelObservations = 0;  // Reset per level
-        moveCounter = 0;  // Reset per level
-        hasUsedObserverBonus = false;  // Reset per level
+        currentLevelObservations = 0; // Reset for Explorer
+        moveCounter = 0; // Reset for Pathfinder
+        hasUsedObserverBonus = false; // Reset for Observer
+        currentAction = null;
         highlightTiles(null);
         updateVision(tileData);
         updateUI();
@@ -268,22 +247,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
                 if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
-                    moveCounter++;  // Increment for Pathfinder
+                    moveCounter++; // Track for Pathfinder
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     currentHex.querySelector('.character').style.display = 'none';
                     currentRow = clickedRow;
                     currentCol = clickedCol;
                     container.querySelector('.character').style.display = 'block';
 
-                    // Pathfinder: 0.5 energy/move (deduct 1 energy every two moves)
-                    if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
-                        if (energy > 0) energy -= 1;
+                    // Pathfinder: 0.5 energy/move (deduct 1 every two moves)
+                    if (energy > 0) {
+                        if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
+                            energy -= 1;
+                        }
                     }
 
                     if (tile.type === 'zoe') {
                         temporaryInventory.push('zoe');
                         tile.type = 'normal';
                         container.classList.remove('zoe');
+                        const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
+                        goalTile.classList.add('goal-visible');
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = "You’ve grasped the spark of life, igniting a faint sense of purpose.";
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                     }
                     if (tile.type === 'key') {
                         temporaryInventory.push('key');
@@ -292,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (tile.type === 'energy') {
                         let energyGain = 5;
-                        if (traits.includes('explorer')) energyGain += 1;  // Explorer: +1 energy
+                        if (traits.includes('explorer')) energyGain += 1; // Explorer: +1 energy
                         energy += energyGain;
                         tile.type = 'normal';
                         container.classList.remove('energy');
@@ -308,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         energy -= energyCost;
                         playerProgress.observedTypes.push(tile.type);
                         playerProgress.observationsMade++;
-                        currentLevelObservations++;  // For Explorer unlock
+                        currentLevelObservations++; // For Explorer
 
                         // Observer: Track unique tile types
                         if (!uniqueObservedTypes.includes(tile.type)) {
@@ -318,24 +305,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         const feedbackMessage = document.getElementById('feedback-message');
                         feedbackMessage.textContent = `Observed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';
-                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
 
-                        if (!isCurrentTile) turnCount++;
-
-                        // Observer: Free adjacent tile reveal once per level
-                        if (traits.includes('observer') && !hasUsedObserverBonus) {
+                        // Observer: Free adjacent reveal once per level
+                        if (traits.includes('observer') && !hasUsedObserverBonus && !isCurrentTile) {
                             hasUsedObserverBonus = true;
                             const adjacent = getAdjacentTiles(currentRow, currentCol);
-                            if (adjacent.length > 0) {
-                                const randomAdj = adjacent[Math.floor(Math.random() * adjacent.length)];
-                                const adjTile = tileData[randomAdj.row][randomAdj.col];
-                                playerProgress.observedTypes.push(adjTile.type);
-                                if (!uniqueObservedTypes.includes(adjTile.type)) {
-                                    uniqueObservedTypes.push(adjTile.type);
-                                }
-                                currentLevelObservations++;
-                                feedbackMessage.textContent += ` Bonus: Observed an adjacent ${adjTile.type} tile for free!`;
+                            const randomAdj = adjacent[Math.floor(Math.random() * adjacent.length)];
+                            const adjTile = tileData[randomAdj.row][randomAdj.col];
+                            playerProgress.observedTypes.push(adjTile.type);
+                            if (!uniqueObservedTypes.includes(adjTile.type)) {
+                                uniqueObservedTypes.push(adjTile.type);
                             }
+                            currentLevelObservations++;
+                            feedbackMessage.textContent += ` Bonus: Observed an adjacent ${adjTile.type} tile for free!`;
+                        }
+
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+
+                        if (!isCurrentTile) {
+                            turnCount++;
                         }
 
                         updateUI();
@@ -344,39 +332,157 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Victory condition and trait unlocks
+                // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
-                    const gridSize = Math.min(rows, cols);
-                    const pathfinderTurnLimit = gridSize * 2;  // Scales with grid size (e.g., 10 for 5x5)
+                    if (!playerProgress.hasFoundZoe && !temporaryInventory.includes('zoe')) {
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        feedbackMessage.textContent = "You need Zoe to proceed!";
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
+                    } else {
+                        const gridSize = Math.min(rows, cols);
+                        const pathfinderTurnLimit = gridSize * 2;
 
-                    // Unlock Explorer
-                    if (currentLevelObservations >= 10 && !traits.includes('explorer')) {
-                        traits.push('explorer');
-                        console.log("Unlocked Explorer!");
-                    }
-                    // Unlock Pathfinder
-                    if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
-                        traits.push('pathfinder');
-                        console.log("Unlocked Pathfinder!");
-                    }
-                    // Unlock Observer
-                    if (uniqueObservedTypes.length >= 5 && !traits.includes('observer')) {
-                        traits.push('observer');
-                        console.log("Unlocked Observer!");
-                    }
+                        // Unlock new traits
+                        if (currentLevelObservations >= 10 && !traits.includes('explorer')) {
+                            traits.push('explorer');
+                        }
+                        if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
+                            traits.push('pathfinder');
+                        }
+                        if (uniqueObservedTypes.length >= 5 && !traits.includes('observer')) {
+                            traits.push('observer');
+                        }
 
-                    // Save progress to localStorage
-                    playerProgress.traits = traits;
-                    playerProgress.uniqueObservedTypes = uniqueObservedTypes;
-                    localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+                        const winScreen = document.getElementById('win-screen');
+                        if (winScreen) {
+                            let winMessage = 'Victory! You reached the goal.';
+                            let xpGain = 10;
 
-                    console.log("Victory! Traits:", traits);
-                    // Add victory screen logic here if desired
+                            if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
+                                winMessage = 'Victory! You reached the goal with Zoe — amazing!';
+                                playerProgress.hasFoundZoe = true;
+                                playerProgress.zoeLevelsCompleted = 1;
+                                if (!traits.includes('zoeInitiate')) {
+                                    traits.push('zoeInitiate');
+                                }
+                            } else if (playerProgress.hasFoundZoe) {
+                                playerProgress.zoeLevelsCompleted += 1;
+                                if (playerProgress.zoeLevelsCompleted === 4 && !traits.includes('zoeAdept')) {
+                                    traits.push('zoeAdept');
+                                } else if (playerProgress.zoeLevelsCompleted === 7 && !traits.includes('zoeMaster')) {
+                                    traits.push('zoeMaster');
+                                }
+                            }
+
+                            if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
+                                traits.push('Keymaster');
+                                xpGain += 5;
+                            }
+
+                            winScreen.querySelector('p').textContent = winMessage;
+                            winScreen.style.display = 'block';
+                            xp += xpGain;
+                            playerProgress.traits = traits; // Update traits in playerProgress
+                            playerProgress.uniqueObservedTypes = uniqueObservedTypes; // Persist unique types
+                            localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+                        }
+
+                        const statsWindow = document.getElementById('stats-window');
+                        if (statsWindow) {
+                            const typeCounts = {};
+                            playerProgress.observedTypes.forEach(type => {
+                                typeCounts[type] = (typeCounts[type] || 0) + 1;
+                            });
+                            const observedTypesText = Object.entries(typeCounts)
+                                .map(([type, count]) => `${type}: ${count}`)
+                                .join(', ');
+                            document.getElementById('turns-stat').textContent = `Turns: ${turnCount}`;
+                            document.getElementById('observations-stat').textContent = `Observations Made: ${playerProgress.observationsMade}`;
+                            document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
+                            statsWindow.style.display = 'block';
+                        }
+                    }
                 }
             });
         });
     }
 
-    // Start the game
+    const turnDisplay = document.getElementById('turn-counter');
+    const statsDisplay = document.getElementById('stats-display');
+    const traitsDisplay = document.getElementById('traits-display');
+    const tempInventoryDisplay = document.getElementById('temp-inventory-display');
+    const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
+    const energyDisplay = document.getElementById('energy-display');
+
+    function updateUI() {
+        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
+        if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp}`;
+        if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
+        if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
+        if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
+        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
+    }
+
+    function getAdjacentTiles(row, col) {
+        const isOddRow = row % 2 === 1;
+        const adjacent = [
+            { row: row - 1, col: col },
+            { row: row + 1, col: col },
+            { row: row, col: col - 1 },
+            { row: row, col: col + 1 },
+            { row: row - 1, col: isOddRow ? col + 1 : col - 1 },
+            { row: row + 1, col: isOddRow ? col + 1 : col - 1 }
+        ];
+        return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
+    }
+
+    // Initialize the game
     startGame();
+
+    // Close stats window and restart
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
+        const statsWindow = document.getElementById('stats-window');
+        if (statsWindow) statsWindow.style.display = 'none';
+        const winScreen = document.getElementById('win-screen');
+        if (winScreen) winScreen.style.display = 'none';
+        startGame();
+    });
+
+    // Admin tool: Resize grid
+    const resizeBtn = document.getElementById('resize-btn');
+    if (resizeBtn) {
+        resizeBtn.addEventListener('click', () => {
+            const newRows = parseInt(document.getElementById('rows-input').value);
+            const newCols = parseInt(document.getElementById('cols-input').value);
+            if (newRows >= 3 && newCols >= 3 && newRows <= 20 && newCols <= 20) {
+                rows = newRows;
+                cols = newCols;
+                startGame();
+            } else {
+                alert('Please choose rows and columns between 3 and 20.');
+            }
+        });
+    }
+
+    // Admin tool: Reset stats
+    const resetStatsBtn = document.getElementById('reset-stats-btn');
+    if (resetStatsBtn) {
+        resetStatsBtn.addEventListener('click', () => {
+            localStorage.removeItem('playerProgress');
+            playerProgress = {
+                stats: { movementRange: 1, luck: 0 },
+                traits: [],
+                persistentInventory: [],
+                xp: 0,
+                observedTypes: [],
+                observationsMade: 0,
+                hasFoundZoe: false,
+                zoeLevelsCompleted: 0,
+                uniqueObservedTypes: []
+            };
+            ({ stats, traits, persistentInventory, xp, observedTypes, observationsMade, hasFoundZoe, zoeLevelsCompleted, uniqueObservedTypes } = playerProgress);
+            startGame();
+        });
+    }
 });
