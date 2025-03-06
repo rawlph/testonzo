@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasUsedObserverBonus = false; // For Observer free reveal
     let currentAction = null; // 'move' or 'observe'
     let energy = 5 * (rows + cols - 2); // Starting energy
-    let movementPoints = 1; // Add this: Base MP per turn
+    let movementPoints = 1; // Base MP per turn
 
     // Player progress and state
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
@@ -215,16 +215,29 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Level complete—cannot end turn!");
             return;
         }
-		
-		if (movementPoints > 0) {
-        const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
-        if (!confirmEnd) return; // Player cancels, so do nothing
-    }
+        if (movementPoints > 0) {
+            const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
+            if (!confirmEnd) return; // Player cancels, so do nothing
+        }
         movementPoints = 1; // Reset MP to base value
         turnCount++;
         updateUI();
         highlightTiles(null); // Clear highlights
         console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
+    }
+
+    **// New rest function**
+    function rest() {
+        if (!isGameActive) {
+            console.log("Level complete—cannot rest!");
+            return;
+        }
+        const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
+        if (confirmRest) {
+            energy += 10; // Regenerate 10 energy points
+            movementPoints = 0; // Consume all movement points
+            endTurn(); // End the turn
+        }
     }
 
     function startGame() {
@@ -473,6 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+
+    **// New event listener for rest button**
+    document.getElementById('rest-btn').addEventListener('click', rest);
 
     // Initialize the game
     startGame();
