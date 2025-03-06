@@ -5,7 +5,7 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
-    bbackground: linear-gradient(to bottom, #01253a, #000b16);
+    background: linear-gradient(to bottom, #01253a, #000b16);
 	padding-bottom: 60px; /* Adds space at the bottom to prevent overlap with .ui-panel */
 }
 
@@ -14,7 +14,7 @@ body {
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(2, 37, 58, 0.85);
     padding: 10px;
     border-radius: 5px;
     text-align: center;
@@ -146,25 +146,37 @@ body {
     height: 100px;
 }
 
+/* Normal underwater tile: resembles a sandy seafloor with hints of sea life */
+.hex-container.normal svg path {
+    fill: #c2a77d; /* sandy hue */
+    stroke: #8b5e3c; /* deep brown shadow */
+    stroke-width: 3;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.5));
+}
+
+/* Blocked tiles: rocky or coral-like obstacles */
 .hex-container.blocked svg path {
-    fill: gray; /* Or any distinct color */
+    fill: #3a3a3a; /* dark rock */
+    stroke: #222; 
+    stroke-width: 3;
+    filter: drop-shadow(0 0 4px rgba(0,0,0,0.7));
 }
 
+/* Special tile: Zoe with bioluminescent flair */
 .hex-container.zoe svg path {
-    fill: #ff69b4; /* Bright pink fill */
-    stroke: #ff1493; /* Darker pink border */
-    stroke-width: 4; /* Thicker border */
-    filter: drop-shadow(0 0 5px #ff69b4); /* Soft pink glow */
+    fill: #ff6cb5;
+    stroke: #ff1493;
+    stroke-width: 4;
+    filter: drop-shadow(0 0 6px #ff6cb5);
 }
-
 .hex-container.zoe::after {
-    content: '✨'; /* Sparkle symbol */
+    content: '✨';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 24px;
-    color: #fff; /* White for contrast */
+    color: #fff;
     z-index: 1;
 }
 
@@ -217,28 +229,37 @@ path {
     z-index: 1;
 }
 
+/* Energy tile: mimic bioluminescent algae */
 .hex-container.energy svg path {
-    fill: #00FF00; /* Bright green */
-    stroke: #008800; /* Darker green border */
+    fill: #00ff7f;
+    stroke: #009f4d;
     stroke-width: 6;
+    filter: drop-shadow(0 0 6px #00ff7f);
 }
-
 .hex-container.energy::after {
-    content: '🗲'; /* Unicode lightning symbol */
+    content: '🗲';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 24px;
-    color: #000; /* Black for contrast */
+    color: #000;
     z-index: 1;
 }
 
+/* Water tiles: glowing, dynamic water with a pulse animation */
 .hex-container.water svg path {
-    fill: #7bb2e7; /* Dodger blue for a water-like color */
-    stroke: #4682B4; /* Steel blue border */
+    fill: #3fa9f5;
+    stroke: #1b75bc;
     stroke-width: 2;
+    filter: drop-shadow(0 0 6px rgba(63,169,245,0.8));
+    animation: waterPulse 4s infinite ease-in-out;
 }
+@keyframes waterPulse {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(63,169,245,0.8)); }
+    50% { filter: drop-shadow(0 0 10px rgba(63,169,245,1)); }
+}
+
 
 .hex-container.water:hover path {
     fill: #5dade2;
@@ -248,15 +269,17 @@ path {
     fill: #FFA500; /* Orange for poke */
 }
 
+/* Character: a glowing, otherworldly aquatic entity */
 .character {
-    display: none; /* Hidden by default */
+    display: block;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    background-color: red; /* Or use an image */
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle, #00eaff, #004a70);
     border-radius: 50%;
+    box-shadow: 0 0 12px 4px rgba(0,234,255,0.7);
     z-index: 10;
 }
