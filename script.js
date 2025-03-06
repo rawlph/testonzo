@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startGame();
 
     // Close stats window and restart
-    document.getElementById('close-stats-btn').addEventListener('click', () => {
+    document.getElementById('next-level-btn').addEventListener('click', () => {
         const statsWindow = document.getElementById('stats-window');
         if (statsWindow) statsWindow.style.display = 'none';
         const winScreen = document.getElementById('win-screen');
