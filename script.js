@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to highlight tiles based on the action
     function highlightTiles(action) {
+		console.log(`Highlighting for action: ${action}`);
         const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke');
             if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.add('highlight-move');
+				console.log(`Added highlight-move to (${row}, ${col})`);
             } else if (action === 'sense' || action === 'poke') {
                 if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
                     container.classList.add(action === 'sense' ? 'highlight-sense' : 'highlight-poke');
@@ -475,16 +477,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Button event listeners
     document.getElementById('move-btn').addEventListener('click', () => {
+		console.log('Move button clicked');
         currentAction = 'move';
         highlightTiles('move');
     });
 
     document.getElementById('sense-btn').addEventListener('click', () => {
+		console.log('sense button clicked');
         currentAction = 'sense';
         highlightTiles('sense');
     });
 
     document.getElementById('poke-btn').addEventListener('click', () => {
+		console.log('poke button clicked');
         currentAction = 'poke';
         highlightTiles('poke');
     });

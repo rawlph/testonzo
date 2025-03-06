@@ -47,6 +47,10 @@ body {
     fill: #ADD8E6; /* Light blue for sense */
 }
 
+.highlight-poke svg path {
+    fill: #FFA500; /* Orange for poke */
+}
+
 .admin-tools {
     position: fixed;
     top: 10px;
@@ -255,9 +259,6 @@ path {
     fill: #5dade2;
 }
 
-.highlight-poke svg path {
-    fill: #FFA500; /* Orange for poke */
-}
 
 /* Character: a glowing, otherworldly aquatic entity */
 .character {
