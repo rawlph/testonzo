@@ -175,181 +175,192 @@ body::before {
 
 /* Normal Tiles: Pulsing Sandy Seafloor */
 .hex-container.normal svg path {
- fill: #c2a77d;
- stroke: #8b5e3c;
- stroke-width: 3;
- filter: drop-shadow(0 0 3px rgba(0,0,0,0.5));
- animation: subtleGlow 5s infinite ease-in-out;
+    fill: #c2a77d;
+    stroke: #8b5e3c;
+    stroke-width: 3;
+    filter: url(#glow-normal);
+    /* Remove animation for now to ensure glow shape is correct */
+    /* animation: subtleGlow 5s infinite ease-in-out; */
 }
+/* Comment out the original animation; we'll revisit this if needed */
+/*
 @keyframes subtleGlow {
- 0%, 100% { filter: drop-shadow(0 0 3px rgba(0,0,0,0.5)); }
- 50% { filter: drop-shadow(0 0 8px rgba(0,255,255,0.4)); }
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(0,0,0,0.5)); }
+    50% { filter: drop-shadow(0 0 8px rgba(0,255,255,0.4)); }
 }
-
+*/
 /* Highlight Styles */
 .hex-container.highlight-move svg path {
- fill: #00ff7f; /* Neon green */
- filter: drop-shadow(0 0 8px #00ff7f);
+    fill: #00ff7f; /* Neon green */
+    filter: url(#glow-highlight-move);
 }
 .hex-container.highlight-sense svg path {
- fill: #00ccff; /* Electric blue */
- filter: drop-shadow(0 0 8px #00ccff);
+    fill: #00ccff; /* Electric blue */
+    filter: url(#glow-highlight-sense);
 }
 .hex-container.highlight-poke svg path {
- fill: #ff4500; /* Fiery orange */
- filter: drop-shadow(0 0 8px #ff4500);
+    fill: #ff4500; /* Fiery orange */
+    filter: url(#glow-highlight-poke);
 }
 
 /* Blocked Tiles: Jagged Coral */
 .hex-container.blocked svg path {
- fill: #1a2b3c;
- stroke: #0f1a26;
- stroke-width: 4;
- filter: drop-shadow(0 0 6px rgba(0,0,0,0.9));
- animation: coralPulse 6s infinite ease-in-out;
+    fill: #1a2b3c;
+    stroke: #0f1a26;
+    stroke-width: 4;
+    filter: url(#glow-blocked);
+    animation: coralPulse 6s infinite ease-in-out;
 }
 @keyframes coralPulse {
- 0%, 100% { transform: scale(1); }
- 50% { transform: scale(1.03); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
 }
 
 /* Zoe Tile: Chaotic Bioluminescent Burst */
 .hex-container.zoe svg path {
- fill: #ff6cb5;
- stroke: #ff1493;
- stroke-width: 4;
- filter: drop-shadow(0 0 10px #ff6cb5);
- animation: zoePulse 2s infinite;
+    fill: #ff6cb5;
+    stroke: #ff1493;
+    stroke-width: 4;
+    filter: url(#glow-zoe);
+    animation: zoePulse 2s infinite;
 }
 .hex-container.zoe::before {
- content: '';
- position: absolute;
- top: -5px;
- left: -5px;
- width: 96.6px;
- height: 110px;
- border: 2px dashed #ff6cb5;
- border-radius: 50%;
- animation: rotateHalo 4s infinite linear;
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 96.6px;
+    height: 110px;
+    border: 2px dashed #ff6cb5;
+    border-radius: 50%;
+    animation: rotateHalo 4s infinite linear;
 }
 .hex-container.zoe::after {
- content: '🌟';
- position: absolute;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%);
- font-size: 28px;
- color: #fff;
- z-index: 1;
- animation: sparkle 1s infinite alternate;
+    content: '🌟';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    color: #fff;
+    z-index: 1;
+    animation: sparkle 1s infinite alternate;
 }
 @keyframes zoePulse {
- 0%, 100% { transform: scale(1); }
- 50% { transform: scale(1.05); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
+
 @keyframes rotateHalo {
- 0% { transform: rotate(0deg); }
- 100% { transform: rotate(360deg); }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 @keyframes sparkle {
- 0% { opacity: 0.7; }
- 100% { opacity: 1; }
-}
-
-.hex-container.unexplored svg path {
-    fill: #001022; /* Dark, deep-sea color */
-    filter: brightness(0.3) blur(2px); /* Dim and misty */
-    transition: filter 0.3s; /* Smooth reveal when explored */
-}
-
-.hex-container.unexplored:hover svg path {
-    filter: brightness(0.5) blur(1px); /* Slight tease on hover */
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
 }
 
 /* Goal Tiles */
 .hex-container.goal svg path {
- fill: #00ccff;
- stroke: #006688;
- stroke-width: 3;
- filter: drop-shadow(0 0 6px #00ccff);
+    fill: #00ccff;
+    stroke: #006688;
+    stroke-width: 3;
+    filter: url(#glow-goal);
 }
 .hex-container.goal-visible svg path {
- fill: #ffcc00;
- stroke: #ff9900;
- stroke-width: 4;
- filter: drop-shadow(0 0 10px #ffcc00);
- animation: goalGlow 3s infinite;
+    fill: #ffcc00;
+    stroke: #ff9900;
+    stroke-width: 4;
+    filter: url(#glow-goal-visible);
+    /* Remove animation for now */
+    /* animation: goalGlow 3s infinite; */
 }
+/* Comment out the original animation */
+/*
 @keyframes goalGlow {
- 0%, 100% { filter: drop-shadow(0 0 10px #ffcc00); }
- 50% { filter: drop-shadow(0 0 15px #ffcc00); }
+    0%, 100% { filter: drop-shadow(0 0 10px #ffcc00); }
+    50% { filter: drop-shadow(0 0 15px #ffcc00); }
 }
+*/
 
 /* Key Tile: Glowing Artifact */
 .hex-container.key svg path {
- fill: #ffd700;
- stroke: #ff9900;
- stroke-width: 4;
- filter: drop-shadow(0 0 8px #ffd700);
- animation: keyFlicker 1.5s infinite;
+    fill: #ffd700;
+    stroke: #ff9900;
+    stroke-width: 4;
+    filter: url(#glow-key);
+    /* Remove animation for now */
+    /* animation: keyFlicker 1.5s infinite; */
 }
 .hex-container.key::after {
- content: '🗝️';
- position: absolute;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%);
- font-size: 26px;
- color: #000;
- z-index: 1;
+    content: '🗝️';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 26px;
+    color: #000;
+    z-index: 1;
 }
+/* Comment out the original animation */
+/*
 @keyframes keyFlicker {
- 0% { filter: drop-shadow(0 0 8px #ffd700); }
- 50% { filter: drop-shadow(0 0 12px #ffd700); }
- 100% { filter: drop-shadow(0 0 8px #ffd700); }
+    0% { filter: drop-shadow(0 0 8px #ffd700); }
+    50% { filter: drop-shadow(0 0 12px #ffd700); }
+    100% { filter: drop-shadow(0 0 8px #ffd700); }
 }
+*/
 
 /* Energy Tile: Frenzied Bioluminescence */
 .hex-container.energy svg path {
- fill: #00ff7f;
- stroke: #009f4d;
- stroke-width: 6;
- filter: drop-shadow(0 0 10px #00ff7f);
- animation: energyFlicker 1s infinite alternate;
+    fill: #00ff7f;
+    stroke: #009f4d;
+    stroke-width: 6;
+    filter: url(#glow-energy);
+    /* Remove animation for now */
+    /* animation: energyFlicker 1s infinite alternate; */
 }
 .hex-container.energy::after {
- content: '⚡';
- position: absolute;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%);
- font-size: 26px;
- color: #000;
- z-index: 1;
+    content: '⚡';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 26px;
+    color: #000;
+    z-index: 1;
 }
+/* Comment out the original animation */
+/*
 @keyframes energyFlicker {
- 0% { filter: drop-shadow(0 0 10px #00ff7f); }
- 100% { filter: drop-shadow(0 0 15px #00ff7f); }
+    0% { filter: drop-shadow(0 0 10px #00ff7f); }
+    100% { filter: drop-shadow(0 0 15px #00ff7f); }
 }
+*/
 
 /* Water Tiles: Chaotic Swirls */
 .hex-container.water svg path {
- fill: #3fa9f5;
- stroke: #1b75bc;
- stroke-width: 2;
- filter: drop-shadow(0 0 8px rgba(63,169,245,0.9));
- animation: waterPulse 4s infinite ease-in-out, waterWobble 2s infinite;
+    fill: #3fa9f5;
+    stroke: #1b75bc;
+    stroke-width: 2;
+    filter: url(#glow-water);
+    animation: waterWobble 2s infinite;
+    /* Remove waterPulse animation that changes filter */
 }
-@keyframes waterPulse {
- 0%, 100% { filter: drop-shadow(0 0 8px rgba(63,169,245,0.9)); }
- 50% { filter: drop-shadow(0 0 12px rgba(63,169,245,1)); }
-}
+/* Update animations */
 @keyframes waterWobble {
- 0%, 100% { transform: scale(1); }
- 50% { transform: scale(1.03); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
 }
+/* Comment out the original waterPulse */
+/*
+@keyframes waterPulse {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(63,169,245,0.9)); }
+    50% { filter: drop-shadow(0 0 12px rgba(63,169,245,1)); }
+}
+*/
 .hex-container.water:hover path {
- fill: #5dade2;
+    fill: #5dade2;
 }
 
 .character {

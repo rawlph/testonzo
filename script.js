@@ -18,20 +18,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let energy = 5 * (rows + cols - 2); // Starting energy
     let movementPoints = 1; // Base MP per turn
 
-function createParticles(count) {
- const container = document.createElement('div');
- container.classList.add('particle-container');
- document.body.appendChild(container);
- for (let i = 0; i < count; i++) {
- const particle = document.createElement('div');
- particle.classList.add('particle');
- particle.style.left = `${Math.random() * 100}%`;
- particle.style.animationDuration = `${5 + Math.random() * 8}s`;
- particle.style.animationDelay = `${Math.random() * 5}s`;
- container.appendChild(particle);
- }
-}
-createParticles(25); // Adjust count for more or fewer particles
+    // Particle effects function
+    function createParticles(count) {
+        const container = document.createElement('div');
+        container.classList.add('particle-container');
+        document.body.appendChild(container);
+        for (let i = 0; i < count; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.animationDuration = `${5 + Math.random() * 8}s`;
+            particle.style.animationDelay = `${Math.random() * 5}s`;
+            container.appendChild(particle);
+        }
+    }
+    createParticles(25); // Initialize particles on load
 
     // Player progress and state
     let playerProgress = JSON.parse(localStorage.getItem('playerProgress')) || {
@@ -205,10 +206,12 @@ createParticles(25); // Adjust count for more or fewer particles
                 hexContainer.style.left = `${hexLeft}px`;
                 hexContainer.style.top = '0';
 
+                // Create SVG with single path, relying on CSS to apply filters
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', hexVisualWidth);
                 svg.setAttribute('height', hexHeight);
                 svg.setAttribute('viewBox', '0 0 86.6 100');
+                svg.style.overflow = 'visible'; // Ensure glow isn’t clipped
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
                 svg.appendChild(path);
@@ -425,7 +428,6 @@ createParticles(25); // Adjust count for more or fewer particles
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
 
-                        // Update traits based on performance
                         if (currentLevelSenses >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
@@ -436,7 +438,6 @@ createParticles(25); // Adjust count for more or fewer particles
                             traits.push('explorer');
                         }
 
-                        // Handle XP and Zoe progression
                         let xpGain = 10;
                         if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
                             playerProgress.hasFoundZoe = true;
@@ -464,7 +465,6 @@ createParticles(25); // Adjust count for more or fewer particles
 
                         updateUI();
 
-                        // Show stats window with stats
                         const statsWindow = document.getElementById('stats-window');
                         if (statsWindow) {
                             const typeCounts = {};
@@ -480,7 +480,7 @@ createParticles(25); // Adjust count for more or fewer particles
                             document.getElementById('sensed-types-stat').textContent = `Sensed Types: ${sensedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
-                        isGameActive = false; // Lock movement and actions
+                        isGameActive = false;
                     }
                 }
             });
