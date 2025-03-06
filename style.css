@@ -1,231 +1,241 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Emoji&display=swap');
-/* Deep-Sea Body with Chaotic Background */
+
+/* ------------------------- General Styles ------------------------- */
+
 body {
- display: flex;
- justify-content: center;
- flex-direction: column;
- align-items: center;
- height: 100vh;
- margin: 0;
- background: linear-gradient(to bottom, #001065, #001022); /* Darker, oppressive gradient */
- padding-bottom: 60px;
- overflow: hidden; /* Prevents particle overflow */
- position: relative;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    /* Animated gradient for underwater currents */
+    background: linear-gradient(45deg, #001065, #001022, #001065);
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+    padding-bottom: 60px;
+    overflow: hidden;
+    position: relative;
 }
 
-/* Subtle Caustic Water Effect Overlay */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Subtle caustic water effect overlay */
 body::before {
- content: '';
- position: absolute;
- top: 0;
- left: 0;
- width: 100%;
- height: 100%;
- background: radial-gradient(circle, rgba(0,255,255,0.1), transparent);
- /* background: url('caustic-pattern.png') repeat;  Add your own pattern or use a gradient */
- opacity: 0.15;
- animation: waterShift 15s infinite linear;
- z-index: 0;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(0,255,255,0.1), transparent);
+    opacity: 0.15;
+    animation: waterShift 15s infinite linear;
+    z-index: 0;
 }
+
 @keyframes waterShift {
- 0% { background-position: 0 0; }
- 100% { background-position: 200% 200%; }
+    0% { background-position: 0 0; }
+    100% { background-position: 200% 200%; }
 }
 
-/* UI Panel: Glowing Coral-Tech */
+/* ------------------------- UI Elements ------------------------- */
+
+/* UI Panel: Moved to top-right for balance */
 .ui-panel {
- position: absolute;
- bottom: 10px;
- left: 50%;
- transform: translateX(-50%);
- background: rgba(0, 20, 40, 0.9);
- padding: 15px;
- border: 2px solid #00ffcc;
- border-radius: 8px;
- text-align: center;
- font-family: 'Courier New', monospace; /* Primal, techy font */
- box-shadow: 0 0 15px #00ffcc;
- z-index: 1000;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 20, 40, 0.9);
+    padding: 15px;
+    border: 2px solid #00ffcc;
+    border-radius: 8px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    box-shadow: 0 0 15px #00ffcc;
+    z-index: 1000;
 }
+
 .ui-panel p {
- margin: 5px 0;
- color: #00ffcc;
- text-shadow: 0 0 5px #00ffcc;
+    margin: 5px 0;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
 }
 
-/* Game Area */
-#game-area {
- position: relative;
- display: inline-block;
- z-index: 1;
-}
-
-/* Action Console: Underwater Control Panel */
+/* Action Console: Positioned relative to game area */
 #action-console {
- position: absolute;
- bottom: -85px;
- left: 50%;
- transform: translateX(-50%);
- display: flex;
- gap: 10px;
- background: rgba(0, 20, 40, 0.8);
- padding: 10px;
- border: 1px solid #00ffcc;
- box-shadow: 0 0 10px #00ffcc;
+    position: relative;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 20, 40, 0.8);
+    padding: 10px;
+    border: 1px solid #00ffcc;
+    box-shadow: 0 0 10px #00ffcc;
+    z-index: 1;
 }
 
-/* Admin Tools: Deep-Sea Tech Interface */
+/* Admin Tools: Moved to top-left */
 .admin-tools {
- position: fixed;
- top: 10px;
- right: 10px;
- background: rgba(0, 20, 40, 0.85);
- padding: 15px;
- border: 2px solid #00ffcc;
- border-radius: 5px;
- box-shadow: 0 0 15px #00ffcc;
- z-index: 1000;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 20, 40, 0.85);
+    padding: 15px;
+    border: 2px solid #00ffcc;
+    border-radius: 5px;
+    box-shadow: 0 0 15px #00ffcc;
+    z-index: 1000;
 }
+
 .admin-tools input, .admin-tools button {
- margin: 5px;
- background: #003366;
- color: #00ffcc;
- border: 1px solid #00ffcc;
- border-radius: 3px;
- padding: 5px;
+    margin: 5px;
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    border-radius: 3px;
+    padding: 5px;
 }
 
 /* Turn Counter */
 #turn-counter {
- font-size: 18px;
- margin-bottom: 10px;
- color: #00ffcc;
- text-shadow: 0 0 5px #00ffcc;
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
 }
 
-/* Feedback Message: Floating Alert */
+/* Feedback Message */
 #feedback-message {
- position: absolute;
- top: 10px;
- left: 50%;
- transform: translateX(-50%);
- background: rgba(0, 20, 40, 0.9);
- color: #00ffcc;
- padding: 10px;
- border: 1px solid #00ffcc;
- border-radius: 5px;
- box-shadow: 0 0 10px #00ffcc;
- display: none;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 20, 40, 0.9);
+    color: #00ffcc;
+    padding: 10px;
+    border: 1px solid #00ffcc;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #00ffcc;
+    display: none;
 }
 
-/* Stats Window: Bioluminescent Display */
+/* Stats Window */
 #stats-window {
- position: fixed;
- top: 50%;
- left: 50%;
- transform: translate(-50%, -50%);
- background: rgba(0, 20, 40, 0.95);
- padding: 20px;
- border: 3px solid #00ffcc;
- border-radius: 10px;
- box-shadow: 0 0 25px #00ffcc;
- z-index: 1000;
- text-align: center;
- font-family: 'Courier New', monospace;
-}
-#stats-window h2 {
- margin: 0 0 10px 0;
- font-size: 24px;
- color: #00ffcc;
- text-shadow: 0 0 5px #00ffcc;
-}
-#stats-window p {
- margin: 5px 0;
- font-size: 16px;
- color: #00ffcc;
- text-shadow: 0 0 3px #00ffcc;
-}
-#stats-window button {
- margin-top: 15px;
- padding: 10px 20px;
- background: #003366;
- color: #00ffcc;
- border: 1px solid #00ffcc;
- border-radius: 5px;
- cursor: pointer;
- box-shadow: 0 0 10px #00ffcc;
-}
-#stats-window button:hover {
- background: #005577;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 20, 40, 0.95);
+    padding: 20px;
+    border: 3px solid #00ffcc;
+    border-radius: 10px;
+    box-shadow: 0 0 25px #00ffcc;
+    z-index: 1000;
+    text-align: center;
+    font-family: 'Courier New', monospace;
 }
 
-/* Grid and Hex Layout */
+#stats-window h2 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+}
+
+#stats-window p {
+    margin: 5px 0;
+    font-size: 16px;
+    color: #00ffcc;
+    text-shadow: 0 0 3px #00ffcc;
+}
+
+#stats-window button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #00ffcc;
+}
+
+#stats-window button:hover {
+    background: #005577;
+}
+
+/* ------------------------- Grid and Hex Tiles ------------------------- */
+
 .grid {
- position: relative;
- display: block;
+    position: relative;
+    display: block;
+    margin: 20px auto;
 }
 
 .hex-row {
- position: absolute;
+    position: absolute;
 }
+
 .hex-container {
- position: absolute;
- width: 86.6px;
- height: 100px;
- opacity: 1; /* Fully visible when explored */
+    position: absolute;
+    width: 86.6px;
+    height: 100px;
+    opacity: 1;
 }
 
-/* Default faint outline for all tiles */
+/* Default tile outline */
 .hex-container svg path {
-    stroke: rgba(0, 255, 204, 0.1); /* Very faint teal glow */
+    stroke: rgba(0, 255, 204, 0.1);
     stroke-width: 2;
-    animation: pulseOutline 4s infinite ease-in-out; /* Subtle pulsing */
+    animation: pulseOutline 4s infinite ease-in-out;
 }
 
-/* Normal Tiles: Pulsing Sandy Seafloor */
+/* Normal Tiles */
 .hex-container.normal svg path {
     fill: #c2a77d;
     stroke: #8b5e3c;
     stroke-width: 3;
     filter: url(#glow-normal);
-    /* Remove animation for now to ensure glow shape is correct */
-    /* animation: subtleGlow 5s infinite ease-in-out; */
 }
-/* Comment out the original animation; we'll revisit this if needed */
-/*
-@keyframes subtleGlow {
-    0%, 100% { filter: drop-shadow(0 0 3px rgba(0,0,0,0.5)); }
-    50% { filter: drop-shadow(0 0 8px rgba(0,255,255,0.4)); }
-}
-*/
+
 /* Highlight Styles */
 .hex-container.highlight-move svg path {
-    fill: #00ff7f; /* Neon green */
+    fill: #00ff7f;
     filter: url(#glow-highlight-move);
 }
+
 .hex-container.highlight-sense svg path {
-    fill: #00ccff; /* Electric blue */
+    fill: #00ccff;
     filter: url(#glow-highlight-sense);
 }
+
 .hex-container.highlight-poke svg path {
-    fill: #ff4500; /* Fiery orange */
+    fill: #ff4500;
     filter: url(#glow-highlight-poke);
 }
 
-/* Blocked Tiles: Jagged Coral */
+/* Blocked Tiles: Darker coral */
 .hex-container.blocked svg path {
-    fill: #1a2b3c;
-    stroke: #0f1a26;
+    fill: #0a1a2a;
+    stroke: #050f15;
     stroke-width: 4;
     filter: url(#glow-blocked);
     animation: coralPulse 6s infinite ease-in-out;
 }
+
 @keyframes coralPulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.03); }
 }
 
-/* Zoe Tile: Chaotic Bioluminescent Burst */
+/* Zoe Tile */
 .hex-container.zoe svg path {
     fill: #ff6cb5;
     stroke: #ff1493;
@@ -233,6 +243,7 @@ body::before {
     filter: url(#glow-zoe);
     animation: zoePulse 2s infinite;
 }
+
 .hex-container.zoe::before {
     content: '';
     position: absolute;
@@ -244,6 +255,7 @@ body::before {
     border-radius: 50%;
     animation: rotateHalo 4s infinite linear;
 }
+
 .hex-container.zoe::after {
     content: '🌟';
     position: absolute;
@@ -255,6 +267,7 @@ body::before {
     z-index: 1;
     animation: sparkle 1s infinite alternate;
 }
+
 @keyframes zoePulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -264,6 +277,7 @@ body::before {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
 @keyframes sparkle {
     0% { opacity: 0.7; }
     100% { opacity: 1; }
@@ -276,31 +290,22 @@ body::before {
     stroke-width: 3;
     filter: url(#glow-goal);
 }
+
 .hex-container.goal-visible svg path {
     fill: #ffcc00;
     stroke: #ff9900;
     stroke-width: 4;
     filter: url(#glow-goal-visible);
-    /* Remove animation for now */
-    /* animation: goalGlow 3s infinite; */
 }
-/* Comment out the original animation */
-/*
-@keyframes goalGlow {
-    0%, 100% { filter: drop-shadow(0 0 10px #ffcc00); }
-    50% { filter: drop-shadow(0 0 15px #ffcc00); }
-}
-*/
 
-/* Key Tile: Glowing Artifact */
+/* Key Tile */
 .hex-container.key svg path {
     fill: #ffd700;
     stroke: #ff9900;
     stroke-width: 4;
     filter: url(#glow-key);
-    /* Remove animation for now */
-    /* animation: keyFlicker 1.5s infinite; */
 }
+
 .hex-container.key::after {
     content: '🗝️';
     position: absolute;
@@ -311,24 +316,15 @@ body::before {
     color: #000;
     z-index: 1;
 }
-/* Comment out the original animation */
-/*
-@keyframes keyFlicker {
-    0% { filter: drop-shadow(0 0 8px #ffd700); }
-    50% { filter: drop-shadow(0 0 12px #ffd700); }
-    100% { filter: drop-shadow(0 0 8px #ffd700); }
-}
-*/
 
-/* Energy Tile: Frenzied Bioluminescence */
+/* Energy Tile */
 .hex-container.energy svg path {
     fill: #00ff7f;
     stroke: #009f4d;
     stroke-width: 6;
     filter: url(#glow-energy);
-    /* Remove animation for now */
-    /* animation: energyFlicker 1s infinite alternate; */
 }
+
 .hex-container.energy::after {
     content: '⚡';
     position: absolute;
@@ -339,39 +335,26 @@ body::before {
     color: #000;
     z-index: 1;
 }
-/* Comment out the original animation */
-/*
-@keyframes energyFlicker {
-    0% { filter: drop-shadow(0 0 10px #00ff7f); }
-    100% { filter: drop-shadow(0 0 15px #00ff7f); }
-}
-*/
 
-/* Water Tiles: Chaotic Swirls */
+/* Water Tiles */
 .hex-container.water svg path {
     fill: #3fa9f5;
     stroke: #1b75bc;
     stroke-width: 2;
     filter: url(#glow-water);
     animation: waterWobble 2s infinite;
-    /* Remove waterPulse animation that changes filter */
 }
-/* Update animations */
+
 @keyframes waterWobble {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.03); }
 }
-/* Comment out the original waterPulse */
-/*
-@keyframes waterPulse {
-    0%, 100% { filter: drop-shadow(0 0 8px rgba(63,169,245,0.9)); }
-    50% { filter: drop-shadow(0 0 12px rgba(63,169,245,1)); }
-}
-*/
+
 .hex-container.water:hover path {
     fill: #5dade2;
 }
 
+/* Character (Jellyfish) */
 .character {
     display: block;
     position: absolute;
@@ -405,60 +388,75 @@ body::before {
     50% { transform: translateY(-10px); }
 }
 
-/* Particle Effects: Floating Bioluminescent Specks */
+/* ------------------------- Particle Effects ------------------------- */
+
 .particle-container {
- position: absolute;
- top: 0;
- left: 0;
- width: 100%;
- height: 100%;
- pointer-events: none;
- z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
 }
+
 .particle {
- position: absolute;
- bottom: -10px;
- width: 6px;
- height: 6px;
- background: #00ffcc;
- border-radius: 50%;
- animation: rise 8s infinite ease-in;
+    position: absolute;
+    bottom: -10px;
+    width: 6px;
+    height: 6px;
+    background: #00ffcc;
+    border-radius: 50%;
+    animation: rise 8s infinite ease-in;
 }
+
 @keyframes rise {
- 0% { transform: translateY(0); opacity: 0.6; }
- 100% { transform: translateY(-100vh); opacity: 0; }
+    0% { transform: translateY(0); opacity: 0.6; }
+    100% { transform: translateY(-100vh); opacity: 0; }
 }
 
-/* Default SVG Styles */
+/* ------------------------- Default SVG Styles ------------------------- */
+
 svg {
- display: block;
-}
-path {
- fill: #00ccff;
- stroke: #006688;
- stroke-width: 3;
-}
-.hex-container.normal:hover path {
- fill: #5dade2;
+    display: block;
 }
 
-.hex-container.adjacent-unexplored {
-    opacity: 0.2; /* Slightly visible */
-    background: radial-gradient(circle, rgba(0, 16, 34, 0.5) 0%, rgba(0, 0, 0, 0) 70%);
+path {
+    fill: #00ccff;
+    stroke: #006688;
+    stroke-width: 3;
+}
+
+.hex-container.normal:hover path {
+    fill: #5dade2;
 }
 
 .hex-container.unexplored {
-    opacity: 0.15; /* Fully invisible */
-    /* pointer-events: none; */
-    transition: opacity 0.3s; /* Smooth reveal */
+    opacity: 0.15;
+    transition: opacity 0.3s;
 }
 
-/* Ensure explored tiles override the faint outline with their full style */
-.hex-container:not(.unexplored) svg path {
-    /* Existing styles like fill and filter will apply */
-}
-/* Pulsing animation for the outline */
 @keyframes pulseOutline {
     0%, 100% { stroke-opacity: 0.1; }
     50% { stroke-opacity: 0.2; }
+}
+
+/* ------------------------- Media Queries ------------------------- */
+
+@media (max-width: 768px) {
+    .ui-panel {
+        top: 5px;
+        right: 5px;
+        padding: 10px;
+    }
+
+    #action-console {
+        bottom: 5px;
+    }
+
+    .admin-tools {
+        top: 5px;
+        left: 5px;
+        padding: 10px;
+    }
 }
