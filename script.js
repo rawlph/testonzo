@@ -75,15 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Vision mechanics: Update visible tiles based on range
+    // Vision mechanics: Update visible tiles based on range with permanent fog clearing
     function updateVision(tileData) {
         const visionRange = traits.includes('zoeMaster') ? 3 : traits.includes('zoeInitiate') ? 2 : 1;
         const visibleTiles = getTilesInRange(currentRow, currentCol, visionRange);
 
+        // Mark currently visible tiles as explored
+        visibleTiles.forEach(tile => {
+            tileData[tile.row][tile.col].explored = true;
+        });
+
+        // Update the UI: Show tiles that are either explored or currently visible
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
             const col = parseInt(container.getAttribute('data-col'));
-            if (visibleTiles.some(t => t.row === row && t.col === col)) {
+            if (tileData[row][col].explored || visibleTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.remove('unexplored');
             } else {
                 container.classList.add('unexplored');
@@ -111,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tileData[row][col] = {
                     type: 'normal',
                     effects: [],
-                    state: 'active'
+                    state: 'active',
+                    explored: false // Initialize all tiles as unexplored
                 };
             }
         }
@@ -206,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 hexContainer.style.left = `${hexLeft}px`;
                 hexContainer.style.top = '0';
 
-                // Create SVG with single path, relying on CSS to apply filters
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', hexVisualWidth);
                 svg.setAttribute('height', hexHeight);
@@ -354,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         container.classList.remove('energy');
                     }
 
-                    updateVision(tileData);
+                    updateVision(tileData); // Update vision after moving
                     updateUI();
                     highlightTiles(currentAction);
                 } else if (currentAction === 'sense' && (isCurrentTile || isAdjacent)) {

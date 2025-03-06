@@ -432,3 +432,14 @@ path {
 .hex-container.normal:hover path {
  fill: #5dade2;
 }
+
+.hex-container.adjacent-unexplored {
+    opacity: 0.2; /* Slightly visible */
+    background: radial-gradient(circle, rgba(0, 16, 34, 0.5) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+.hex-container.unexplored {
+    opacity: 0; /* Fully invisible */
+    pointer-events: none; /* No interaction with hidden tiles */
+    transition: opacity 0.3s; /* Smooth reveal */
+}
