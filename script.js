@@ -230,6 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tileType = tileData[row][col].type;
                 hexContainer.classList.add(tileType);
 
+                // All tiles start as unexplored except those revealed by initial vision
+                if (!tileData[row][col].explored) {
+                    hexContainer.classList.add('unexplored');
+                }
+
                 hexRow.appendChild(hexContainer);
             }
             grid.appendChild(hexRow);
@@ -290,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAction = null;
         movementPoints = 1;
         highlightTiles(null);
-        updateVision(tileData);
+        updateVision(tileData); // Initial vision update to reveal starting area
         updateUI();
 
         document.querySelectorAll('.hex-container').forEach(container => {
@@ -401,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy >= energyCost) {
                         energy -= energyCost;
-                        playerProgress.pokesMade++;
+                        playerProgress.pokes TécnicoMade++;
                         const feedbackMessage = document.getElementById('feedback-message');
                         feedbackMessage.textContent = `Poked and revealed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';

@@ -164,6 +164,7 @@ body::before {
  position: relative;
  display: block;
 }
+
 .hex-row {
  position: absolute;
 }
@@ -171,6 +172,14 @@ body::before {
  position: absolute;
  width: 86.6px;
  height: 100px;
+ opacity: 1; /* Fully visible when explored */
+}
+
+/* Default faint outline for all tiles */
+.hex-container svg path {
+    stroke: rgba(0, 255, 204, 0.1); /* Very faint teal glow */
+    stroke-width: 2;
+    animation: pulseOutline 4s infinite ease-in-out; /* Subtle pulsing */
 }
 
 /* Normal Tiles: Pulsing Sandy Seafloor */
@@ -439,7 +448,17 @@ path {
 }
 
 .hex-container.unexplored {
-    opacity: 0; /* Fully invisible */
+    opacity: 0.15; /* Fully invisible */
     pointer-events: none; /* No interaction with hidden tiles */
     transition: opacity 0.3s; /* Smooth reveal */
+}
+
+/* Ensure explored tiles override the faint outline with their full style */
+.hex-container:not(.unexplored) svg path {
+    /* Existing styles like fill and filter will apply */
+}
+/* Pulsing animation for the outline */
+@keyframes pulseOutline {
+    0%, 100% { stroke-opacity: 0.1; }
+    50% { stroke-opacity: 0.2; }
 }
