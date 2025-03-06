@@ -201,6 +201,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+function endTurn() {
+    if (!isGameActive) {
+        console.log("Level complete—cannot end turn!");
+        return;
+    }
+    player.movementPoints = 1; // Reset MP to base value
+    turnCount++;
+    updateUI();
+    highlightTiles(null); // Clear highlights
+    console.log(`Turn ${turnCount} ended. MP reset to ${player.movementPoints}.`);
+}
+
 function startGame() {
     const tileData = createTileData(rows, cols);
     placeTiles(tileData, rows, cols);
@@ -225,6 +237,7 @@ function startGame() {
     moveCounter = 0;
     hasUsedObserverBonus = false;
     currentAction = null;
+	player.movementPoints = 1; // Add this: Base MP per turn
     highlightTiles(null);
     updateVision(tileData);
     updateUI();
@@ -239,6 +252,10 @@ function startGame() {
         currentAction = 'observe';
         highlightTiles('observe');
     });
+	
+	document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+
+
 
     // Corrected click event listener
     document.querySelectorAll('.hex-container').forEach(container => {
@@ -257,20 +274,35 @@ function startGame() {
             const isAdjacent = adjacentTiles.some(t => t.row === clickedRow && t.col === clickedCol);
             const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
-            if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
-                moveCounter++;
-                const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
-                currentHex.querySelector('.character').style.display = 'none';
-                currentRow = clickedRow;
-                currentCol = clickedCol;
-                container.querySelector('.character').style.display = 'block';
+if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
+    if (player.movementPoints < 1) {
+        console.log("No movement points left!");
+        const feedbackMessage = document.getElementById('feedback-message');
+        feedbackMessage.textContent = "No movement points left!";
+        feedbackMessage.style.display = 'block';
+        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+        return;
+    }
+    if (energy <= 0) { // Adjusted from energy > 0 to prevent moving with 0 energy
+        console.log("Not enough energy!");
+        const feedbackMessage = document.getElementById('feedback-message');
+        feedbackMessage.textContent = "Not enough energy!";
+        feedbackMessage.style.display = 'block';
+        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+        return;
+    }
+    moveCounter++;
+    const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
+    currentHex.querySelector('.character').style.display = 'none';
+    currentRow = clickedRow;
+    currentCol = clickedCol;
+    container.querySelector('.character').style.display = 'block';
 
-                // Energy deduction
-                if (energy > 0) {
-                    if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
-                        energy -= 1;
-                    }
-                }
+    // Energy deduction
+    if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
+        energy -= 1;
+    }
+    player.movementPoints -= 1; // Deduct MP
 
                 // Tile interactions
                 if (tile.type === 'zoe') {
@@ -425,7 +457,7 @@ function startGame() {
         if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
         if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
         if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
-        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy}`;
+            if (energyDisplay) energyDisplay.textContent = `Energy: ${energy} | MP: ${player.movementPoints}`; // Updated
     }
 
     function getAdjacentTiles(row, col) {
