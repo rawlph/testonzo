@@ -375,6 +375,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
+} else if (currentAction === 'poke') {
+    if (Math.random() < 0.5) {
+        feedbackMessage.textContent = `You poked and sensed a ${tile.type} tile!`;
+    } else {
+        feedbackMessage.textContent = "You poked but couldn’t sense anything.";
+    }
+    feedbackMessage.style.display = 'block';
+    setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+    // Add energy cost if your game uses that
+}
+
                 // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
                     if (!playerProgress.hasFoundZoe && !temporaryInventory.includes('zoe')) {
@@ -483,6 +494,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAction = 'sense';
         highlightTiles('sense');
     });
+	
+	document.getElementById('poke-btn').addEventListener('click', () => {
+    currentAction = 'poke';
+    highlightTiles('poke'); // Reuse or tweak highlighting
+});
 
     document.getElementById('end-turn-btn').addEventListener('click', endTurn);
 
