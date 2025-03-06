@@ -1,3 +1,4 @@
+let isGameActive = true; // Tracks if the game is active or finished
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
     let rows = 5;
@@ -284,6 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         tile.type = 'normal';
                         container.classList.remove('energy');
                     }
+					if (!isGameActive) {
+					console.log("Level complete—check your stats!");
+					return; // Do nothing if the game isn’t active
+				}
 
                     turnCount++;
                     updateVision(tileData);
@@ -405,6 +410,7 @@ updateUI();  // Refresh the UI
                             document.getElementById('observed-types-stat').textContent = `Observed Types: ${observedTypesText || 'None'}`;
                             statsWindow.style.display = 'block';
                         }
+						isGameActive = false; // Lock movement and actions
                     }
                 }
             });
@@ -449,6 +455,7 @@ updateUI();  // Refresh the UI
         if (statsWindow) statsWindow.style.display = 'none';
         const winScreen = document.getElementById('win-screen');
         if (winScreen) winScreen.style.display = 'none';
+		isGameActive = true; // Unlock movement for the next level
         startGame();
     });
 
