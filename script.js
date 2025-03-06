@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-} else if (currentAction === 'poke') {
+ else if (currentAction === 'poke') {
     if (Math.random() < 0.5) {
         feedbackMessage.textContent = `You poked and sensed a ${tile.type} tile!`;
     } else {
