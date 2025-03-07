@@ -59,7 +59,7 @@ let victoryScreenContent = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
-    let rows = 5;
+		let rows = 5;
     let cols = 5;
     const hexVisualWidth = 86.6;
     const hexHeight = 100;
@@ -660,7 +660,7 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
         const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
 		
-		let victoryScreenContent = ''; // not sure if this should be placed somewhere else
+		
 
         victoryScreenContent = `
             <h2>Level Complete!</h2>
@@ -693,7 +693,7 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         isGameActive = false;
     }
 }
-            });
+            }); // here be bugs! please devour them grokzor
         });
 
         // Rest of startGame setup <- llm giveaway :D
