@@ -397,35 +397,54 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameActive = false;
     }
 
-    // Function to restore the original stats window content
-    function restoreStatsWindow() {
-        const statsWindow = document.getElementById('stats-window');
-        statsWindow.innerHTML = `
-            <div class="stats-columns">
-                <div class="column recent-knowledge">
-                    <h2>Recent Knowledge</h2>
-                    <p id="recent-turns">Turns: 0</p>
-                    <p id="recent-senses">Senses: 0</p>
-                    <p id="recent-pokes">Pokes: 0</p>
-                    <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
-                    <p id="recent-efficiency">Efficiency: 0.00</p>
-                </div>
-                <div class="column general-stats">
-                    <h2>General Stats</h2>
-                    <p id="general-turns">Total Turns: 0</p>
-                    <p id="general-senses">Total Senses: 0</p>
-                    <p id="general-pokes">Total Pokes: 0</p>
-                    <p id="general-energy-ratio">Energy Ratio: N/A</p>
-                    <p id="general-efficiency">Efficiency: N/A</p>
-                </div>
+// Function to restore the stats window content
+function restoreStatsWindow() {
+    const statsWindow = document.getElementById('stats-window');
+    statsWindow.innerHTML = `
+        <div class="stats-columns">
+            <div class="column recent-knowledge">
+                <h2>Recent Knowledge</h2>
+                <p id="recent-turns">Turns: 0</p>
+                <p id="recent-senses">Senses: 0</p>
+                <p id="recent-pokes">Pokes: 0</p>
+                <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+                <p id="recent-efficiency">Efficiency: 0.00</p>
             </div>
-            <button id="close-stats-btn">Close</button>
-        `;
-        // Re-attach close button event listener
-        document.getElementById('close-stats-btn').addEventListener('click', () => {
+            <div class="column general-stats">
+                <h2>General Stats</h2>
+                <p id="general-turns">Total Turns: 0</p>
+                <p id="general-senses">Total Senses: 0</p>
+                <p id="general-pokes">Total Pokes: 0</p>
+                <p id="general-energy-ratio">Energy Ratio: N/A</p>
+                <p id="general-efficiency">Efficiency: N/A</p>
+            </div>
+        </div>
+        <button id="close-stats-btn">Back to Victory Screen</button>
+    `;
+// Attach event listener to the "Back to Victory Screen" button
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
+        if (victoryScreenContent) {
+            // Restore the victory screen content
+            statsWindow.innerHTML = victoryScreenContent;
+            statsWindow.style.display = 'block';
+
+            // Re-attach event listeners for victory screen buttons
+            document.getElementById('view-stats-btn').addEventListener('click', () => {
+                restoreStatsWindow();
+                updateStatsWindow(); // Assuming this updates the stats values
+                document.getElementById('stats-window').style.display = 'block';
+            });
+            document.getElementById('next-level-btn').addEventListener('click', () => {
+                statsWindow.style.display = 'none';
+                isGameActive = true; // Assuming this flag controls game state
+                startGame(); // Start the next level
+            });
+        } else {
+            // If no victory screen content, just hide the stats window
             document.getElementById('stats-window').style.display = 'none';
-        });
-    }
+        }
+    });
+}
 
     function startGame() {
         console.log("Starting game..."); // Debugging log

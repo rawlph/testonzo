@@ -131,7 +131,7 @@ body::before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 20, 40, 0.7); /* Semi-transparent */
+    background: rgba(0, 20, 40, 0.9); /* Semi-transparent */
     padding: 20px;
     border: 3px solid #00ffcc;
     border-radius: 10px;
@@ -139,6 +139,7 @@ body::before {
     z-index: 1000;
     text-align: center;
     font-family: 'Courier New', monospace;
+	color: #ff6600
     width: 80%; /* Large width */
     max-width: 800px; /* Maximum width to keep it readable */
 }
