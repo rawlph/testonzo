@@ -1,6 +1,50 @@
 let isGameActive = true; // Tracks if the game is active or finished
 let tileData; // Declare tileData in the outer scope
-const MetricsTracker = { ... }; // As defined above
+const MetricsTracker = {
+    // Core metrics
+    turnsTaken: 0,
+    sensesMade: 0,
+    pokesMade: 0,
+    energyUsedForMovement: 0,
+    energyUsedForExploration: 0,
+    movesMade: 0,
+    restsTaken: 0,
+    tilesExplored: 0,
+    specialTilesInteracted: 0,
+
+    // Update methods
+    incrementTurns() { this.turnsTaken++; },
+    incrementSenses() { this.sensesMade++; },
+    incrementPokes() { this.pokesMade++; },
+    addEnergyForMovement(cost) { this.energyUsedForMovement += cost; },
+    addEnergyForExploration(cost) { this.energyUsedForExploration += cost; },
+    incrementMoves() { this.movesMade++; },
+    incrementRests() { this.restsTaken++; },
+    incrementTilesExplored() { this.tilesExplored++; },
+    incrementSpecialTiles() { this.specialTilesInteracted++; },
+
+    // Reset for new levels
+    reset() {
+        this.turnsTaken = 0;
+        this.sensesMade = 0;
+        this.pokesMade = 0;
+        this.energyUsedForMovement = 0;
+        this.energyUsedForExploration = 0;
+        this.movesMade = 0;
+        this.restsTaken = 0;
+        this.tilesExplored = 0;
+        this.specialTilesInteracted = 0;
+    },
+
+    // Derived metrics
+    getEnergyUsageRatio() {
+        const totalEnergy = this.energyUsedForMovement + this.energyUsedForExploration;
+        return totalEnergy > 0 ? this.energyUsedForMovement / totalEnergy : 0;
+    },
+    getMovementEfficiency(safestPathLength) {
+        return this.movesMade > 0 ? safestPathLength / this.movesMade : 0;
+    }
+};
 let metrics = Object.create(MetricsTracker); // Create an instance
 
 document.addEventListener('DOMContentLoaded', () => {
