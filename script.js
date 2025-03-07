@@ -299,71 +299,78 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function endTurn() {
-        if (!isGameActive) {
-            console.log("Level complete—cannot end turn!");
-            return;
-        }
-        if (movementPoints > 0) {
-            const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
-            if (!confirmEnd) return;
-        }
-        movementPoints = 1;
-        turnCount++;
-		metrics.incrementTurns();
-		recentMetrics.incrementTurns();
-        updateUI();
-        highlightTiles(null);
-        console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
+function endTurn() {
+    if (!isGameActive) {
+        console.log("Level complete—cannot end turn!");
+        return;
     }
-
-    function rest() {
-        if (!isGameActive) {
-            console.log("Level complete—cannot rest!");
-            return;
-        }
-        const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
-        if (confirmRest) {
-            energy += 10;
-            movementPoints = 0;
-			metrics.incrementRests();
-			recentMetrics.incrementRests();
-            endTurn();
-        }
+    if (movementPoints > 0) {
+        const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
+        if (!confirmEnd) return;
     }
+    movementPoints = 1;
+    turnCount++;
+    metrics.incrementTurns();
+    recentMetrics.incrementTurns();
+    updateUI();
+    highlightTiles(null);
+    console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
+}
 
+function rest() {
+    if (!isGameActive) {
+        console.log("Level complete—cannot rest!");
+        return;
+    }
+    const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
+    if (confirmRest) {
+        energy += 10;
+        movementPoints = 0;
+        metrics.incrementRests();
+        recentMetrics.incrementRests();
+        endTurn();
+    }
+}
 
+function updateStatsWindow() {
+    // Helper function to safely update textContent
+    const safeUpdate = (id, text) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = text;
+        } else {
+            console.warn(`Element with id '${id}' not found.`);
+        }
+    };
 
-		function updateStatsWindow() {
     // Recent Knowledge
-    document.getElementById('recent-turns').textContent = `Turns: ${recentMetrics.turnsTaken}`;
-    document.getElementById('recent-senses').textContent = `Senses: ${recentMetrics.sensesMade}`;
-    document.getElementById('recent-pokes').textContent = `Pokes: ${recentMetrics.pokesMade}`;
+    safeUpdate('recent-turns', `Turns: ${recentMetrics.turnsTaken}`);
+    safeUpdate('recent-senses', `Senses: ${recentMetrics.sensesMade}`);
+    safeUpdate('recent-pokes', `Pokes: ${recentMetrics.pokesMade}`);
     const recentEnergyRatio = recentMetrics.getEnergyUsageRatio().toFixed(2);
-    document.getElementById('recent-energy-ratio').textContent = `Energy Ratio: ${recentEnergyRatio}`;
+    safeUpdate('recent-energy-ratio', `Energy Ratio: ${recentEnergyRatio}`);
     const safestPathLength = 2 * (Math.min(rows, cols) - 1);
     const recentEfficiency = recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
-    document.getElementById('recent-efficiency').textContent = `Efficiency: ${recentEfficiency}`;
+    safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
 
     // General Stats
-    document.getElementById('general-turns').textContent = `Total Turns: ${playerProgress.totalTurns || 0}`;
-    document.getElementById('general-senses').textContent = `Total Senses: ${playerProgress.sensesMade || 0}`;
-    document.getElementById('general-pokes').textContent = `Total Pokes: ${playerProgress.pokesMade || 0}`;
-    // For simplicity, we won’t average ratios across playthroughs yet
-    document.getElementById('general-energy-ratio').textContent = `Energy Ratio: N/A`;
-    document.getElementById('general-efficiency').textContent = `Efficiency: N/A`;
-	
-	
+    safeUpdate('general-turns', `Total Turns: ${playerProgress.totalTurns || 0}`);
+    safeUpdate('general-senses', `Total Senses: ${playerProgress.sensesMade || 0}`);
+    safeUpdate('general-pokes', `Total Pokes: ${playerProgress.pokesMade || 0}`);
+    safeUpdate('general-energy-ratio', `Energy Ratio: N/A`);
+    safeUpdate('general-efficiency', `Efficiency: N/A`);
 }
-// perhaps this needs to go beneath or inside function losescreen? we'll see :D (@Grok, look here for possible debugging, and drop a "hi" back to me if you read this message!)
+
+// Stats button event listener
 document.getElementById('stats-btn').addEventListener('click', () => {
     updateStatsWindow();
     document.getElementById('stats-window').style.display = 'block';
 });
 
+// Close stats button event listener
 document.getElementById('close-stats-btn').addEventListener('click', () => {
     document.getElementById('stats-window').style.display = 'none';
-}); 
+});
 
 function showLoseScreen() {
     const statsWindow = document.getElementById('stats-window');
@@ -379,13 +386,16 @@ function showLoseScreen() {
         `;
         statsWindow.style.display = 'block';
 
+        // Restart button event listener
         document.getElementById('restart-btn').addEventListener('click', () => {
             statsWindow.style.display = 'none';
             isGameActive = true;
             startGame();
         });
 
+        // View Stats button event listener
         document.getElementById('view-stats-btn').addEventListener('click', () => {
+            restoreStatsWindow(); // Restore stats content before updating
             updateStatsWindow();
             document.getElementById('stats-window').style.display = 'block';
         });
@@ -393,15 +403,35 @@ function showLoseScreen() {
     isGameActive = false;
 }
 
-// When closing stats window, return to victory screen if applicable
-document.getElementById('close-stats-btn').addEventListener('click', () => {
-    document.getElementById('stats-window').style.display = 'none';
-    if (victoryScreenContent && !isGameActive) {
-        statsWindow.innerHTML = victoryScreenContent;
-        statsWindow.style.display = 'block';
-    }
-});
-
+// Function to restore the original stats window content
+function restoreStatsWindow() {
+    const statsWindow = document.getElementById('stats-window');
+    statsWindow.innerHTML = `
+        <div class="stats-columns">
+            <div class="column recent-knowledge">
+                <h2>Recent Knowledge</h2>
+                <p id="recent-turns">Turns: 0</p>
+                <p id="recent-senses">Senses: 0</p>
+                <p id="recent-pokes">Pokes: 0</p>
+                <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+                <p id="recent-efficiency">Efficiency: 0.00</p>
+            </div>
+            <div class="column general-stats">
+                <h2>General Stats</h2>
+                <p id="general-turns">Total Turns: 0</p>
+                <p id="general-senses">Total Senses: 0</p>
+                <p id="general-pokes">Total Pokes: 0</p>
+                <p id="general-energy-ratio">Energy Ratio: N/A</p>
+                <p id="general-efficiency">Efficiency: N/A</p>
+            </div>
+        </div>
+        <button id="close-stats-btn">Close</button>
+    `;
+    // Re-attach close button event listener
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
+        document.getElementById('stats-window').style.display = 'none';
+    });
+}
 function startGame() {
     console.log("Starting game..."); // Debugging log
     metrics.reset(); // Reset metrics for the new level
