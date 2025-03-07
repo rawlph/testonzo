@@ -398,8 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 // Function to restore the stats window content
+// Function to restore the stats window content
 function restoreStatsWindow() {
     const statsWindow = document.getElementById('stats-window');
+    
+    // Set button text based on game state
+    let buttonText = isGameActive ? "Close" : "Back to Victory Screen";
+
+    // Render the stats window content
     statsWindow.innerHTML = `
         <div class="stats-columns">
             <div class="column recent-knowledge">
@@ -419,29 +425,35 @@ function restoreStatsWindow() {
                 <p id="general-efficiency">Efficiency: N/A</p>
             </div>
         </div>
-        <button id="close-stats-btn">Back to Victory Screen</button>
+        <button id="close-stats-btn">${buttonText}</button>
     `;
-// Attach event listener to the "Back to Victory Screen" button
-    document.getElementById('close-stats-btn').addEventListener('click', () => {
-        if (victoryScreenContent) {
-            // Restore the victory screen content
-            statsWindow.innerHTML = victoryScreenContent;
-            statsWindow.style.display = 'block';
 
-            // Re-attach event listeners for victory screen buttons
-            document.getElementById('view-stats-btn').addEventListener('click', () => {
-                restoreStatsWindow();
-                updateStatsWindow(); // Assuming this updates the stats values
-                document.getElementById('stats-window').style.display = 'block';
-            });
-            document.getElementById('next-level-btn').addEventListener('click', () => {
-                statsWindow.style.display = 'none';
-                isGameActive = true; // Assuming this flag controls game state
-                startGame(); // Start the next level
-            });
+    // Attach event listener to the button
+    document.getElementById('close-stats-btn').addEventListener('click', () => {
+        if (isGameActive) {
+            // During gameplay, just close the stats window
+            statsWindow.style.display = 'none';
         } else {
-            // If no victory screen content, just hide the stats window
-            document.getElementById('stats-window').style.display = 'none';
+            // After game ends, return to the victory screen
+            if (victoryScreenContent) {
+                statsWindow.innerHTML = victoryScreenContent;
+                statsInsertionSortWindow.style.display = 'block';
+
+                // Re-attach victory screen button listeners
+                document.getElementById('view-stats-btn').addEventListener('click', () => {
+                    restoreStatsWindow();
+                    updateStatsWindow(); // Update stats values
+                    statsWindow.style.display = 'block';
+                });
+                document.getElementById('next-level-btn').addEventListener('click', () => {
+                    statsWindow.style.display = 'none';
+                    isGameActive = true; // Start new level
+                    startGame(); // Start the game
+                });
+            } else {
+                // Fallback: hide the window if no victory content
+                statsWindow.style.display = 'none';
+            }
         }
     });
 }
