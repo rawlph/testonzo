@@ -126,13 +126,12 @@ body::before {
     display: none;
 }
 
-/* Stats Window */
 #stats-window {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 20, 40, 0.95);
+    background: rgba(0, 20, 40, 0.7); /* Semi-transparent */
     padding: 20px;
     border: 3px solid #00ffcc;
     border-radius: 10px;
@@ -140,23 +139,35 @@ body::before {
     z-index: 1000;
     text-align: center;
     font-family: 'Courier New', monospace;
+    width: 80%; /* Large width */
+    max-width: 800px; /* Maximum width to keep it readable */
 }
 
-#stats-window h2 {
+.stats-columns {
+    display: flex;
+    justify-content: space-around;
+}
+
+.column {
+    flex: 1;
+    padding: 10px;
+}
+
+.column h2 {
     margin: 0 0 10px 0;
-    font-size: 24px;
+    font-size: 20px;
     color: #00ffcc;
     text-shadow: 0 0 5px #00ffcc;
 }
 
-#stats-window p {
+.column p {
     margin: 5px 0;
     font-size: 16px;
     color: #00ffcc;
     text-shadow: 0 0 3px #00ffcc;
 }
 
-#stats-window button {
+#close-stats-btn {
     margin-top: 15px;
     padding: 10px 20px;
     background: #003366;
@@ -167,7 +178,7 @@ body::before {
     box-shadow: 0 0 10px #00ffcc;
 }
 
-#stats-window button:hover {
+#close-stats-btn:hover {
     background: #005577;
 }
 

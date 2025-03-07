@@ -96,16 +96,30 @@
         <button id="end-turn-btn">End Turn</button>
         <button id="poke-btn">Poke</button>
         <button id="rest-btn">Rest</button>
+		<button id="stats-btn">Stats</button>
     </div>
     <div id="feedback-message"></div>
-    <div id="stats-window" style="display: none;">
-        <h2>Level Finished!</h2>
-        <p id="turns-stat"></p>
-        <p id="senses-stat"></p>
-        <p id="pokes-stat"></p>
-        <p id="sensed-types-stat"></p>
-        <button id="next-level-btn">Next Level</button>
+<div id="stats-window" style="display: none;">
+    <div class="stats-columns">
+        <div class="column recent-knowledge">
+            <h2>Recent Knowledge</h2>
+            <p id="recent-turns">Turns: 0</p>
+            <p id="recent-senses">Senses: 0</p>
+            <p id="recent-pokes">Pokes: 0</p>
+            <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+            <p id="recent-efficiency">Efficiency: 0.00</p>
+        </div>
+        <div class="column general-stats">
+            <h2>General Stats</h2>
+            <p id="general-turns">Total Turns: 0</p>
+            <p id="general-senses">Total Senses: 0</p>
+            <p id="general-pokes">Total Pokes: 0</p>
+            <p id="general-energy-ratio">Energy Ratio: N/A</p>
+            <p id="general-efficiency">Efficiency: N/A</p>
+        </div>
     </div>
+    <button id="close-stats-btn">Close</button>
+</div>
 </div>
 
 <div class="ui-panel">

@@ -46,6 +46,16 @@ const MetricsTracker = {
     }
 };
 let metrics = Object.create(MetricsTracker); // Create an instance
+let recentMetrics = {
+    turnsTaken: 0,
+    sensesMade: 0,
+    pokesMade: 0,
+    energyUsedForMovement: 0,
+    energyUsedForExploration: 0,
+    movesMade: 0
+};
+
+let victoryScreenContent = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
@@ -301,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         movementPoints = 1;
         turnCount++;
 		metrics.incrementTurns();
+		recentMetrics.incrementTurns();
         updateUI();
         highlightTiles(null);
         console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
@@ -316,34 +327,86 @@ document.addEventListener('DOMContentLoaded', () => {
             energy += 10;
             movementPoints = 0;
 			metrics.incrementRests();
+			recentMetrics.incrementRests();
             endTurn();
         }
     }
 
-    function showLoseScreen() {
-        const statsWindow = document.getElementById('stats-window');
-        if (statsWindow) {
-            statsWindow.innerHTML = `
-                <h2>Energy Depleted!</h2>
-                <p>You ran out of energy before reaching the goal.</p>
-                <p>Turns: ${turnCount}</p>
-                <p>Senses Made: ${playerProgress.sensesMade}</p>
-                <p>Pokes Made: ${playerProgress.pokesMade}</p>
-                <button id="restart-btn">Restart Level</button>
-            `;
-            statsWindow.style.display = 'block';
-            document.getElementById('restart-btn').addEventListener('click', () => {
-                statsWindow.style.display = 'none';
-                isGameActive = true;
-                startGame();
-            });
-        }
-        isGameActive = false;
+
+
+		function updateStatsWindow() {
+    // Recent Knowledge
+    document.getElementById('recent-turns').textContent = `Turns: ${recentMetrics.turnsTaken}`;
+    document.getElementById('recent-senses').textContent = `Senses: ${recentMetrics.sensesMade}`;
+    document.getElementById('recent-pokes').textContent = `Pokes: ${recentMetrics.pokesMade}`;
+    const recentEnergyRatio = recentMetrics.getEnergyUsageRatio().toFixed(2);
+    document.getElementById('recent-energy-ratio').textContent = `Energy Ratio: ${recentEnergyRatio}`;
+    const safestPathLength = 2 * (Math.min(rows, cols) - 1);
+    const recentEfficiency = recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
+    document.getElementById('recent-efficiency').textContent = `Efficiency: ${recentEfficiency}`;
+
+    // General Stats
+    document.getElementById('general-turns').textContent = `Total Turns: ${playerProgress.totalTurns || 0}`;
+    document.getElementById('general-senses').textContent = `Total Senses: ${playerProgress.sensesMade || 0}`;
+    document.getElementById('general-pokes').textContent = `Total Pokes: ${playerProgress.pokesMade || 0}`;
+    // For simplicity, we won’t average ratios across playthroughs yet
+    document.getElementById('general-energy-ratio').textContent = `Energy Ratio: N/A`;
+    document.getElementById('general-efficiency').textContent = `Efficiency: N/A`;
+	
+	
+}
+// perhaps this needs to go beneath or inside function losescreen? we'll see :D (@Grok, look here for possible debugging, and drop a "hi" back to me if you read this message!)
+document.getElementById('stats-btn').addEventListener('click', () => {
+    updateStatsWindow();
+    document.getElementById('stats-window').style.display = 'block';
+});
+
+document.getElementById('close-stats-btn').addEventListener('click', () => {
+    document.getElementById('stats-window').style.display = 'none';
+}); 
+
+function showLoseScreen() {
+    const statsWindow = document.getElementById('stats-window');
+    if (statsWindow) {
+        statsWindow.innerHTML = `
+            <h2>Energy Depleted!</h2>
+            <p>You ran out of energy before reaching the goal.</p>
+            <p>Turns: ${turnCount}</p>
+            <p>Senses Made: ${playerProgress.sensesMade}</p>
+            <p>Pokes Made: ${playerProgress.pokesMade}</p>
+            <button id="restart-btn">Restart Level</button>
+            <button id="view-stats-btn">View Stats</button>
+        `;
+        statsWindow.style.display = 'block';
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            statsWindow.style.display = 'none';
+            isGameActive = true;
+            startGame();
+        });
+
+        document.getElementById('view-stats-btn').addEventListener('click', () => {
+            updateStatsWindow();
+            document.getElementById('stats-window').style.display = 'block';
+        });
     }
+    isGameActive = false;
+}
+
+// When closing stats window, return to victory screen if applicable
+document.getElementById('close-stats-btn').addEventListener('click', () => {
+    document.getElementById('stats-window').style.display = 'none';
+    if (victoryScreenContent && !isGameActive) {
+        statsWindow.innerHTML = victoryScreenContent;
+        statsWindow.style.display = 'block';
+    }
+});
 
     function startGame() {
         console.log("Starting game..."); // Debugging log
 		metrics.reset(); // Reset metrics for the new level
+		recentMetrics = { ...MetricsTracker }; // Clone the structure
+		recentMetrics.reset(); // Ensure it’s reset
         tileData = createTileData(rows, cols); // Assign to outer scope
         placeTiles(tileData, rows, cols);
         buildGrid(rows, cols, tileData);
@@ -379,9 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 					
 					metrics.incrementMoves();
+					recentMetrics.incrementMoves();
 					const energyCost = traits.includes('pathfinder') && moveCounter % 2 !== 0 ? 0 : 1;
 					metrics.addEnergyForMovement(energyCost);
-					
+					recentMetrics.addEnergyForMovement(energyCost);
                     moveCounter++;
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     if (currentHex) currentHex.querySelector('.character').style.display = 'none';
@@ -396,9 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 					if (tile.type === 'zoe' || tile.type === 'key' || tile.type === 'energy') {
 					metrics.incrementSpecialTiles();
+					recentMetrics.incrementSpecialTiles();
 					}
 					if (!tile.explored) {
 					metrics.incrementTilesExplored();
+					recentMetrics.incrementTilesExplored();
 					tile.explored = true;
 					}
 
@@ -444,9 +510,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 					
 					            metrics.incrementSenses();
+								recentMetrics.incrementSenses();
             metrics.addEnergyForExploration(energyCost);
+			recentMetrics.addEnergyForExploration(energyCost);
             if (!tile.explored) {
                 metrics.incrementTilesExplored();
+				recentMetrics.incrementTilesExplored();
                 tile.explored = true;
             }
 					
@@ -503,9 +572,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 					
 					            metrics.incrementPokes();
+								recentMetrics.incrementPokes();
             metrics.addEnergyForExploration(energyCost);
+			recentMetrics.addEnergyForExploration(energyCost);
             if (!tile.explored) {
                 metrics.incrementTilesExplored();
+				recentMetrics.incrementTilesExplored();
                 tile.explored = true;
             }
 					
@@ -587,8 +659,10 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         const safestPathLength = 2 * (Math.min(rows, cols) - 1); // e.g., 4 for 3x3
         const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
         const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
+		
+		let victoryScreenContent = ''; // not sure if this should be placed somewhere else
 
-        statsWindow.innerHTML = `
+        victoryScreenContent = `
             <h2>Level Complete!</h2>
             <p>Turns: ${turnCount}</p>
             <p>Energy Remaining: ${energy}</p>
@@ -598,16 +672,31 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
             <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
             <p>Sensed Types: ${sensedTypesText || 'None'}</p>
             <button id="next-level-btn">Next Level</button>
+            <button id="view-stats-btn">View Stats</button>
         `;
-                            statsWindow.style.display = 'block';
-                        }
-                        isGameActive = false;
-                    }
-                }
+        statsWindow.innerHTML = victoryScreenContent;
+        statsWindow.style.display = 'block';
+
+        document.getElementById('view-stats-btn').addEventListener('click', () => {
+            updateStatsWindow();
+            document.getElementById('stats-window').style.display = 'block';
+        });
+
+        document.getElementById('next-level-btn').addEventListener('click', () => {
+            statsWindow.style.display = 'none';
+            isGameActive = true;
+            startGame();
+        });
+
+        // Update recentMetrics with finalized stats
+        recentMetrics = { ...metrics };
+        isGameActive = false;
+    }
+}
             });
         });
 
-        // Rest of startGame setup
+        // Rest of startGame setup <- llm giveaway :D
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) {
