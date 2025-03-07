@@ -291,6 +291,21 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.appendChild(hexRow);
         }
     }
+function attachVictoryScreenListeners() {
+    const statsWindow = document.getElementById('stats-window');
+    
+    document.getElementById('view-stats-btn').addEventListener('click', () => {
+        restoreStatsWindow();
+        updateStatsWindow();
+        statsWindow.style.display = 'block';
+    });
+    
+    document.getElementById('next-level-btn').addEventListener('click', () => {
+        statsWindow.style.display = 'none';
+        isGameActive = true;
+        startGame();
+    });
+}
 
     function endTurn() {
         if (!isGameActive) {
@@ -436,7 +451,8 @@ function restoreStatsWindow() {
             if (victoryScreenContent) {
                 statsWindow.innerHTML = victoryScreenContent;
                 statsWindow.style.display = 'block';
-                // Event listeners for view-stats-btn and next-level-btn should already be attached elsewhere
+                // Re-attach event listeners for victory screen buttons
+                attachVictoryScreenListeners();
             } else {
                 // Fallback: hide the window if no victory content
                 statsWindow.style.display = 'none';
@@ -700,32 +716,23 @@ function restoreStatsWindow() {
                             const safestPathLength = 2 * (Math.min(rows, cols) - 1); // e.g., 4 for 3x3
                             const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
                             const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
-                            victoryScreenContent = `
-                                <h2>Level Complete!</h2>
-                                <p>Turns: ${turnCount}</p>
-                                <p>Energy Remaining: ${energy}</p>
-                                <p>Senses Made: ${playerProgress.sensesMade}</p>
-                                <p>Pokes Made: ${playerProgress.pokesMade}</p>
-                                <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
-                                <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
-                                <p>Sensed Types: ${sensedTypesText || 'None'}</p>
-                                <button id="next-level-btn">Next Level</button>
-                                <button id="view-stats-btn">View Stats</button>
-                            `;
-                            statsWindow.innerHTML = victoryScreenContent;
-                            statsWindow.style.display = 'block';
+victoryScreenContent = `
+            <h2>Level Complete!</h2>
+            <p>Turns: ${turnCount}</p>
+            <p>Energy Remaining: ${energy}</p>
+            <p>Senses Made: ${playerProgress.sensesMade}</p>
+            <p>Pokes Made: ${playerProgress.pokesMade}</p>
+            <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
+            <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
+            <p>Sensed Types: ${sensedTypesText || 'None'}</p>
+            <button id="next-level-btn">Next Level</button>
+            <button id="view-stats-btn">View Stats</button>
+        `;
+        statsWindow.innerHTML = victoryScreenContent;
+        statsWindow.style.display = 'block';
 
-                            document.getElementById('view-stats-btn').addEventListener('click', () => {
-                                restoreStatsWindow();
-                                updateStatsWindow();
-                                document.getElementById('stats-window').style.display = 'block';
-                            });
-
-                            document.getElementById('next-level-btn').addEventListener('click', () => {
-                                statsWindow.style.display = 'none';
-                                isGameActive = true;
-                                startGame();
-                            });
+        // Attach listeners once
+        attachVictoryScreenListeners();
 
                             isGameActive = false;
 							
