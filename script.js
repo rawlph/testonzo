@@ -721,7 +721,10 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         isGameActive = true;
         document.getElementById('stats-window').style.display = 'none';
     }
-        }); // here be bugs! please devour them grokzor
+	}
+}
+	}
+}
 
     function updateUI() {
         if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
