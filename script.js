@@ -1,5 +1,7 @@
 let isGameActive = true; // Tracks if the game is active or finished
 let tileData; // Declare tileData in the outer scope
+const MetricsTracker = { ... }; // As defined above
+let metrics = Object.create(MetricsTracker); // Create an instance
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initial grid size and constants
@@ -254,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         movementPoints = 1;
         turnCount++;
+		metrics.incrementTurns();
         updateUI();
         highlightTiles(null);
         console.log(`Turn ${turnCount} ended. MP reset to ${movementPoints}.`);
@@ -268,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirmRest) {
             energy += 10;
             movementPoints = 0;
+			metrics.incrementRests();
             endTurn();
         }
     }
@@ -295,18 +299,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startGame() {
         console.log("Starting game..."); // Debugging log
+		metrics.reset(); // Reset metrics for the new level
         tileData = createTileData(rows, cols); // Assign to outer scope
         placeTiles(tileData, rows, cols);
         buildGrid(rows, cols, tileData);
 
         // Attach event listeners to hex containers after the grid is built
         const hexContainers = document.querySelectorAll('.hex-container');
-        console.log(`Found ${hexContainers.length} hex containers`); // Debugging log
         hexContainers.forEach(container => {
             container.addEventListener('click', () => {
-                console.log("Tile clicked at row:", container.getAttribute('data-row'), "col:", container.getAttribute('data-col')); // Debugging log
                 if (!isGameActive) {
-                    console.log("Level complete or lost—check your stats!");
                     return;
                 }
 
@@ -331,6 +333,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         showLoseScreen();
                         return;
                     }
+					
+					metrics.incrementMoves();
+					const energyCost = traits.includes('pathfinder') && moveCounter % 2 !== 0 ? 0 : 1;
+					metrics.addEnergyForMovement(energyCost);
+					
                     moveCounter++;
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     if (currentHex) currentHex.querySelector('.character').style.display = 'none';
@@ -342,6 +349,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         energy -= 1;
                     }
                     movementPoints -= 1;
+
+					if (tile.type === 'zoe' || tile.type === 'key' || tile.type === 'energy') {
+					metrics.incrementSpecialTiles();
+					}
+					if (!tile.explored) {
+					metrics.incrementTilesExplored();
+					tile.explored = true;
+					}
 
                     if (tile.type === 'zoe') {
                         temporaryInventory.push('zoe');
@@ -383,6 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         showLoseScreen();
                         return;
                     }
+					
+					            metrics.incrementSenses();
+            metrics.addEnergyForExploration(energyCost);
+            if (!tile.explored) {
+                metrics.incrementTilesExplored();
+                tile.explored = true;
+            }
+					
                     energy -= energyCost;
                     playerProgress.sensedTypes.push(tile.type);
                     playerProgress.sensesMade++;
@@ -434,6 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         showLoseScreen();
                         return;
                     }
+					
+					            metrics.incrementPokes();
+            metrics.addEnergyForExploration(energyCost);
+            if (!tile.explored) {
+                metrics.incrementTilesExplored();
+                tile.explored = true;
+            }
+					
                 } else {
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
@@ -492,6 +523,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         playerProgress.traits = traits;
                         playerProgress.uniquesensedTypes = uniquesensedTypes;
                         localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+						
+						playerProgress.sensesMade += metrics.sensesMade;
+playerProgress.pokesMade += metrics.pokesMade;
+playerProgress.totalTurns = (playerProgress.totalTurns || 0) + metrics.turnsTaken;
+localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
 
                         updateUI();
 
@@ -504,15 +540,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             const sensedTypesText = Object.entries(typeCounts)
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
-                            statsWindow.innerHTML = `
-                                <h2>Level Complete!</h2>
-                                <p>Turns: ${turnCount}</p>
-                                <p>Energy Remaining: ${energy}</p>
-                                <p>Senses Made: ${playerProgress.sensesMade}</p>
-                                <p>Pokes Made: ${playerProgress.pokesMade}</p>
-                                <p>Sensed Types: ${sensedTypesText || 'None'}</p>
-                                <button id="next-level-btn">Next Level</button>
-                            `;
+        const safestPathLength = 2 * (Math.min(rows, cols) - 1); // e.g., 4 for 3x3
+        const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
+        const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
+
+        statsWindow.innerHTML = `
+            <h2>Level Complete!</h2>
+            <p>Turns: ${turnCount}</p>
+            <p>Energy Remaining: ${energy}</p>
+            <p>Senses Made: ${playerProgress.sensesMade}</p>
+            <p>Pokes Made: ${playerProgress.pokesMade}</p>
+            <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
+            <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
+            <p>Sensed Types: ${sensedTypesText || 'None'}</p>
+            <button id="next-level-btn">Next Level</button>
+        `;
                             statsWindow.style.display = 'block';
                         }
                         isGameActive = false;
