@@ -690,7 +690,7 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         isGameActive = false;
     }
 }
-        }); // here be bugs! please devour them grokzor
+
 
         // Rest of startGame setup <- llm giveaway :D
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
