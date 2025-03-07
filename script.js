@@ -397,8 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameActive = false;
     }
 
-// Function to restore the stats window content
-// Function to restore the stats window content
 function restoreStatsWindow() {
     const statsWindow = document.getElementById('stats-window');
     
@@ -437,19 +435,8 @@ function restoreStatsWindow() {
             // After game ends, return to the victory screen
             if (victoryScreenContent) {
                 statsWindow.innerHTML = victoryScreenContent;
-                statsInsertionSortWindow.style.display = 'block';
-
-                // Re-attach victory screen button listeners
-                document.getElementById('view-stats-btn').addEventListener('click', () => {
-                    restoreStatsWindow();
-                    updateStatsWindow(); // Update stats values
-                    statsWindow.style.display = 'block';
-                });
-                document.getElementById('next-level-btn').addEventListener('click', () => {
-                    statsWindow.style.display = 'none';
-                    isGameActive = true; // Start new level
-                    startGame(); // Start the game
-                });
+                statsWindow.style.display = 'block';
+                // Event listeners for view-stats-btn and next-level-btn should already be attached elsewhere
             } else {
                 // Fallback: hide the window if no victory content
                 statsWindow.style.display = 'none';
@@ -741,6 +728,19 @@ function restoreStatsWindow() {
                             });
 
                             isGameActive = false;
+							
+							// Attach listeners once
+    document.getElementById('view-stats-btn').addEventListener('click', () => {
+        restoreStatsWindow();
+        updateStatsWindow(); // Update stats values
+        statsWindow.style.display = 'block';
+    });
+
+    document.getElementById('next-level-btn').addEventListener('click', () => {
+        statsWindow.style.display = 'none';
+        isGameActive = true;
+        startGame();
+    });
                         }
                     } // Added missing closing brace here
                 } // Closes the victory condition if block
