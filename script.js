@@ -659,9 +659,6 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         const safestPathLength = 2 * (Math.min(rows, cols) - 1); // e.g., 4 for 3x3
         const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
         const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
-		
-		
-
         victoryScreenContent = `
             <h2>Level Complete!</h2>
             <p>Turns: ${turnCount}</p>
@@ -693,8 +690,7 @@ localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
         isGameActive = false;
     }
 }
-            }); // here be bugs! please devour them grokzor
-        });
+        }); // here be bugs! please devour them grokzor
 
         // Rest of startGame setup <- llm giveaway :D
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
