@@ -611,7 +611,7 @@ function restoreStatsWindow() {
                         showLoseScreen();
                         return;
                     }
-                } elif (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
+                } else if (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy < energyCost) {
                         showLoseScreen();
@@ -641,7 +641,7 @@ function restoreStatsWindow() {
                         recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
-                } elif (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
+                } else if (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
 					const energyCost = 3; // Adjustable for balance
 					if (energy < energyCost) {
 						showLoseScreen();
