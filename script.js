@@ -1658,6 +1658,9 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
+    // Add basic CSS styles
+    addGameStyles();
+    
     // Initialize game state
     GameState.init();
     
@@ -1724,6 +1727,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.tileData = null; // Will be set in startGame
     window.isGameActive = true;
     
+    // Create game UI if it doesn't exist
+    createGameUI();
+    
     // Create particles
     createParticles(25);
     
@@ -1736,6 +1742,476 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the game
     startGame();
 });
+
+/**
+ * Adds basic CSS styles for the game
+ */
+function addGameStyles() {
+    // Check if styles already exist
+    if (document.getElementById('game-styles')) {
+        return;
+    }
+    
+    // Create style element
+    const styleElement = document.createElement('style');
+    styleElement.id = 'game-styles';
+    
+    // Add CSS rules
+    styleElement.textContent = `
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #222;
+        }
+        
+        .grid-container {
+            position: relative;
+            margin: 50px auto;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .hex-container {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .hex {
+            position: relative;
+            width: 86.6px;
+            height: 100px;
+            background-color: #666;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: background-color 0.3s;
+        }
+        
+        .hex-inner {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .coords {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        /* Tile types */
+        .normal { background-color: #777; }
+        .blocked { background-color: #555; }
+        .water { background-color: #4488ff; }
+        .energy { background-color: #ffcc44; }
+        .goal { background-color: #44ff44; }
+        .key { background-color: #ff88ff; }
+        .zoe { background-color: #ff4488; }
+        
+        /* Chaos/Order styles */
+        .high-chaos { background-color: #ff4444; }
+        .chaos { background-color: #ff8844; }
+        .high-order { background-color: #44ff88; }
+        .order { background-color: #88ff88; }
+        
+        /* Unexplored tiles */
+        .unexplored .hex {
+            filter: brightness(0.5) grayscale(0.7);
+        }
+        
+        /* Highlighting */
+        .highlighted .hex {
+            box-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00;
+            cursor: pointer;
+        }
+        
+        /* Player */
+        .player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            transition: left 0.3s, top 0.3s;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+        }
+        
+        /* Zoe */
+        .zoe-character {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background-color: #ff00ff;
+            border-radius: 50%;
+            z-index: 5;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
+        }
+        
+        /* Stability indicator */
+        .stability-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 255, 255, 0.3);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            z-index: 2;
+        }
+        
+        /* UI elements */
+        .action-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 20;
+        }
+        
+        .console-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #444;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .console-btn:hover {
+            background-color: #666;
+        }
+        
+        /* Resource bars */
+        .resource-bars {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 20;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        
+        .resource-bar {
+            margin-bottom: 5px;
+        }
+        
+        .resource-label {
+            display: inline-block;
+            width: 80px;
+        }
+        
+        .resource-progress {
+            display: inline-block;
+            width: 150px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .resource-value {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .energy-value { background-color: #ffcc44; }
+        .essence-value { background-color: #ff44ff; }
+        .knowledge-value { background-color: #44aaff; }
+        .stability-value { background-color: #44ffaa; }
+        
+        /* Windows */
+        .window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(30, 30, 30, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            z-index: 30;
+            color: white;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            display: none;
+        }
+        
+        .window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .window-content {
+            padding: 15px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Particles */
+        .particle-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            top: 0;
+            animation: particleFall linear infinite;
+        }
+        
+        @keyframes particleFall {
+            0% { top: -10px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100vh; opacity: 0; }
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+        
+        /* Effects */
+        .sense-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+            animation: pulseEffect 1s ease-out;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .poke-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(255,100,100,0.7) 0%, rgba(255,100,100,0) 70%);
+            animation: pulseEffect 1s ease-out;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .stabilize-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(100,255,255,0.7) 0%, rgba(100,255,255,0) 70%);
+            animation: pulseEffect 1s ease-out;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        @keyframes pulseEffect {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+    `;
+    
+    // Add to document head
+    document.head.appendChild(styleElement);
+    console.log("Added game styles");
+}
+
+/**
+ * Creates basic UI elements for the game
+ */
+function createGameUI() {
+    // Check if UI already exists
+    if (document.getElementById('game-container')) {
+        return;
+    }
+    
+    console.log("Creating game UI");
+    
+    // Create game container
+    const gameContainer = document.createElement('div');
+    gameContainer.id = 'game-container';
+    gameContainer.className = 'game-container';
+    document.body.appendChild(gameContainer);
+    
+    // Create resource bars
+    const resourceBars = document.createElement('div');
+    resourceBars.className = 'resource-bars';
+    resourceBars.innerHTML = `
+        <div class="resource-bar">
+            <span class="resource-label">Energy:</span>
+            <div class="resource-progress" id="energy-progress">
+                <div class="resource-value energy-value" id="energy-value" style="width: 50%;"></div>
+            </div>
+            <span class="resource-text" id="energy-text">10/20</span>
+        </div>
+        <div class="resource-bar">
+            <span class="resource-label">Essence:</span>
+            <div class="resource-progress" id="essence-progress">
+                <div class="resource-value essence-value" id="essence-value" style="width: 0%;"></div>
+            </div>
+            <span class="resource-text" id="essence-text">0/50</span>
+        </div>
+        <div class="resource-bar">
+            <span class="resource-label">Knowledge:</span>
+            <div class="resource-progress" id="knowledge-progress">
+                <div class="resource-value knowledge-value" id="knowledge-value" style="width: 0%;"></div>
+            </div>
+            <span class="resource-text" id="knowledge-text">0/50</span>
+        </div>
+        <div class="resource-bar">
+            <span class="resource-label">Stability:</span>
+            <div class="resource-progress" id="stability-progress">
+                <div class="resource-value stability-value" id="stability-value" style="width: 0%;"></div>
+            </div>
+            <span class="resource-text" id="stability-text">0/50</span>
+        </div>
+        <div id="system-balance">Balanced Forces | Age: 0 | 50% Chaos / 50% Order</div>
+        <div id="turn-counter">Turns: 0</div>
+        <div id="stats-display">Moves: 1 | Luck: 1 | XP: 0</div>
+        <div id="traits-display">Traits: None</div>
+        <div id="temp-inventory-display">Level Items: None</div>
+        <div id="persistent-inventory-display">Persistent Items: None</div>
+    `;
+    gameContainer.appendChild(resourceBars);
+    
+    // Create action console
+    const actionConsole = document.createElement('div');
+    actionConsole.className = 'action-console';
+    actionConsole.innerHTML = `
+        <button id="move-btn" class="console-btn">Move</button>
+        <button id="sense-btn" class="console-btn">Sense</button>
+        <button id="poke-btn" class="console-btn">Poke</button>
+        <button id="stabilize-btn" class="console-btn">Stabilize</button>
+        <button id="rest-btn" class="console-btn">Rest</button>
+        <button id="end-turn-btn" class="console-btn">End Turn</button>
+        <button id="evolution-btn" class="console-btn">Evolution</button>
+        <button id="events-btn" class="console-btn">Events</button>
+        <button id="stats-btn" class="console-btn">Stats</button>
+    `;
+    gameContainer.appendChild(actionConsole);
+    
+    // Create stats window
+    const statsWindow = document.createElement('div');
+    statsWindow.id = 'stats-window';
+    statsWindow.className = 'window';
+    statsWindow.innerHTML = `
+        <div class="window-header">
+            <h2>Game Statistics</h2>
+            <button id="close-stats-btn" class="close-btn">×</button>
+        </div>
+        <div class="window-content">
+            <h3>Recent Stats</h3>
+            <div id="recent-turns">Turns: 0</div>
+            <div id="recent-senses">Senses: 0</div>
+            <div id="recent-pokes">Pokes: 0</div>
+            <div id="recent-energy-ratio">Energy Ratio: 0.00</div>
+            <div id="recent-efficiency">Efficiency: 0.00</div>
+            <h3>General Stats</h3>
+            <div id="general-turns">Total Turns: 0</div>
+            <div id="general-senses">Total Senses: 0</div>
+            <div id="general-pokes">Total Pokes: 0</div>
+            <div id="general-energy-ratio">Energy Ratio: N/A</div>
+            <div id="general-efficiency">Efficiency: N/A</div>
+            <h3>Admin Controls</h3>
+            <div>
+                <input id="rows-input" type="number" min="3" max="20" value="5" />
+                <span>×</span>
+                <input id="cols-input" type="number" min="3" max="20" value="5" />
+                <button id="resize-btn">Resize Grid</button>
+            </div>
+            <button id="reset-stats-btn">Reset All Progress</button>
+        </div>
+    `;
+    document.body.appendChild(statsWindow);
+    
+    // Create event notification
+    const eventNotification = document.createElement('div');
+    eventNotification.id = 'event-notification';
+    eventNotification.className = 'window';
+    eventNotification.innerHTML = `
+        <div class="window-header">
+            <h2>Event Triggered</h2>
+            <button id="event-notification-close-btn" class="close-btn">×</button>
+        </div>
+        <div class="window-content">
+            <h3 id="event-notification-title">Event Title</h3>
+            <p id="event-notification-description">Event description goes here.</p>
+            <div id="event-notification-effects">Event effects will be shown here.</div>
+        </div>
+    `;
+    document.body.appendChild(eventNotification);
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'notification';
+    notification.className = 'notification';
+    document.body.appendChild(notification);
+    
+    console.log("Game UI created");
+}
 
 /**
  * Creates particle effects in the game background
@@ -1916,63 +2392,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 /**
- * Creates the initial tile data structure
- * @param {number} rows - Number of rows in the grid
- * @param {number} cols - Number of columns in the grid
+ * Creates a 2D array of tile data for the grid
+ * @param {number} rows - Number of rows
+ * @param {number} cols - Number of columns
  * @returns {Array} 2D array of tile data
  */
-    function createTileData(rows, cols) {
+function createTileData(rows, cols) {
     console.log(`Creating tile data: ${rows}x${cols}`);
     
-        const tileData = [];
-    const globalChaos = GameState.worldEvolution.globalChaos;
-    const variance = GameState.worldEvolution.tileVariance;
+    // Default global chaos value
+    const globalChaos = GameState.worldEvolution.globalChaos || 0.8;
+    
+    // Default variance value (20% variance)
+    const variance = 0.2;
     
     console.log(`Global chaos: ${globalChaos}, Variance: ${variance}`);
     
-        for (let row = 0; row < rows; row++) {
-            tileData[row] = [];
-            for (let col = 0; col < cols; col++) {
-            // Calculate chaos level with some variance
-            // More variance at the edges of the grid (representing frontier areas)
-            const edgeFactor = Math.max(
-                Math.abs(row / rows - 0.5) * 2,
-                Math.abs(col / cols - 0.5) * 2
-            );
-            const extraVariance = edgeFactor * variance * 0.5;
+    // Create a 2D array to store tile data
+    const tileData = [];
+    
+    for (let r = 0; r < rows; r++) {
+        tileData[r] = [];
+        for (let c = 0; c < cols; c++) {
+            // Randomize chaos value with some variance around global chaos
+            const randomVariance = (Math.random() * 2 - 1) * variance;
+            const chaos = Math.max(0, Math.min(1, globalChaos + randomVariance));
             
-            // Generate chaos value with variance
-            let chaos = globalChaos + (Math.random() * 2 - 1) * (variance + extraVariance);
+            // Determine tile type based on chaos level
+            const type = determineTileType(chaos);
             
-            // Ensure chaos stays within 0-1 range
-            chaos = Math.max(0.1, Math.min(0.9, chaos));
-            
-            // Create special pockets of order/chaos
-            if (Math.random() < 0.1) {
-                // 10% chance of a special pocket
-                if (Math.random() < 0.5) {
-                    // Order pocket
-                    chaos = Math.max(0.1, chaos - 0.3);
-                } else {
-                    // Chaos pocket
-                    chaos = Math.min(0.9, chaos + 0.3);
-                }
-            }
-            
-                tileData[row][col] = {
-                type: 'normal', // Will be set in placeTiles
-                    effects: [],
-                    state: 'active',
-                    explored: false,
+            // Store tile data
+            tileData[r][c] = {
+                type: type,
                 chaos: chaos,
-                order: 1 - chaos
-                };
-            }
+                order: 1 - chaos,
+                explored: false,
+                sensed: false,
+                stability: 0
+            };
         }
+    }
     
     console.log(`Tile data created with ${rows * cols} tiles`);
-        return tileData;
-    }
+    return tileData;
+}
 
 /**
  * Gets positions that are not part of the main path
@@ -1999,76 +2462,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 /**
- * Places different tile types on the grid
+ * Places tiles on the grid based on tile data
  * @param {Array} tileData - 2D array of tile data
- * @param {number} rows - Number of rows in the grid
- * @param {number} cols - Number of columns in the grid
+ * @param {number} rows - Number of rows
+ * @param {number} cols - Number of columns
  */
-    function placeTiles(tileData, rows, cols) {
+function placeTiles(tileData, rows, cols) {
     console.log(`Placing tiles on ${rows}x${cols} grid`);
     
-    // Always set the goal tile
-        tileData[rows - 1][cols - 1].type = 'goal';
-    console.log(`Goal tile set at [${rows - 1}, ${cols - 1}]`);
+    // Place goal tile in the bottom right
+    const goalRow = rows - 1;
+    const goalCol = cols - 1;
+    tileData[goalRow][goalCol].type = 'goal';
+    console.log(`Goal tile set at [${goalRow}, ${goalCol}]`);
     
-    // Get non-path positions
-        let nonPathPositions = getNonPathPositions(rows, cols);
+    // Get available positions for other special tiles (excluding player start and goal)
+    const playerStartRow = 0;
+    const playerStartCol = 0;
+    window.currentRow = playerStartRow;
+    window.currentCol = playerStartCol;
+    GameState.player.currentRow = playerStartRow;
+    GameState.player.currentCol = playerStartCol;
+    
+    // Generate non-path positions
+    const nonPathPositions = getNonPathPositions(rows, cols);
     console.log(`Got ${nonPathPositions.length} non-path positions`);
     
-    // Shuffle non-path positions
-        for (let i = nonPathPositions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
-        }
-
-    // Place Zoe if not found yet
-    if (!GameState.progress.hasFoundZoe) {
-            const zoeRow = 2;
-            const zoeCol = 2;
-            tileData[zoeRow][zoeCol].type = 'zoe';
+    // Shuffle positions for random placement
+    nonPathPositions.sort(() => Math.random() - 0.5);
+    
+    // Place Zoe (if available)
+    let zoeRow, zoeCol;
+    if (nonPathPositions.length > 0 && !GameState.progress.hasFoundZoe) {
+        const zoePos = nonPathPositions.pop();
+        zoeRow = zoePos[0];
+        zoeCol = zoePos[1];
+        tileData[zoeRow][zoeCol].type = 'zoe';
         console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
-            nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
-        }
-
-    // Place a key
-        if (nonPathPositions.length > 0) {
-        const keyPos = nonPathPositions.shift();
-        tileData[keyPos.row][keyPos.col].type = 'key';
-        console.log(`Key placed at [${keyPos.row}, ${keyPos.col}]`);
     }
     
-    // Determine tile types based on chaos levels
-    let blockedCount = 0;
-    let waterCount = 0;
-    let energyCount = 0;
+    // Place key
+    if (nonPathPositions.length > 0 && GameState.level.requiresKey) {
+        const keyPos = nonPathPositions.pop();
+        const keyRow = keyPos[0];
+        const keyCol = keyPos[1];
+        tileData[keyRow][keyCol].type = 'key';
+        console.log(`Key placed at [${keyRow}, ${keyCol}]`);
+    }
     
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            // Skip already assigned tiles (goal, zoe, key)
-            if (tileData[row][col].type !== 'normal') {
-                continue;
-            }
-            
-            // Skip the start position
-            if (row === 0 && col === 0) {
-                continue;
-            }
-            
-            // Determine tile type based on chaos level
-            const chaos = tileData[row][col].chaos;
-            const tileType = GameState.determineTileType(chaos);
-            tileData[row][col].type = tileType;
-            
-            // Count tile types
-            if (tileType === 'blocked') blockedCount++;
-            if (tileType === 'water') waterCount++;
-            if (tileType === 'energy') energyCount++;
-        }
+    // Calculate counts for special tiles (adjust these values as needed)
+    const blockedTileCount = Math.floor(nonPathPositions.length * 0.4); // 40% of remaining tiles
+    const waterTileCount = Math.floor(nonPathPositions.length * 0.2);   // 20% of remaining tiles
+    const energyTileCount = Math.floor(nonPathPositions.length * 0.1);  // 10% of remaining tiles
+    
+    // Place blocked tiles
+    let blockedCount = 0;
+    for (let i = 0; i < blockedTileCount && nonPathPositions.length > 0; i++) {
+        const pos = nonPathPositions.pop();
+        const r = pos[0];
+        const c = pos[1];
+        tileData[r][c].type = 'blocked';
+        tileData[r][c].chaos = Math.min(1, tileData[r][c].chaos + 0.2); // Increase chaos for blocked tiles
+        blockedCount++;
+    }
+    
+    // Place water tiles
+    let waterCount = 0;
+    for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
+        const pos = nonPathPositions.pop();
+        const r = pos[0];
+        const c = pos[1];
+        tileData[r][c].type = 'water';
+        tileData[r][c].chaos = Math.max(0, tileData[r][c].chaos - 0.2); // Decrease chaos for water tiles
+        waterCount++;
+    }
+    
+    // Place energy tiles
+    let energyCount = 0;
+    for (let i = 0; i < energyTileCount && nonPathPositions.length > 0; i++) {
+        const pos = nonPathPositions.pop();
+        const r = pos[0];
+        const c = pos[1];
+        tileData[r][c].type = 'energy';
+        energyCount++;
     }
     
     console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
     
-    // Ensure there is a traversable path from start to goal
+    // Ensure traversable path
     ensureTraversablePath(tileData, rows, cols);
     console.log("Ensured traversable path");
 }
@@ -2220,11 +2701,26 @@ function buildGrid(rows, cols, tileData) {
     
     console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
-    // Get the grid element
-    const grid = document.getElementById('grid');
+    // Get or create the grid element
+    let grid = document.getElementById('grid');
     if (!grid) {
-        console.error("Grid element not found");
-        return;
+        console.warn("Grid element not found, creating one");
+        grid = document.createElement('div');
+        grid.id = 'grid';
+        grid.className = 'grid-container';
+        
+        // Find the game-container or append to body
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.appendChild(grid);
+        } else {
+            // Create a game container if it doesn't exist
+            const newGameContainer = document.createElement('div');
+            newGameContainer.id = 'game-container';
+            newGameContainer.className = 'game-container';
+            document.body.appendChild(newGameContainer);
+            newGameContainer.appendChild(grid);
+        }
     }
     
     // Clear existing grid
@@ -2300,6 +2796,24 @@ function buildGrid(rows, cols, tileData) {
                 hexContainer.appendChild(stabilityIndicator);
             }
         }
+    }
+    
+    // Create player element if it doesn't exist
+    let playerElement = document.getElementById('player');
+    if (!playerElement) {
+        playerElement = document.createElement('div');
+        playerElement.id = 'player';
+        playerElement.className = 'player';
+        grid.parentNode.appendChild(playerElement);
+    }
+    
+    // Create Zoe element if it doesn't exist
+    let zoeElement = document.getElementById('zoe-character');
+    if (!zoeElement) {
+        zoeElement = document.createElement('div');
+        zoeElement.id = 'zoe-character';
+        zoeElement.className = 'zoe-character';
+        grid.parentNode.appendChild(zoeElement);
     }
     
     console.log(`Grid built with ${rows * cols} tiles`);
@@ -2927,11 +3441,43 @@ function updateEvolutionUI() {
         return;
     }
     
-    // Get the evolution paths container
-    const pathsContainer = document.getElementById('evolution-paths');
+    // Create evolution window if it doesn't exist
+    let evolutionWindow = document.getElementById('evolution-window');
+    if (!evolutionWindow) {
+        evolutionWindow = document.createElement('div');
+        evolutionWindow.id = 'evolution-window';
+        evolutionWindow.className = 'window';
+        evolutionWindow.innerHTML = `
+            <div class="window-header">
+                <h2>Evolution Paths</h2>
+                <button id="close-evolution-btn" class="close-btn">×</button>
+            </div>
+            <div class="window-content">
+                <div id="evolution-paths" class="evolution-paths"></div>
+            </div>
+        `;
+        document.body.appendChild(evolutionWindow);
+        
+        // Add event listener for close button
+        const closeEvolutionBtn = document.getElementById('close-evolution-btn');
+        if (closeEvolutionBtn) {
+            closeEvolutionBtn.addEventListener('click', hideEvolutionWindow);
+        }
+    }
+    
+    // Get or create the evolution paths container
+    let pathsContainer = document.getElementById('evolution-paths');
     if (!pathsContainer) {
-        console.error("Evolution paths container not found");
-        return;
+        console.warn("Evolution paths container not found, creating one");
+        pathsContainer = document.createElement('div');
+        pathsContainer.id = 'evolution-paths';
+        pathsContainer.className = 'evolution-paths';
+        const windowContent = evolutionWindow.querySelector('.window-content');
+        if (windowContent) {
+            windowContent.appendChild(pathsContainer);
+        } else {
+            evolutionWindow.appendChild(pathsContainer);
+        }
     }
     
     // Clear existing paths
@@ -2987,6 +3533,18 @@ function updateEvolutionUI() {
         // Add to paths container
         pathsContainer.appendChild(pathContainer);
     });
+    
+    // Create evolution button if it doesn't exist
+    let evolutionBtn = document.getElementById('evolution-btn');
+    if (!evolutionBtn) {
+        const actionConsole = document.querySelector('.action-console') || document.body;
+        evolutionBtn = document.createElement('button');
+        evolutionBtn.id = 'evolution-btn';
+        evolutionBtn.className = 'console-btn';
+        evolutionBtn.textContent = 'Evolution';
+        evolutionBtn.addEventListener('click', showEvolutionWindow);
+        actionConsole.appendChild(evolutionBtn);
+    }
     
     console.log("Evolution UI updated");
 }
