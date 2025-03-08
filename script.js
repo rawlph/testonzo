@@ -791,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hexContainers = document.querySelectorAll('.hex-container');
         hexContainers.forEach(container => {
             container.addEventListener('click', () => {
-                if (!isGameActive) return;
+                if (!GameState.isActive) return;
                 const clickedRow = parseInt(container.getAttribute('data-row'));
                 const clickedCol = parseInt(container.getAttribute('data-col'));
                 const tile = tileData[clickedRow][clickedCol];
@@ -800,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isCurrentTile = (clickedRow === currentRow && clickedCol === currentCol);
 
                 if (currentAction === 'move' && isAdjacent && tile.type !== 'blocked' && tile.type !== 'water') {
-                    if (movementPoints < 1) {
+                    if (GameState.player.movementPoints < 1) {
                         const feedbackMessage = document.getElementById('feedback-message');
                         if (feedbackMessage) {
                             feedbackMessage.textContent = "No movement points left!";
@@ -809,16 +809,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         return;
                     }
-                    if (energy <= 0) {
+                    if (GameState.player.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
 
-                    metrics.incrementMoves();
-                    recentMetrics.incrementMoves();
+                    GameState.metrics.incrementMoves();
+                    GameState.recentMetrics.incrementMoves();
                     const energyCost = traits.includes('pathfinder') && moveCounter % 2 !== 0 ? 0 : 1;
-                    metrics.addEnergyForMovement(energyCost);
-                    recentMetrics.addEnergyForMovement(energyCost);
+                    GameState.metrics.addEnergyForMovement(energyCost);
+                    GameState.recentMetrics.addEnergyForMovement(energyCost);
                     moveCounter++;
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     if (currentHex) currentHex.querySelector('.character').style.display = 'none';
@@ -827,22 +827,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.querySelector('.character').style.display = 'block';
 
                     if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
-                        energy -= 1;
+                        GameState.player.energy -= 1;
+                        energy = GameState.player.energy; // Update local variable
                     }
-                    movementPoints -= 1;
+                    GameState.player.movementPoints -= 1;
+                    movementPoints = GameState.player.movementPoints; // Update local variable
 
                     if (tile.type === 'zoe' || tile.type === 'key' || tile.type === 'energy') {
-                        metrics.incrementSpecialTiles();
-                        recentMetrics.incrementSpecialTiles();
+                        GameState.metrics.incrementSpecialTiles();
+                        GameState.recentMetrics.incrementSpecialTiles();
                     }
                     if (!tile.explored) {
-                        metrics.incrementTilesExplored();
-                        recentMetrics.incrementTilesExplored();
+                        GameState.metrics.incrementTilesExplored();
+                        GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
 
                     if (tile.type === 'zoe') {
-                        temporaryInventory.push('zoe');
+                        GameState.level.temporaryInventory.push('zoe');
+                        temporaryInventory = GameState.level.temporaryInventory; // Update local variable
                         tile.type = 'normal';
                         container.classList.remove('zoe');
                         const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
@@ -855,14 +858,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     if (tile.type === 'key') {
-                        temporaryInventory.push('key');
+                        GameState.level.temporaryInventory.push('key');
+                        temporaryInventory = GameState.level.temporaryInventory; // Update local variable
                         tile.type = 'normal';
                         container.classList.remove('key');
                     }
                     if (tile.type === 'energy') {
                         let energyGain = 5;
                         if (traits.includes('explorer')) energyGain += 1;
-                        energy += energyGain;
+                        GameState.player.energy += energyGain;
+                        energy = GameState.player.energy; // Update local variable
                         tile.type = 'normal';
                         container.classList.remove('energy');
                     }
@@ -871,66 +876,84 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUI();
                     highlightTiles(currentAction);
 
-                    if (energy <= 0) {
+                    if (GameState.player.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
                 } else if (currentAction === 'sense' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
-                    if (energy < energyCost) {
+                    if (GameState.player.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
 
-                    metrics.incrementSenses();
-                    recentMetrics.incrementSenses();
-                    metrics.addEnergyForExploration(energyCost);
-                    recentMetrics.addEnergyForExploration(energyCost);
+                    GameState.metrics.incrementSenses();
+                    GameState.recentMetrics.incrementSenses();
+                    GameState.metrics.addEnergyForExploration(energyCost);
+                    GameState.recentMetrics.addEnergyForExploration(energyCost);
                     if (!tile.explored) {
-                        metrics.incrementTilesExplored();
-                        recentMetrics.incrementTilesExplored();
+                        GameState.metrics.incrementTilesExplored();
+                        GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
 
-                    energy -= energyCost;
-                    progress.sensedTypes.push(tile.type);
-                    progress.sensesMade++;
-                    currentLevelSenses++;
-                    if (!uniquesensedTypes.includes(tile.type)) {
-                        uniquesensedTypes.push(tile.type);
+                    GameState.player.energy -= energyCost;
+                    energy = GameState.player.energy; // Update local variable
+                    
+                    GameState.progress.sensedTypes.push(tile.type);
+                    GameState.progress.sensesMade++;
+                    GameState.player.currentLevelSenses++;
+                    currentLevelSenses = GameState.player.currentLevelSenses; // Update local variable
+                    
+                    if (!GameState.progress.uniqueSensedTypes.includes(tile.type)) {
+                        GameState.progress.uniqueSensedTypes.push(tile.type);
+                        uniquesensedTypes = GameState.progress.uniqueSensedTypes; // Update local variable
                     }
+                    
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
                         feedbackMessage.textContent = `Sensed a ${tile.type} tile!`;
                         feedbackMessage.style.display = 'block';
-                        if (traits.includes('senser') && !hasUsedsenserBonus && !isCurrentTile) {
-                            hasUsedsenserBonus = true;
+                        if (traits.includes('senser') && !GameState.player.hasUsedSenserBonus && !isCurrentTile) {
+                            GameState.player.hasUsedSenserBonus = true;
+                            hasUsedsenserBonus = true; // Update local variable
+                            
                             const adjacent = getAdjacentTiles(currentRow, currentCol);
                             const randomAdj = adjacent[Math.floor(Math.random() * adjacent.length)];
                             const adjTile = tileData[randomAdj.row][randomAdj.col];
-                            progress.sensedTypes.push(adjTile.type);
-                            if (!uniquesensedTypes.includes(adjTile.type)) {
-                                uniquesensedTypes.push(adjTile.type);
+                            
+                            GameState.progress.sensedTypes.push(adjTile.type);
+                            if (!GameState.progress.uniqueSensedTypes.includes(adjTile.type)) {
+                                GameState.progress.uniqueSensedTypes.push(adjTile.type);
+                                uniquesensedTypes = GameState.progress.uniqueSensedTypes; // Update local variable
                             }
-                            currentLevelSenses++;
+                            
+                            GameState.player.currentLevelSenses++;
+                            currentLevelSenses = GameState.player.currentLevelSenses; // Update local variable
+                            
                             feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free!`;
                         }
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                     }
                     updateUI();
 
-                    if (energy <= 0) {
+                    if (GameState.player.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
                 } else if (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
-                    if (energy < energyCost) {
+                    if (GameState.player.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
-                    energy -= energyCost;
-                    progress.pokesMade++;
+                    
+                    GameState.player.energy -= energyCost;
+                    energy = GameState.player.energy; // Update local variable
+                    
+                    GameState.progress.pokesMade++;
+                    pokesMade = GameState.progress.pokesMade; // Update local variable
+                    
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
                         feedbackMessage.textContent = `Poked and revealed a ${tile.type} tile!`;
@@ -939,30 +962,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     updateUI();
 
-                    if (energy <= 0) {
+                    if (GameState.player.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
 
-                    metrics.incrementPokes();
-                    recentMetrics.incrementPokes();
-                    metrics.addEnergyForExploration(energyCost);
-                    recentMetrics.addEnergyForExploration(energyCost);
+                    GameState.metrics.incrementPokes();
+                    GameState.recentMetrics.incrementPokes();
+                    GameState.metrics.addEnergyForExploration(energyCost);
+                    GameState.recentMetrics.addEnergyForExploration(energyCost);
                     if (!tile.explored) {
-                        metrics.incrementTilesExplored();
-                        recentMetrics.incrementTilesExplored();
+                        GameState.metrics.incrementTilesExplored();
+                        GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
                 } else if (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
                     const energyCost = 3;
-                    if (energy < energyCost) {
+                    if (GameState.player.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
-                    energy -= energyCost;
+                    
+                    GameState.player.energy -= energyCost;
+                    energy = GameState.player.energy; // Update local variable
+                    
                     tile.chaos = Math.max(0, tile.chaos - 0.2);
                     tile.order = 1 - tile.chaos;
-                    progress.essence += 1;
+                    
+                    GameState.progress.essence += 1;
+                    essence = GameState.progress.essence; // Update local variable
+                    
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
                         feedbackMessage.textContent = `Stabilized tile! Chaos: ${(tile.chaos * 100).toFixed(0)}%, Order: ${(tile.order * 100).toFixed(0)}%. Gained 1 Essence.`;
@@ -983,96 +1012,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
-                    if (!progress.hasFoundZoe && !temporaryInventory.includes('zoe')) {
+                    if (!GameState.progress.hasFoundZoe && !GameState.level.temporaryInventory.includes('zoe')) {
                         const feedbackMessage = document.getElementById('feedback-message');
                         if (feedbackMessage) {
                             feedbackMessage.textContent = "You need Zoe to proceed!";
                             feedbackMessage.style.display = 'block';
                             setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                         }
-                    } else if (energy > 0) {
+                    } else if (GameState.player.energy > 0) {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
-                        let totalChaos = 0;
-                        for (let r = 0; r < rows; r++) {
-                            for (let c = 0; c < cols; c++) {
-                                totalChaos += tileData[r][c].chaos;
-                            }
-                        }
-                        const avgChaos = totalChaos / (rows * cols);
-                        progress.systemChaos = avgChaos;
-                        progress.systemOrder = 1 - avgChaos;
                         
-                        const orderContribution = progress.systemOrder - 0.5;
-                        progress.orderContributions += orderContribution;
-
-                        if (progress.systemOrder > 0.5) {
-                            progress.levelsWithPositiveOrder = (progress.levelsWithPositiveOrder || 0) + 1;
-                            if (progress.levelsWithPositiveOrder >= 5 && !traits.includes('orderKeeper')) {
-                                traits.push('orderKeeper');
-                                alert('Earned Order Keeper trait for completing 5 levels with >50% order!');
-                            }
+                        // Update system balance
+                        const balanceResult = GameState.updateSystemBalance(tileData);
+                        if (balanceResult.newTrait === 'orderKeeper') {
+                            alert('Earned Order Keeper trait for completing 5 levels with >50% order!');
                         }
                         
-                        if (currentLevelSenses >= 10 && !traits.includes('senser')) {
-                            traits.push('senser');
+                        // Check for trait unlocks
+                        if (GameState.player.currentLevelSenses >= 10 && !GameState.progress.traits.includes('senser')) {
+                            GameState.progress.traits.push('senser');
+                            traits = GameState.progress.traits; // Update local variable
                         }
-                        if (turnCount < pathfinderTurnLimit && !traits.includes('pathfinder')) {
-                            traits.push('pathfinder');
+                        
+                        if (turnCount < pathfinderTurnLimit && !GameState.progress.traits.includes('pathfinder')) {
+                            GameState.progress.traits.push('pathfinder');
+                            traits = GameState.progress.traits; // Update local variable
                         }
-                        if (uniquesensedTypes.length >= 5 && !traits.includes('explorer')) {
-                            traits.push('explorer');
+                        
+                        if (GameState.progress.uniqueSensedTypes.length >= 5 && !GameState.progress.traits.includes('explorer')) {
+                            GameState.progress.traits.push('explorer');
+                            traits = GameState.progress.traits; // Update local variable
                         }
 
-                        let xpGain = 10 + energy;
-                        if (!progress.hasFoundZoe && temporaryInventory.includes('zoe')) {
-                            progress.hasFoundZoe = true;
-                            progress.zoeLevelsCompleted = 1;
-                            if (!traits.includes('zoeInitiate')) {
-                                traits.push('zoeInitiate');
-                            }
-                        } else if (progress.hasFoundZoe) {
-                            progress.zoeLevelsCompleted += 1;
-                            if (progress.zoeLevelsCompleted === 4 && !traits.includes('zoeAdept')) {
-                                traits.push('zoeAdept');
-                            } else if (progress.zoeLevelsCompleted === 7 && !traits.includes('zoeMaster')) {
-                                traits.push('zoeMaster');
-                            }
-                        }
-                        if (temporaryInventory.includes('key') && !traits.includes('Keymaster')) {
-                            traits.push('Keymaster');
+                        // Calculate XP gain
+                        let xpGain = 10 + GameState.player.energy;
+                        
+                        // Complete level progress
+                        const foundZoe = GameState.level.temporaryInventory.includes('zoe');
+                        const foundKey = GameState.level.temporaryInventory.includes('key');
+                        
+                        if (foundKey && !GameState.progress.traits.includes('Keymaster')) {
                             xpGain += 5;
                         }
-                        progress.xp += xpGain;
-                        xp = progress.xp;
-                        progress.traits = traits;
-                        progress.uniquesensedTypes = uniquesensedTypes;
-                        progress.sensesMade += metrics.sensesMade;
-                        progress.pokesMade += metrics.pokesMade;
-                        progress.totalTurns = (progress.totalTurns || 0) + metrics.turnsTaken;
-                        localStorage.setItem('playerProgress', JSON.stringify(progress));
-
+                        
+                        const progressResult = GameState.completeLevelProgress(xpGain, foundZoe, foundKey);
+                        
+                        // Update local variables for compatibility
+                        traits = GameState.progress.traits;
+                        xp = GameState.progress.xp;
+                        essence = GameState.progress.essence;
+                        
                         updateUI();
 
+                        // Show victory screen
                         const statsWindow = document.getElementById('stats-window');
                         if (statsWindow) {
                             const typeCounts = {};
-                            progress.sensedTypes.forEach(type => {
+                            GameState.progress.sensedTypes.forEach(type => {
                                 typeCounts[type] = (typeCounts[type] || 0) + 1;
                             });
                             const sensedTypesText = Object.entries(typeCounts)
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
                             const safestPathLength = 2 * (Math.min(rows, cols) - 1);
-                            const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
-                            const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
+                            const energyRatio = GameState.metrics.getEnergyUsageRatio().toFixed(2);
+                            const efficiency = GameState.metrics.getMovementEfficiency(safestPathLength).toFixed(2);
                             victoryScreenContent = `
                                 <h2>Level Complete!</h2>
-                                <p>Essence: ${progress.essence}</p>
+                                <p>Essence: ${GameState.progress.essence}</p>
                                 <p>Turns: ${turnCount}</p>
-                                <p>Energy Remaining: ${energy}</p>
-                                <p>Senses Made: ${progress.sensesMade}</p>
-                                <p>Pokes Made: ${progress.pokesMade}</p>
+                                <p>Energy Remaining: ${GameState.player.energy}</p>
+                                <p>Senses Made: ${GameState.progress.sensesMade}</p>
+                                <p>Pokes Made: ${GameState.progress.pokesMade}</p>
                                 <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
                                 <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
                                 <p>Sensed Types: ${sensedTypesText || 'None'}</p>
@@ -1083,6 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             statsWindow.innerHTML = victoryScreenContent;
                             statsWindow.style.display = 'block';
                             attachVictoryScreenListeners();
+                            GameState.isActive = false;
                             isGameActive = false;
                         }
                     }
