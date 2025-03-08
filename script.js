@@ -1712,7 +1712,7 @@ function getTilesInRange(row, col, range) {
 }
 
 /**
- * Creates the initial tile data structure
+ * Creates tile data for the grid
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
  * @returns {Array} 2D array of tile data
@@ -1720,48 +1720,50 @@ function getTilesInRange(row, col, range) {
 function createTileData(rows, cols) {
     console.log(`Creating tile data: ${rows}x${cols}`);
     
-    const tileData = [];
-    const globalChaos = GameState.worldEvolution.globalChaos;
-    const variance = GameState.worldEvolution.tileVariance;
+    // Safety check
+    if (!rows || !cols || rows <= 0 || cols <= 0) {
+        console.error(`Invalid grid dimensions: ${rows}x${cols}`);
+        // Use default values if invalid
+        rows = 5;
+        cols = 5;
+    }
     
-    console.log(`Global chaos: ${globalChaos}, Variance: ${variance}`);
+    // Create world parameters
+    const globalChaos = GameState.worldEvolution.globalChaos || 0.8; // High chaos by default
+    const chaosVariance = 0.2; // Amount of random variation
+    
+    console.log(`Global chaos: ${globalChaos}, Variance: ${chaosVariance}`);
+    
+    // Create empty 2D array
+    const tileData = [];
     
     for (let row = 0; row < rows; row++) {
         tileData[row] = [];
+        
         for (let col = 0; col < cols; col++) {
-            // Calculate chaos level with some variance
-            // More variance at the edges of the grid (representing frontier areas)
-            const edgeFactor = Math.max(
-                Math.abs(row / rows - 0.5) * 2,
-                Math.abs(col / cols - 0.5) * 2
-            );
-            const extraVariance = edgeFactor * variance * 0.5;
+            // Calculate base chaos value
+            let chaos = globalChaos;
             
-            // Generate chaos value with variance
-            let chaos = globalChaos + (Math.random() * 2 - 1) * (variance + extraVariance);
+            // Add random variation
+            chaos += (Math.random() * chaosVariance * 2 - chaosVariance);
             
-            // Ensure chaos stays within 0-1 range
-            chaos = Math.max(0.1, Math.min(0.9, chaos));
+            // Ensure chaos is between 0 and 1
+            chaos = Math.max(0, Math.min(1, chaos));
             
-            // Create special pockets of order/chaos
-            if (Math.random() < 0.1) {
-                // 10% chance of a special pocket
-                if (Math.random() < 0.5) {
-                    // Order pocket
-                    chaos = Math.max(0.1, chaos - 0.3);
-                } else {
-                    // Chaos pocket
-                    chaos = Math.min(0.9, chaos + 0.3);
-                }
-            }
+            // Determine tile type based on chaos value
+            const tileType = GameState.determineTileType(chaos);
             
+            // Create tile data
             tileData[row][col] = {
-                type: 'normal', // Will be set in placeTiles
-                effects: [],
-                state: 'active',
-                explored: false,
+                row: row,
+                col: col,
+                type: tileType,
                 chaos: chaos,
-                order: 1 - chaos
+                explored: false,
+                sensed: false,
+                hasZoe: false,
+                hasKey: false,
+                isGoal: false
             };
         }
     }
@@ -1774,191 +1776,264 @@ function createTileData(rows, cols) {
  * Gets positions that are not part of the main path
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
- * @returns {Array} Array of positions not on the main path
+ * @returns {Array} Array of positions [row, col] not on the main path
  */
 function getNonPathPositions(rows, cols) {
-    const path = [];
-    for (let col = 0; col < cols; col++) path.push({ row: 0, col });
-    for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
-
+    console.log(`Getting non-path positions for ${rows}x${cols} grid`);
+    
+    // Define the main path positions (approximate)
+    const startRow = Math.floor(rows / 2);
+    const startCol = Math.floor(cols / 2);
+    const goalRow = rows - 1;
+    const goalCol = cols - 1;
+    
     const nonPathPositions = [];
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const isPath = path.some(p => p.row === row && p.col === col);
-            const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
-            if (!isPath && !isStartOrGoal) {
-                nonPathPositions.push({ row, col });
+    
+    // Find positions that are not on the main path
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // Skip the start and goal positions
+            if ((r === startRow && c === startCol) || (r === goalRow && c === goalCol)) {
+                continue;
+            }
+            
+            // Skip positions that are likely on the main path (diagonal)
+            // This is a simplified approximation
+            const isOnMainPath = Math.abs(r - startRow) === Math.abs(c - startCol) &&
+                                r >= Math.min(startRow, goalRow) && r <= Math.max(startRow, goalRow) &&
+                                c >= Math.min(startCol, goalCol) && c <= Math.max(startCol, goalCol);
+            
+            if (!isOnMainPath) {
+                nonPathPositions.push([r, c]);
             }
         }
     }
+    
+    console.log(`Found ${nonPathPositions.length} non-path positions`);
     return nonPathPositions;
 }
 
 /**
- * Places different tile types on the grid
- * @param {Array} tileData - 2D array of tile data
+ * Places tiles on the grid based on the generated tile data
+ * @param {Array} tileData - The 2D array of tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
  */
 function placeTiles(tileData, rows, cols) {
     console.log(`Placing tiles on ${rows}x${cols} grid`);
     
-    // Always set the goal tile
-    tileData[rows - 1][cols - 1].type = 'goal';
-    console.log(`Goal tile set at [${rows - 1}, ${cols - 1}]`);
+    // Safety check
+    if (!tileData || !Array.isArray(tileData) || tileData.length === 0) {
+        console.error('Invalid tileData in placeTiles:', tileData);
+        return;
+    }
     
-    // Get non-path positions
-    let nonPathPositions = getNonPathPositions(rows, cols);
+    // Set the goal tile at the bottom right
+    const goalRow = rows - 1;
+    const goalCol = cols - 1;
+    
+    if (tileData[goalRow] && tileData[goalRow][goalCol]) {
+        tileData[goalRow][goalCol].type = 'goal';
+        tileData[goalRow][goalCol].isGoal = true;
+        tileData[goalRow][goalCol].chaos = 0.2; // Goal tiles are more ordered
+        console.log(`Goal tile set at [${goalRow}, ${goalCol}]`);
+    } else {
+        console.error(`Cannot set goal tile at [${goalRow}, ${goalCol}], position is invalid`);
+    }
+    
+    // Get positions for special tiles (excluding start and goal positions)
+    const nonPathPositions = getNonPathPositions(rows, cols);
     console.log(`Got ${nonPathPositions.length} non-path positions`);
     
-    // Shuffle non-path positions
-    for (let i = nonPathPositions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
+    if (nonPathPositions.length === 0) {
+        console.warn('No positions available for special tiles');
+        return;
     }
     
-    // Place Zoe if not found yet
-    if (!GameState.progress.hasFoundZoe) {
-        const zoeRow = 2;
-        const zoeCol = 2;
-        tileData[zoeRow][zoeCol].type = 'zoe';
+    // Place Zoe in the middle of the grid
+    const zoeRow = Math.floor(rows / 2);
+    const zoeCol = Math.floor(cols / 2);
+    
+    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
+        tileData[zoeRow][zoeCol].hasZoe = true;
         console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
-        nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
+    } else {
+        console.error(`Cannot place Zoe at [${zoeRow}, ${zoeCol}], position is invalid`);
     }
     
-    // Place a key
-    if (nonPathPositions.length > 0) {
-        const keyPos = nonPathPositions.shift();
-        tileData[keyPos.row][keyPos.col].type = 'key';
-        console.log(`Key placed at [${keyPos.row}, ${keyPos.col}]`);
+    // Shuffle the remaining positions
+    const shuffledPositions = [...nonPathPositions].sort(() => Math.random() - 0.5);
+    
+    // Place the key at a random position
+    if (shuffledPositions.length > 0) {
+        const [keyRow, keyCol] = shuffledPositions.pop();
+        if (tileData[keyRow] && tileData[keyRow][keyCol]) {
+            tileData[keyRow][keyCol].hasKey = true;
+            console.log(`Key placed at [${keyRow}, ${keyCol}]`);
+        } else {
+            console.error(`Cannot place key at [${keyRow}, ${keyCol}], position is invalid`);
+        }
     }
     
-    // Determine tile types based on chaos levels
+    // Place some blocked tiles, water tiles, and energy tiles
     let blockedCount = 0;
     let waterCount = 0;
     let energyCount = 0;
     
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            // Skip already assigned tiles (goal, zoe, key)
-            if (tileData[row][col].type !== 'normal') {
-                continue;
-            }
-            
-            // Skip the start position
-            if (row === 0 && col === 0) {
-                continue;
-            }
-            
-            // Determine tile type based on chaos level
-            const chaos = tileData[row][col].chaos;
-            const tileType = GameState.determineTileType(chaos);
-            tileData[row][col].type = tileType;
-            
-            // Count tile types
-            if (tileType === 'blocked') blockedCount++;
-            if (tileType === 'water') waterCount++;
-            if (tileType === 'energy') energyCount++;
+    shuffledPositions.forEach(([r, c]) => {
+        if (!tileData[r] || !tileData[r][c]) {
+            console.warn(`Invalid position [${r}, ${c}] in shuffledPositions`);
+            return;
         }
-    }
+        
+        const chance = Math.random();
+        
+        if (chance < 0.7 && blockedCount < Math.floor(rows * cols * 0.3)) {
+            tileData[r][c].type = 'blocked';
+            blockedCount++;
+        } else if (chance < 0.9 && waterCount < Math.floor(rows * cols * 0.1)) {
+            tileData[r][c].type = 'water';
+            waterCount++;
+        } else if (energyCount < Math.floor(rows * cols * 0.05)) {
+            tileData[r][c].type = 'energy';
+            energyCount++;
+        }
+    });
     
     console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
     
     // Ensure there is a traversable path from start to goal
     ensureTraversablePath(tileData, rows, cols);
-    console.log("Ensured traversable path");
 }
 
 /**
  * Ensures there is a traversable path from start to goal
- * @param {Array} tileData - 2D array of tile data
+ * @param {Array} tileData - The 2D array of tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
+ * @returns {boolean} Whether a path was ensured
  */
 function ensureTraversablePath(tileData, rows, cols) {
-    // Define a guaranteed path from start to goal
-    // This path will follow the top row and then the rightmost column
-    const guaranteedPath = [];
+    console.log(`Ensuring traversable path in ${rows}x${cols} grid`);
     
-    // Add top row to path
-    for (let col = 0; col < cols; col++) {
-        guaranteedPath.push({ row: 0, col });
+    // Safety checks
+    if (!tileData) {
+        console.error('tileData is undefined in ensureTraversablePath');
+        return false;
     }
     
-    // Add rightmost column to path (excluding the top-right corner which is already included)
-    for (let row = 1; row < rows; row++) {
-        guaranteedPath.push({ row, col: cols - 1 });
+    // Find start and goal positions
+    const startRow = Math.floor(rows / 2);
+    const startCol = Math.floor(cols / 2);
+    const goalRow = rows - 1;
+    const goalCol = cols - 1;
+    
+    // Verify current path
+    if (verifyPath(tileData, startRow, startCol, goalRow, goalCol)) {
+        console.log('Path already exists, no changes needed');
+        return true;
     }
     
-    // Clear any blocked tiles along the guaranteed path
-    guaranteedPath.forEach(pos => {
-        if (tileData[pos.row][pos.col].type === 'blocked' || tileData[pos.row][pos.col].type === 'water') {
-            tileData[pos.row][pos.col].type = 'normal';
-            
-            // Also adjust chaos/order levels to be more favorable
-            tileData[pos.row][pos.col].chaos = Math.min(tileData[pos.row][pos.col].chaos, 0.6);
-            tileData[pos.row][pos.col].order = 1 - tileData[pos.row][pos.col].chaos;
-        }
-    });
+    console.log('No path exists, creating direct path');
     
-    // Verify path using pathfinding
-    const pathExists = verifyPath(tileData, 0, 0, rows - 1, cols - 1);
+    // Create a direct path
+    createDirectPath(tileData, startRow, startCol, goalRow, goalCol);
     
-    // If no path exists (which shouldn't happen with our guaranteed path, but just in case),
-    // create a direct path
-    if (!pathExists) {
-        console.warn("Path verification failed, creating direct path");
-        createDirectPath(tileData, 0, 0, rows - 1, cols - 1);
+    // Verify the path again
+    if (verifyPath(tileData, startRow, startCol, goalRow, goalCol)) {
+        console.log('Successfully created a path');
+        return true;
+    } else {
+        console.warn('Failed to create a traversable path');
+        return false;
     }
 }
 
 /**
- * Verifies if a path exists from start to goal using breadth-first search
- * @param {Array} tileData - 2D array of tile data
- * @param {number} startRow - Starting row
- * @param {number} startCol - Starting column
- * @param {number} goalRow - Goal row
- * @param {number} goalCol - Goal column
+ * Verifies if there is a traversable path from start to goal
+ * @param {Array} tileData - The 2D array of tile data
+ * @param {number} startRow - The row of the start position
+ * @param {number} startCol - The column of the start position
+ * @param {number} goalRow - The row of the goal position
+ * @param {number} goalCol - The column of the goal position
  * @returns {boolean} Whether a path exists
  */
 function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
+    console.log(`Verifying path from [${startRow}, ${startCol}] to [${goalRow}, ${goalCol}]`);
+    
+    // Safety checks
+    if (!tileData) {
+        console.error('tileData is undefined in verifyPath');
+        return false;
+    }
+    
     const rows = tileData.length;
+    if (rows === 0) {
+        console.error('tileData has no rows in verifyPath');
+        return false;
+    }
+    
     const cols = tileData[0].length;
     
-    // Create a visited array
-    const visited = Array(rows).fill().map(() => Array(cols).fill(false));
+    // Check if positions are within bounds
+    if (startRow < 0 || startRow >= rows || startCol < 0 || startCol >= cols ||
+        goalRow < 0 || goalRow >= rows || goalCol < 0 || goalCol >= cols) {
+        console.error('Start or goal position out of bounds in verifyPath');
+        return false;
+    }
     
-    // Queue for BFS
-    const queue = [{ row: startRow, col: startCol }];
-    visited[startRow][startCol] = true;
+    // Check if start or goal is blocked
+    if (tileData[startRow][startCol].type === 'blocked') {
+        console.error('Start position is blocked');
+        return false;
+    }
+    
+    if (tileData[goalRow][goalCol].type === 'blocked') {
+        console.error('Goal position is blocked');
+        return false;
+    }
+    
+    // BFS to find path
+    const queue = [[startRow, startCol]];
+    const visited = {};
+    visited[`${startRow},${startCol}`] = true;
+    
+    // Define directions for hex grid
+    const directions = [
+        [-1, 0],  // North
+        [-1, 1],  // Northeast
+        [0, 1],   // East
+        [1, 0],   // South
+        [1, -1],  // Southwest
+        [0, -1]   // West
+    ];
     
     while (queue.length > 0) {
-        const current = queue.shift();
+        const [currentRow, currentCol] = queue.shift();
         
-        // Check if we've reached the goal
-        if (current.row === goalRow && current.col === goalCol) {
+        // Check if we reached the goal
+        if (currentRow === goalRow && currentCol === goalCol) {
+            console.log('Path found!');
             return true;
         }
         
-        // Get adjacent tiles
-        const adjacentTiles = getAdjacentTiles(current.row, current.col);
-        
-        // Check each adjacent tile
-        for (const tile of adjacentTiles) {
-            // Skip if already visited
-            if (visited[tile.row][tile.col]) continue;
+        // Explore neighbors
+        for (const [dRow, dCol] of directions) {
+            const newRow = currentRow + dRow;
+            const newCol = currentCol + dCol;
+            const key = `${newRow},${newCol}`;
             
-            // Skip if blocked or water
-            if (tileData[tile.row][tile.col].type === 'blocked' || 
-                tileData[tile.row][tile.col].type === 'water') continue;
-            
-            // Mark as visited and add to queue
-            visited[tile.row][tile.col] = true;
-            queue.push(tile);
+            // Check if position is valid and unvisited
+            if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols &&
+                !visited[key] && tileData[newRow][newCol].type !== 'blocked') {
+                
+                visited[key] = true;
+                queue.push([newRow, newCol]);
+            }
         }
     }
     
-    // If we've exhausted the queue without finding the goal, no path exists
+    console.log('No path found');
     return false;
 }
 
