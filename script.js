@@ -643,53 +643,102 @@ const GameState = {
      * @returns {boolean} Whether the event is triggered
      */
     isEventTriggered(event, triggerType, context) {
-        if (!event.trigger || !event.trigger.condition) {
+        if (!event.trigger) {
             return false;
         }
         
-        const { condition, value } = event.trigger;
-        
-        switch (condition) {
-            // World triggers
-            case 'chaos_below':
-                return triggerType === 'world' && this.worldEvolution.globalChaos < value;
-            case 'chaos_above':
-                return triggerType === 'world' && this.worldEvolution.globalChaos > value;
-            case 'order_below':
-                return triggerType === 'world' && this.worldEvolution.globalOrder < value;
-            case 'order_above':
-                return triggerType === 'world' && this.worldEvolution.globalOrder > value;
-            case 'stability_above':
-                return triggerType === 'world' && this.resources.stability > value;
-            
-            // Tile triggers
-            case 'poke_chaos_tile':
-                return triggerType === 'tile' && 
-                       context.action === 'poke' && 
-                       context.tile && 
-                       context.tile.chaos > value;
-            case 'sense_order_tile':
-                return triggerType === 'tile' && 
-                       context.action === 'sense' && 
-                       context.tile && 
-                       context.tile.order > value;
-            case 'stabilize_tile':
-                return triggerType === 'tile' && 
-                       context.action === 'stabilize';
-            case 'stabilize_order_tile':
-                return triggerType === 'tile' && 
-                       context.action === 'stabilize' && 
-                       context.tile && 
-                       context.tile.order > value;
-            
-            // Evolution triggers
-            case 'any_path_level':
-                return triggerType === 'evolution' && 
-                       Object.values(this.evolution.paths).some(path => path.level >= value);
-            
-            default:
+        // Handle the new trigger format (with type)
+        if (event.trigger.type) {
+            // Different trigger type than what we're checking
+            if (event.trigger.type !== triggerType) {
                 return false;
+            }
+            
+            // Check for chance-based triggers
+            if (typeof event.trigger.chance === 'number') {
+                if (Math.random() > event.trigger.chance) {
+                    return false;
+                }
+            }
+            
+            // Check for minimum turn requirement
+            if (event.trigger.minTurn && 
+                (!context.turnCount || context.turnCount < event.trigger.minTurn)) {
+                return false;
+            }
+            
+            // Check for target type for sense triggers
+            if (triggerType === 'sense' && event.trigger.targetType) {
+                if (!context.tileType || context.tileType !== event.trigger.targetType) {
+                    return false;
+                }
+            }
+            
+            // Check for global requirements
+            if (event.requirement) {
+                if (event.requirement.globalChaos && 
+                    this.worldEvolution.globalChaos < event.requirement.globalChaos) {
+                    return false;
+                }
+                
+                if (event.requirement.globalOrder && 
+                    this.worldEvolution.globalOrder < event.requirement.globalOrder) {
+                    return false;
+                }
+            }
+            
+            // Passed all checks
+            return true;
         }
+        
+        // Handle the old trigger format (with condition)
+        if (event.trigger.condition) {
+            const { condition, value } = event.trigger;
+            
+            switch (condition) {
+                // World triggers
+                case 'chaos_below':
+                    return triggerType === 'world' && this.worldEvolution.globalChaos < value;
+                case 'chaos_above':
+                    return triggerType === 'world' && this.worldEvolution.globalChaos > value;
+                case 'order_below':
+                    return triggerType === 'world' && this.worldEvolution.globalOrder < value;
+                case 'order_above':
+                    return triggerType === 'world' && this.worldEvolution.globalOrder > value;
+                case 'stability_above':
+                    return triggerType === 'world' && this.resources.stability > value;
+                
+                // Tile triggers
+                case 'poke_chaos_tile':
+                    return triggerType === 'tile' && 
+                          context.action === 'poke' && 
+                          context.tile && 
+                          context.tile.chaos > value;
+                case 'sense_order_tile':
+                    return triggerType === 'tile' && 
+                          context.action === 'sense' && 
+                          context.tile && 
+                          context.tile.order > value;
+                case 'stabilize_tile':
+                    return triggerType === 'tile' && 
+                          context.action === 'stabilize';
+                case 'stabilize_order_tile':
+                    return triggerType === 'tile' && 
+                          context.action === 'stabilize' && 
+                          context.tile && 
+                          context.tile.order > value;
+                
+                // Evolution triggers
+                case 'any_path_level':
+                    return triggerType === 'evolution' && 
+                          Object.values(this.evolution.paths).some(path => path.level >= value);
+                
+                default:
+                    return false;
+            }
+        }
+        
+        return false;
     },
     
     /**
@@ -1213,15 +1262,22 @@ const GameState = {
     },
     
     /**
-     * Resets all progress (for testing/debugging)
+     * Resets all progress to default values
      */
     resetAllProgress() {
+        console.log("Resetting all progress...");
+        
+        // Default progress state
         this.progress = {
-            stats: { movementRange: 1, luck: 0 },
+            stats: {
+                movementRange: 1,
+                luck: 1
+            },
             traits: [],
             persistentInventory: [],
             xp: 0,
             sensedTypes: [],
+            uniqueSensedTypes: [],
             sensesMade: 0,
             pokesMade: 0,
             hasFoundZoe: false,
@@ -1229,53 +1285,213 @@ const GameState = {
             essence: 0,
             systemChaos: 0.5,
             systemOrder: 0.5,
-            orderContributions: 0,
-            levelsWithPositiveOrder: 0,
-            uniqueSensedTypes: [],
-            totalResources: {
-                energyGained: 0,
-                essenceGained: 0,
-                knowledgeGained: 0
-            }
+            orderContributions: 0
         };
         
-        // Reset world evolution
+        // Reset world evolution state
         this.worldEvolution = {
-            age: 0,
             globalChaos: 0.8,
             globalOrder: 0.2,
-            stabilityThreshold: 0.4,
-            complexityThreshold: 0.6,
-            tileVariance: 0.2
+            age: 0,
+            eventHistory: []
         };
         
         // Reset resources
         this.resources = {
-            energy: 0,
+            energy: 10,
             essence: 0,
             knowledge: 0,
-            stability: 50
+            stability: 0
         };
         
-        // Reset evolution
+        // Reset evolution paths
         this.evolution = {
             paths: {
-                explorer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                manipulator: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                stabilizer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                survivor: { level: 0, xp: 0, xpToNext: 100, traits: [] }
+                chaos: {
+                    name: "Path of Chaos",
+                    description: "Embrace the unpredictable nature of chaos to gain powers of transformation and creation.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "chaos_affinity",
+                            name: "Chaos Affinity",
+                            description: "Gain 1 essence for each chaotic tile you interact with.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_essence_from_chaos"
+                        },
+                        {
+                            id: "enhanced_poke",
+                            name: "Enhanced Poke",
+                            description: "Increases chance of successfully changing a tile when poking by 20%.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "poke_success_+20%"
+                        },
+                        {
+                            id: "chaos_vision",
+                            name: "Chaos Vision",
+                            description: "Can see the chaos level of tiles within vision range.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "see_chaos_levels"
+                        }
+                    ]
+                },
+                order: {
+                    name: "Path of Order",
+                    description: "Master the principles of order to stabilize the world and enhance your resilience.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "order_affinity",
+                            name: "Order Affinity",
+                            description: "Gain 1 stability for each ordered tile you interact with.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_stability_from_order"
+                        },
+                        {
+                            id: "efficient_movement",
+                            name: "Efficient Movement",
+                            description: "Reduce energy cost of movement by 1.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "movement_cost_-1"
+                        },
+                        {
+                            id: "order_shield",
+                            name: "Order Shield",
+                            description: "Gain resistance to chaotic effects.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "chaos_resistance"
+                        }
+                    ]
+                },
+                balance: {
+                    name: "Path of Balance",
+                    description: "Walk the line between chaos and order to gain versatile abilities.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "balanced_insight",
+                            name: "Balanced Insight",
+                            description: "Gain 1 knowledge when interacting with balanced tiles.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_knowledge_from_balance"
+                        },
+                        {
+                            id: "enhanced_vision",
+                            name: "Enhanced Vision",
+                            description: "Increase vision range by 1.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "vision_range_+1"
+                        },
+                        {
+                            id: "harmony",
+                            name: "Harmony",
+                            description: "All resources regenerate 1 per turn.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "all_resources_regen_1"
+                        }
+                    ]
+                }
             },
             activeTraits: []
         };
         
         // Reset events
         this.events = {
-            activeEvents: [],
-            completedEvents: [],
-            eventChains: {}
+            available: [
+                {
+                    id: "chaos_spike",
+                    name: "Chaos Spike",
+                    description: "A sudden surge of chaos energy has been detected in the area.",
+                    trigger: { type: "gameStart", chance: 0.3 },
+                    effect: { type: "increaseChaos", value: 0.2 },
+                    requirement: { globalChaos: 0.4 },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "order_stabilization",
+                    name: "Order Stabilization",
+                    description: "A wave of order energy is stabilizing the surrounding area.",
+                    trigger: { type: "gameStart", chance: 0.3 },
+                    effect: { type: "increaseOrder", value: 0.2 },
+                    requirement: { globalOrder: 0.4 },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "energy_bloom",
+                    name: "Energy Bloom",
+                    description: "A bloom of energy has appeared nearby.",
+                    trigger: { type: "turn", chance: 0.2, minTurn: 5 },
+                    effect: { type: "spawnEnergyTile" },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "ancient_knowledge",
+                    name: "Ancient Knowledge",
+                    description: "You've discovered ancient knowledge about the world's creation.",
+                    trigger: { type: "sense", targetType: "special", chance: 1.0 },
+                    effect: { type: "grantResource", resource: "knowledge", value: 5 },
+                    oneTime: true,
+                    completed: false
+                },
+                {
+                    id: "zoe_insight",
+                    name: "Zoe's Insight",
+                    description: "Zoe shares wisdom about the balance of chaos and order.",
+                    trigger: { type: "findZoe", chance: 1.0 },
+                    effect: { type: "unlockEvolutionPath", path: "balance" },
+                    oneTime: true,
+                    completed: false,
+                    chain: "zoe_story"
+                }
+            ],
+            triggered: [],
+            chains: {
+                "zoe_story": {
+                    name: "Zoe's Journey",
+                    description: "Follow Zoe's story as she navigates the balance between chaos and order.",
+                    events: ["zoe_insight", "zoe_quest", "zoe_revelation"],
+                    currentStep: 0,
+                    completed: false
+                }
+            },
+            early: [], // Early game events
+            mid: [],   // Mid game events
+            late: []   // Late game events
         };
         
+        // Reset level state
+        this.level = {
+            temporaryInventory: [],
+            hasKey: false,
+            foundZoe: false,
+            requiresKey: true
+        };
+        
+        // Reset recent metrics
+        this.recentMetrics = {
+            previousChaos: this.worldEvolution.globalChaos,
+            previousOrder: this.worldEvolution.globalOrder
+        };
+        
+        // Save the reset state
         this.saveProgress();
+        
+        console.log("All progress reset to defaults");
     },
     
     /**
@@ -1442,56 +1658,6 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
-    // Attach event listeners for UI elements
-    const statsBtn = document.getElementById('stats-btn');
-    if (statsBtn) {
-        statsBtn.addEventListener('click', () => {
-            restoreStatsWindow();
-            updateStatsWindow();
-            document.getElementById('stats-window').style.display = 'block';
-        });
-    }
-    
-    const closeStatsBtn = document.getElementById('close-stats-btn');
-    if (closeStatsBtn) {
-        closeStatsBtn.addEventListener('click', () => {
-            document.getElementById('stats-window').style.display = 'none';
-        });
-    }
-    
-    const resizeBtn = document.getElementById('resize-btn');
-    if (resizeBtn) {
-        resizeBtn.addEventListener('click', () => {
-            const newRows = parseInt(document.getElementById('rows-input').value);
-            const newCols = parseInt(document.getElementById('cols-input').value);
-            
-            if (GameState.updateGridSize(newRows, newCols)) {
-                // Update local variables for compatibility
-                rows = GameState.grid.rows;
-                cols = GameState.grid.cols;
-                
-                startGame();
-            } else {
-                alert('Please choose rows and columns between 3 and 20.');
-            }
-        });
-    }
-    
-    const resetStatsBtn = document.getElementById('reset-stats-btn');
-    if (resetStatsBtn) {
-        resetStatsBtn.addEventListener('click', () => {
-            // Reset all progress
-            GameState.resetAllProgress();
-            
-            // Update local variables for compatibility
-            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
-               hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
-               orderContributions, uniquesensedTypes } = GameState.progress);
-            
-            startGame();
-        });
-    }
-    
     // Initialize game state
     GameState.init();
     
@@ -1556,6 +1722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.metrics = metrics;
     window.recentMetrics = recentMetrics;
     window.tileData = null; // Will be set in startGame
+    window.isGameActive = true;
     
     // Create particles
     createParticles(25);
@@ -2037,15 +2204,15 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
 }
 
 /**
- * Builds the visual hex grid based on tile data
- * @param {number} rows - Number of rows in the grid
- * @param {number} cols - Number of columns in the grid
- * @param {Array} tileData - 2D array of tile data
+ * Builds the hexagonal grid for the game
+ * @param {number} rows - Number of rows
+ * @param {number} cols - Number of columns
+ * @param {Array} tileData - 2D array containing tile data
  */
-    function buildGrid(rows, cols, tileData) {
+function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
     
-    // Access grid configuration from window or GameState
+    // Access grid configuration
     const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth;
     const hexHeight = window.hexHeight || GameState.grid.hexHeight;
     const rowOffset = window.rowOffset || GameState.grid.rowOffset;
@@ -2053,123 +2220,90 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
     
     console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
-        const grid = document.querySelector('.grid');
-        if (!grid) {
-            console.error('Grid element not found in HTML');
-            return;
-        }
+    // Get the grid element
+    const grid = document.getElementById('grid');
+    if (!grid) {
+        console.error("Grid element not found");
+        return;
+    }
     
     // Clear existing grid
-        grid.innerHTML = '';
+    grid.innerHTML = '';
     
-        const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
-        const totalHeight = (rows - 1) * rowOffset + hexHeight;
-        grid.style.width = `${totalWidth}px`;
-        grid.style.height = `${totalHeight}px`;
-        grid.style.position = 'relative';
+    // Calculate total width and height of the grid
+    const totalWidth = cols * colOffset;
+    const totalHeight = (rows * rowOffset) + (hexHeight * 0.25);
     
     console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
-
-        for (let row = 0; row < rows; row++) {
-            const hexRow = document.createElement('div');
-            hexRow.classList.add('hex-row');
-            hexRow.style.position = 'absolute';
-            hexRow.style.top = `${row * rowOffset}px`;
-            hexRow.style.left = '0';
-
-            for (let col = 0; col < cols; col++) {
-                const hexContainer = document.createElement('div');
-                hexContainer.classList.add('hex-container');
-                hexContainer.setAttribute('data-row', row);
-                hexContainer.setAttribute('data-col', col);
+    
+    // Set grid dimensions
+    grid.style.width = `${totalWidth}px`;
+    grid.style.height = `${totalHeight}px`;
+    
+    // Create hexagons for each tile
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const hexContainer = document.createElement('div');
+            hexContainer.className = 'hex-container unexplored';
+            hexContainer.setAttribute('data-row', r);
+            hexContainer.setAttribute('data-col', c);
+            hexContainer.id = `hex-${r}-${c}`;
             
-            // Add chaos/order data attributes
-            const chaos = tileData[row][col].chaos;
-            const order = tileData[row][col].order;
+            // Position the hex container
+            const xPos = c * colOffset;
+            const yPos = r * rowOffset;
+            hexContainer.style.left = `${xPos}px`;
+            hexContainer.style.top = `${yPos}px`;
             
-            // Set data attributes for styling
-            if (order > 0.7) {
-                hexContainer.setAttribute('data-order', 'high');
-            } else if (order > 0.5) {
-                hexContainer.setAttribute('data-order', 'medium');
-            } else if (order > 0.3) {
-                hexContainer.setAttribute('data-order', 'low');
-            } else if (chaos > 0.7) {
-                hexContainer.setAttribute('data-chaos', 'high');
-            } else if (chaos > 0.5) {
-                hexContainer.setAttribute('data-chaos', 'medium');
-            }
-
-                const isOddRow = row % 2 === 1;
-                const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
-                const hexLeft = col * colOffset + rowShift;
-
-                hexContainer.style.position = 'absolute';
-                hexContainer.style.left = `${hexLeft}px`;
-                hexContainer.style.top = '0';
-
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('width', hexVisualWidth);
-                svg.setAttribute('height', hexHeight);
-                svg.setAttribute('viewBox', '0 0 86.6 100');
-                svg.style.overflow = 'visible';
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
+            // Create the hex shape
+            const hex = document.createElement('div');
+            hex.className = 'hex';
             
-            // Adjust path color based on chaos/order
-            if (order > 0.7) {
-                path.style.fill = '#00ccff';
-                path.style.filter = 'brightness(1.2)';
-            } else if (order > 0.5) {
-                path.style.fill = '#00aa99';
-                path.style.filter = 'brightness(1.1)';
-            } else if (chaos > 0.7) {
-                path.style.fill = '#aa3300';
-                path.style.filter = 'brightness(0.9)';
-            } else if (chaos > 0.5) {
-                path.style.fill = '#884400';
-                path.style.filter = 'brightness(0.95)';
+            // Set the background color based on the chaos/order value
+            const chaos = tileData[r][c].chaos;
+            const tileType = tileData[r][c].type;
+            
+            // Add class for tile type
+            hex.classList.add(tileType);
+            
+            // Add color based on chaos level
+            if (chaos < 0.2) {
+                hex.classList.add('high-order');
+            } else if (chaos < 0.4) {
+                hex.classList.add('order');
+            } else if (chaos > 0.8) {
+                hex.classList.add('high-chaos');
+            } else if (chaos > 0.6) {
+                hex.classList.add('chaos');
             }
             
-                svg.appendChild(path);
-                hexContainer.appendChild(svg);
-
-                const character = document.createElement('div');
-                character.classList.add('character');
-                hexContainer.appendChild(character);
+            // Create inner hexagon
+            const hexInner = document.createElement('div');
+            hexInner.className = 'hex-inner';
             
-            // Add a visual indicator of the tile's chaos/order state
-            const stateIndicator = document.createElement('div');
-            stateIndicator.classList.add('tile-state-indicator');
+            // Add coordinates for debugging
+            const coords = document.createElement('div');
+            coords.className = 'coords';
+            coords.textContent = `${r},${c}`;
             
-            if (order > 0.7) {
-                stateIndicator.classList.add('tile-state-order-high');
-            } else if (order > 0.5) {
-                stateIndicator.classList.add('tile-state-order-medium');
-            } else if (chaos > 0.7) {
-                stateIndicator.classList.add('tile-state-chaos-high');
-            } else if (chaos > 0.5) {
-                stateIndicator.classList.add('tile-state-chaos-medium');
-            } else {
-                stateIndicator.classList.add('tile-state-balanced');
+            // Put it all together
+            hexInner.appendChild(coords);
+            hex.appendChild(hexInner);
+            hexContainer.appendChild(hex);
+            grid.appendChild(hexContainer);
+            
+            // Add stability indicator if tile has stability
+            if (tileData[r][c].stability && tileData[r][c].stability > 0) {
+                const stabilityIndicator = document.createElement('div');
+                stabilityIndicator.className = 'stability-indicator';
+                stabilityIndicator.style.opacity = tileData[r][c].stability;
+                hexContainer.appendChild(stabilityIndicator);
             }
-            
-            hexContainer.appendChild(stateIndicator);
-
-                const tileType = tileData[row][col].type;
-                hexContainer.classList.add(tileType);
-
-                if (!tileData[row][col].explored) {
-                    hexContainer.classList.add('unexplored');
-                }
-
-                hexRow.appendChild(hexContainer);
-            }
-            grid.appendChild(hexRow);
         }
+    }
     
     console.log(`Grid built with ${rows * cols} tiles`);
-    }
+}
 
 /**
  * Attaches event listeners to the victory screen elements
@@ -2288,53 +2422,50 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
     }
 
 /**
- * Allows player to rest to gain energy at the cost of ending turn
+ * Allows the player to rest, recovering energy at the cost of a turn
  */
-    function rest() {
-    if (!GameState.isActive) {
-            console.log("Level complete—cannot rest!");
-            return;
-        }
+function rest() {
+    console.log("Resting...");
     
-    const confirmRest = confirm("This ends the turn and lets you rest to gain energy. Are you sure?");
-        if (confirmRest) {
-        // Calculate energy gain based on stability
-        const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
-        const baseEnergyGain = GameState.resourceRates.energyPerRest;
-        const energyGain = Math.round(baseEnergyGain * stabilityFactor);
-        
-        // Update resources
-        GameState.updateResource('energy', energyGain);
-        
-        // Stability naturally increases slightly when resting
-        GameState.updateResource('stability', 2);
-        
-        // Update local variables for compatibility
-        energy = GameState.resources.energy;
-        
-        // End movement for this turn
-        GameState.player.movementPoints = 0;
-            movementPoints = 0;
-        
-        // Track metrics
-        GameState.metrics.incrementRests();
-        GameState.recentMetrics.incrementRests();
-        
-        // Show feedback
-        const feedbackMessage = document.getElementById('feedback-message');
-        if (feedbackMessage) {
-            feedbackMessage.textContent = `Rested and gained ${energyGain} energy.`;
-            feedbackMessage.style.display = 'block';
-            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-        }
-        
-        // Update UI with animation
-        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
-        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
-        
-            endTurn();
-        }
+    // Increment turn counter
+    GameState.player.turnCount++;
+    window.turnCount = GameState.player.turnCount;
+    
+    // Track in metrics
+    GameState.metrics.incrementRests();
+    GameState.metrics.incrementTurns();
+    
+    // Restore a significant amount of energy
+    const energyRestoreOnRest = 6;
+    GameState.updateResource('energy', energyRestoreOnRest);
+    
+    // Apply trait effects that happen when resting
+    if (GameState.evolution.activeTraits) {
+        GameState.evolution.activeTraits.forEach(trait => {
+            if (trait.effect === 'enhanced_rest') {
+                GameState.updateResource('energy', 2); // Additional energy
+                GameState.updateResource('stability', 1); // Bonus stability
+            }
+        });
     }
+    
+    // Check for rest-based events
+    const triggeredEvents = GameState.checkEvents('rest');
+    if (triggeredEvents && triggeredEvents.length > 0) {
+        showEventNotification(triggeredEvents[0]);
+    }
+    
+    // Evolve the world (small chance when resting)
+    if (Math.random() < 0.3) {
+        GameState.evolveWorld();
+    }
+    
+    // Update UI
+    updateUI();
+    
+    showNotification(`Rested and recovered ${energyRestoreOnRest} energy.`);
+    console.log(`Rested and recovered ${energyRestoreOnRest} energy.`);
+}
 
 /**
  * Updates the statistics window with current metrics
@@ -2785,87 +2916,79 @@ document.getElementById('end-turn-btn').addEventListener('click', endTurn);
 document.getElementById('rest-btn').addEventListener('click', rest);
 
 /**
- * Updates the evolution UI
+ * Updates the evolution UI with current player evolution progress
  */
 function updateEvolutionUI() {
-    // Check if GameState.evolution is properly initialized
-    if (!GameState.evolution || !GameState.evolution.paths) {
-        console.error('Evolution system not properly initialized');
-                        return;
-                    }
+    console.log("Updating evolution UI...");
     
-    // Update each evolution path
-    for (const path of ['explorer', 'manipulator', 'stabilizer', 'survivor']) {
-        const pathData = GameState.evolution.paths[path];
-        if (!pathData) {
-            console.error(`Path data not found for: ${path}`);
-            continue;
-        }
-        
-        // Get DOM elements
-        const levelElement = document.getElementById(`${path}-level`);
-        const xpElement = document.getElementById(`${path}-xp`);
-        const xpNextElement = document.getElementById(`${path}-xp-next`);
-        const xpFillElement = document.getElementById(`${path}-xp-fill`);
-        const traitsContainer = document.getElementById(`${path}-traits`);
-        
-        if (!levelElement || !xpElement || !xpNextElement || !xpFillElement || !traitsContainer) {
-            console.error(`UI elements not found for path: ${path}`);
-            continue;
-        }
-        
-        // Update level and XP
-        levelElement.textContent = pathData.level;
-        xpElement.textContent = pathData.xp;
-        xpNextElement.textContent = pathData.xpToNext;
-        
-        // Update XP bar
-        const xpPercentage = (pathData.xp / pathData.xpToNext) * 100;
-        xpFillElement.style.width = `${xpPercentage}%`;
-        
-        // Update traits
-        traitsContainer.innerHTML = ''; // Clear existing traits
-        
-        try {
-            // Get available traits for this path
-            const availableTraits = GameState.getAvailableTraits(path);
-            
-            // Add unlocked traits
-            const unlockedTraitIds = pathData.traits || [];
-            for (const traitId of unlockedTraitIds) {
-                if (!GameState.evolution.availableTraits || !GameState.evolution.availableTraits[path]) {
-                    continue;
-                }
-                
-                const trait = GameState.evolution.availableTraits[path].find(t => t.id === traitId);
-                if (trait) {
-                    const traitElement = createTraitElement(trait, path, true);
-                    traitsContainer.appendChild(traitElement);
-                }
-            }
-            
-            // Add available traits
-            for (const trait of availableTraits) {
-                const traitElement = createTraitElement(trait, path, false);
-                traitsContainer.appendChild(traitElement);
-            }
-            
-            // Add locked traits (higher level requirements)
-            if (GameState.evolution.availableTraits && GameState.evolution.availableTraits[path]) {
-                const lockedTraits = GameState.evolution.availableTraits[path].filter(trait => 
-                    trait.level > pathData.level && !(pathData.traits || []).includes(trait.id)
-                );
-                
-                for (const trait of lockedTraits) {
-                    const traitElement = createTraitElement(trait, path, false, true);
-                    traitsContainer.appendChild(traitElement);
-                }
-            }
-        } catch (error) {
-            console.error(`Error updating traits for path ${path}:`, error);
-            traitsContainer.innerHTML = '<p class="error-message">Error loading traits. Please try again.</p>';
-        }
+    // Check if evolution system is initialized
+    if (!GameState.evolution || !GameState.evolution.paths) {
+        console.warn("Evolution system not properly initialized");
+        return;
     }
+    
+    // Get the evolution paths container
+    const pathsContainer = document.getElementById('evolution-paths');
+    if (!pathsContainer) {
+        console.error("Evolution paths container not found");
+        return;
+    }
+    
+    // Clear existing paths
+    pathsContainer.innerHTML = '';
+    
+    // Add each evolution path
+    Object.entries(GameState.evolution.paths).forEach(([pathId, pathData]) => {
+        // Create path container
+        const pathContainer = document.createElement('div');
+        pathContainer.className = `evolution-path ${pathData.unlocked ? 'unlocked' : 'locked'}`;
+        pathContainer.id = `path-${pathId}`;
+        
+        // Path header
+        const pathHeader = document.createElement('div');
+        pathHeader.className = 'path-header';
+        
+        const pathName = document.createElement('h3');
+        pathName.textContent = pathData.name;
+        
+        const pathXP = document.createElement('div');
+        pathXP.className = 'path-xp';
+        pathXP.textContent = `XP: ${pathData.xp}`;
+        
+        pathHeader.appendChild(pathName);
+        pathHeader.appendChild(pathXP);
+        
+        // Path description
+        const pathDesc = document.createElement('p');
+        pathDesc.className = 'path-description';
+        pathDesc.textContent = pathData.description;
+        
+        // Path traits
+        const traitsContainer = document.createElement('div');
+        traitsContainer.className = 'traits-container';
+        
+        // Get available traits for this path
+        const availableTraits = GameState.getAvailableTraits(pathId);
+        
+        // Add traits to the container
+        pathData.traits.forEach(trait => {
+            const isUnlocked = trait.unlocked;
+            const isLocked = !isUnlocked && !availableTraits.includes(trait.id);
+            
+            const traitElement = createTraitElement(trait, pathId, isUnlocked, isLocked);
+            traitsContainer.appendChild(traitElement);
+        });
+        
+        // Put it all together
+        pathContainer.appendChild(pathHeader);
+        pathContainer.appendChild(pathDesc);
+        pathContainer.appendChild(traitsContainer);
+        
+        // Add to paths container
+        pathsContainer.appendChild(pathContainer);
+    });
+    
+    console.log("Evolution UI updated");
 }
 
 /**
@@ -3837,4 +3960,49 @@ function checkTileInteraction(row, col) {
             showNotification("First time finding Zoe! +20 XP");
         }
     }
+}
+
+/**
+ * Ends the current turn and advances the game state
+ */
+function endTurn() {
+    console.log("Ending turn...");
+    
+    // Increment turn counter
+    GameState.player.turnCount++;
+    window.turnCount = GameState.player.turnCount;
+    
+    // Track in metrics
+    GameState.metrics.incrementTurns();
+    
+    // Restore some energy each turn
+    const energyRestorePerTurn = 2;
+    GameState.updateResource('energy', energyRestorePerTurn);
+    
+    // Apply trait effects that happen each turn
+    if (GameState.evolution.activeTraits) {
+        GameState.evolution.activeTraits.forEach(trait => {
+            if (trait.effect === 'all_resources_regen_1') {
+                GameState.updateResource('essence', 1);
+                GameState.updateResource('knowledge', 1);
+                GameState.updateResource('stability', 1);
+            }
+        });
+    }
+    
+    // Check for turn-based events
+    const triggeredEvents = GameState.checkEvents('turn', { turnCount: GameState.player.turnCount });
+    if (triggeredEvents && triggeredEvents.length > 0) {
+        showEventNotification(triggeredEvents[0]);
+    }
+    
+    // Evolve the world (small chance each turn)
+    if (Math.random() < 0.2) {
+        GameState.evolveWorld();
+    }
+    
+    // Update UI
+    updateUI();
+    
+    console.log(`Turn ${GameState.player.turnCount} started`);
 }
