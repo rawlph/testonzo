@@ -101,6 +101,7 @@
         <button id="end-turn-btn">End Turn</button>        
 		<button id="stats-btn">Stats</button>
         <button id="evolution-btn">Evolution</button>
+        <button id="events-btn">Events</button>
     </div>
     <div id="feedback-message"></div>
     
@@ -217,6 +218,58 @@
         </div>
         
         <button id="close-evolution-btn">Close</button>
+    </div>
+    
+    <!-- Events Window -->
+    <div id="events-window" style="display: none;">
+        <h2>World Events</h2>
+        
+        <div class="events-tabs">
+            <button class="events-tab-btn active" data-type="active">Active</button>
+            <button class="events-tab-btn" data-type="completed">Completed</button>
+            <button class="events-tab-btn" data-type="chains">Event Chains</button>
+        </div>
+        
+        <div class="events-content">
+            <!-- Active Events -->
+            <div class="events-tab-content active" id="active-events-tab">
+                <div class="events-list" id="active-events-list">
+                    <!-- Events will be added dynamically -->
+                    <p class="no-events-message">No active events.</p>
+                </div>
+            </div>
+            
+            <!-- Completed Events -->
+            <div class="events-tab-content" id="completed-events-tab">
+                <div class="events-list" id="completed-events-list">
+                    <!-- Events will be added dynamically -->
+                    <p class="no-events-message">No completed events.</p>
+                </div>
+            </div>
+            
+            <!-- Event Chains -->
+            <div class="events-tab-content" id="chains-events-tab">
+                <div class="events-list" id="chains-events-list">
+                    <!-- Event chains will be added dynamically -->
+                    <p class="no-events-message">No active event chains.</p>
+                </div>
+            </div>
+        </div>
+        
+        <button id="close-events-btn">Close</button>
+    </div>
+    
+    <!-- Event Notification -->
+    <div id="event-notification" style="display: none;">
+        <div class="event-notification-content">
+            <h3 id="event-notification-title">Event Title</h3>
+            <p id="event-notification-description">Event description goes here.</p>
+            <p id="event-notification-flavor" class="event-flavor-text">Flavor text goes here.</p>
+            <div id="event-notification-effects" class="event-effects">
+                <!-- Effects will be added dynamically -->
+            </div>
+            <button id="event-notification-close-btn">Continue</button>
+        </div>
     </div>
 </div>
 

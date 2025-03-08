@@ -92,6 +92,143 @@ const GameState = {
         activeTraits: []
     },
     
+    // Event system
+    events: {
+        // Currently active events
+        activeEvents: [],
+        
+        // Events that have been completed
+        completedEvents: [],
+        
+        // Multi-step event chains
+        eventChains: {},
+        
+        // Available events by world age
+        availableEvents: {
+            // Early game events (world age 0-4)
+            early: [
+                {
+                    id: 'primordial_spark',
+                    name: 'Primordial Spark',
+                    type: 'world',
+                    trigger: { condition: 'chaos_below', value: 0.7 },
+                    description: 'The chaos begins to form patterns...',
+                    effect: { type: 'resource_gain', resource: 'knowledge', amount: 20 },
+                    flavor: 'As the primordial chaos settles, you sense the first glimmers of order emerging from the void.'
+                },
+                {
+                    id: 'energy_surge',
+                    name: 'Energy Surge',
+                    type: 'tile',
+                    trigger: { condition: 'poke_chaos_tile', value: 0.8 },
+                    description: 'A surge of raw energy erupts from the chaotic tile!',
+                    effect: { type: 'resource_gain', resource: 'energy', amount: 15 },
+                    flavor: 'The chaotic energies coalesce and flow into your being, invigorating you.'
+                },
+                {
+                    id: 'stability_fluctuation',
+                    name: 'Stability Fluctuation',
+                    type: 'tile',
+                    trigger: { condition: 'stabilize_tile', value: 0.5 },
+                    description: 'Your stabilization efforts create unexpected patterns.',
+                    effect: { type: 'resource_gain', resource: 'stability', amount: 10 },
+                    flavor: 'The patterns you create seem to resonate with the surrounding environment.'
+                }
+            ],
+            
+            // Mid game events (world age 5-9)
+            mid: [
+                {
+                    id: 'first_life',
+                    name: 'First Life',
+                    type: 'evolution',
+                    trigger: { condition: 'any_path_level', value: 3 },
+                    description: 'Simple life forms begin to emerge in the ordered regions.',
+                    effect: { type: 'resource_gain', resource: 'essence', amount: 30 },
+                    flavor: 'Tiny, primitive organisms appear in the areas you\'ve stabilized, drawn to the order you\'ve created.'
+                },
+                {
+                    id: 'knowledge_repository',
+                    name: 'Knowledge Repository',
+                    type: 'tile',
+                    trigger: { condition: 'sense_order_tile', value: 0.7 },
+                    description: 'You discover a concentrated pocket of organized information.',
+                    effect: { type: 'resource_gain', resource: 'knowledge', amount: 25 },
+                    flavor: 'The ordered patterns contain complex information structures that you can absorb and understand.'
+                },
+                {
+                    id: 'chaotic_resonance',
+                    name: 'Chaotic Resonance',
+                    type: 'world',
+                    trigger: { condition: 'chaos_above', value: 0.6 },
+                    description: 'The remaining chaos begins to resonate with your actions.',
+                    effect: { type: 'resource_gain', resource: 'energy', amount: -10, stability: -15 },
+                    flavor: 'The chaotic forces resist your ordering influence, creating turbulence in your path.'
+                }
+            ],
+            
+            // Late game events (world age 10+)
+            late: [
+                {
+                    id: 'consciousness',
+                    name: 'Consciousness',
+                    type: 'chain',
+                    trigger: { condition: 'stability_above', value: 70 },
+                    description: 'Something new is awakening in the ordered regions...',
+                    chainId: 'consciousness_emergence',
+                    step: 1,
+                    effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
+                    flavor: 'You sense a new pattern forming—one that seems to observe and respond to its surroundings.'
+                },
+                {
+                    id: 'ecosystem_formation',
+                    name: 'Ecosystem Formation',
+                    type: 'world',
+                    trigger: { condition: 'order_above', value: 0.7 },
+                    description: 'The ordered regions begin to form complex, interconnected systems.',
+                    effect: { type: 'resource_gain', resource: 'essence', amount: 40 },
+                    flavor: 'Life forms begin to interact with each other, creating a web of relationships and dependencies.'
+                },
+                {
+                    id: 'reality_stabilization',
+                    name: 'Reality Stabilization',
+                    type: 'tile',
+                    trigger: { condition: 'stabilize_order_tile', value: 0.8 },
+                    description: 'Your stabilization creates a permanent anchor point in reality.',
+                    effect: { type: 'special', special: 'reality_anchor' },
+                    flavor: 'This region now exists as a fixed point in the cosmos, immune to the forces of chaos.'
+                }
+            ]
+        },
+        
+        // Event chains (multi-step events)
+        chains: {
+            consciousness_emergence: {
+                name: 'The Emergence of Consciousness',
+                steps: 3,
+                currentStep: 0,
+                description: 'A new form of awareness is developing in the ordered regions of the world.',
+                stepDetails: [
+                    {
+                        description: 'The first glimmers of self-awareness appear in the ordered patterns.',
+                        effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
+                        flavor: 'Something is watching you from within the patterns you\'ve created.'
+                    },
+                    {
+                        description: 'The consciousness begins to communicate through pattern manipulation.',
+                        effect: { type: 'resource_gain', resource: 'essence', amount: 50 },
+                        flavor: 'Subtle changes in the environment suggest an attempt at communication.'
+                    },
+                    {
+                        description: 'The consciousness fully emerges and recognizes you as its creator.',
+                        effect: { type: 'special', special: 'consciousness_ally' },
+                        flavor: 'A new entity has been born from your efforts to create order from chaos.'
+                    }
+                ]
+            }
+        }
+    },
+    
     // Level data
     level: {
         tileData: null,
@@ -140,6 +277,166 @@ const GameState = {
      * Initializes the game state
      */
     init() {
+        // Set default evolution structure if it doesn't exist
+        if (!this.evolution) {
+            this.evolution = {
+                paths: {
+                    explorer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
+                    manipulator: { level: 0, xp: 0, xpToNext: 100, traits: [] },
+                    stabilizer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
+                    survivor: { level: 0, xp: 0, xpToNext: 100, traits: [] }
+                },
+                availableTraits: {
+                    explorer: [
+                        { id: 'enhanced_vision', name: 'Enhanced Vision', description: 'Increases vision range by 1', effect: 'vision_range_+1', cost: { knowledge: 50 }, level: 1 },
+                        { id: 'pattern_recognition', name: 'Pattern Recognition', description: 'Sense actions reveal more information', effect: 'sense_efficiency_+20%', cost: { knowledge: 100 }, level: 2 },
+                        { id: 'intuition', name: 'Intuition', description: 'Chance to automatically sense adjacent tiles', effect: 'auto_sense_chance_20%', cost: { knowledge: 150 }, level: 3 }
+                    ],
+                    manipulator: [
+                        { id: 'dexterous', name: 'Dexterous', description: 'Poke actions cost 1 less energy', effect: 'poke_energy_-1', cost: { essence: 50 }, level: 1 },
+                        { id: 'reactive', name: 'Reactive', description: 'Poke actions have 20% better success rate', effect: 'poke_success_+20%', cost: { essence: 100 }, level: 2 },
+                        { id: 'adaptive', name: 'Adaptive', description: 'Poke effects are 50% stronger', effect: 'poke_effect_+50%', cost: { essence: 150 }, level: 3 }
+                    ],
+                    stabilizer: [
+                        { id: 'harmonizer', name: 'Harmonizer', description: 'Stabilize actions are 20% more effective', effect: 'stabilize_effect_+20%', cost: { essence: 50 }, level: 1 },
+                        { id: 'balancer', name: 'Balancer', description: 'Gain 2 stability each turn', effect: 'stability_per_turn_+2', cost: { essence: 100 }, level: 2 },
+                        { id: 'architect', name: 'Architect', description: 'Stabilize actions affect adjacent tiles slightly', effect: 'stabilize_adjacent', cost: { essence: 150 }, level: 3 }
+                    ],
+                    survivor: [
+                        { id: 'efficient_movement', name: 'Efficient Movement', description: 'Movement costs no energy every 3rd step', effect: 'free_move_every_3', cost: { energy: 50 }, level: 1 },
+                        { id: 'energy_storage', name: 'Energy Storage', description: 'Increases maximum energy by 25', effect: 'max_energy_+25', cost: { energy: 100 }, level: 2 },
+                        { id: 'resilience', name: 'Resilience', description: 'Reduces stability loss in chaotic areas by 50%', effect: 'stability_loss_-50%', cost: { energy: 150 }, level: 3 }
+                    ]
+                },
+                activeTraits: []
+            };
+        }
+        
+        // Set default events structure if it doesn't exist
+        if (!this.events) {
+            this.events = {
+                activeEvents: [],
+                completedEvents: [],
+                eventChains: {},
+                availableEvents: {
+                    early: [
+                        {
+                            id: 'primordial_spark',
+                            name: 'Primordial Spark',
+                            type: 'world',
+                            trigger: { condition: 'chaos_below', value: 0.7 },
+                            description: 'The chaos begins to form patterns...',
+                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 20 },
+                            flavor: 'As the primordial chaos settles, you sense the first glimmers of order emerging from the void.'
+                        },
+                        {
+                            id: 'energy_surge',
+                            name: 'Energy Surge',
+                            type: 'tile',
+                            trigger: { condition: 'poke_chaos_tile', value: 0.8 },
+                            description: 'A surge of raw energy erupts from the chaotic tile!',
+                            effect: { type: 'resource_gain', resource: 'energy', amount: 15 },
+                            flavor: 'The chaotic energies coalesce and flow into your being, invigorating you.'
+                        },
+                        {
+                            id: 'stability_fluctuation',
+                            name: 'Stability Fluctuation',
+                            type: 'tile',
+                            trigger: { condition: 'stabilize_tile', value: 0.5 },
+                            description: 'Your stabilization efforts create unexpected patterns.',
+                            effect: { type: 'resource_gain', resource: 'stability', amount: 10 },
+                            flavor: 'The patterns you create seem to resonate with the surrounding environment.'
+                        }
+                    ],
+                    mid: [
+                        {
+                            id: 'first_life',
+                            name: 'First Life',
+                            type: 'evolution',
+                            trigger: { condition: 'any_path_level', value: 3 },
+                            description: 'Simple life forms begin to emerge in the ordered regions.',
+                            effect: { type: 'resource_gain', resource: 'essence', amount: 30 },
+                            flavor: 'Tiny, primitive organisms appear in the areas you\'ve stabilized, drawn to the order you\'ve created.'
+                        },
+                        {
+                            id: 'knowledge_repository',
+                            name: 'Knowledge Repository',
+                            type: 'tile',
+                            trigger: { condition: 'sense_order_tile', value: 0.7 },
+                            description: 'You discover a concentrated pocket of organized information.',
+                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 25 },
+                            flavor: 'The ordered patterns contain complex information structures that you can absorb and understand.'
+                        },
+                        {
+                            id: 'chaotic_resonance',
+                            name: 'Chaotic Resonance',
+                            type: 'world',
+                            trigger: { condition: 'chaos_above', value: 0.6 },
+                            description: 'The remaining chaos begins to resonate with your actions.',
+                            effect: { type: 'resource_gain', resource: 'energy', amount: -10, stability: -15 },
+                            flavor: 'The chaotic forces resist your ordering influence, creating turbulence in your path.'
+                        }
+                    ],
+                    late: [
+                        {
+                            id: 'consciousness',
+                            name: 'Consciousness',
+                            type: 'chain',
+                            trigger: { condition: 'stability_above', value: 70 },
+                            description: 'Something new is awakening in the ordered regions...',
+                            chainId: 'consciousness_emergence',
+                            step: 1,
+                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
+                            flavor: 'You sense a new pattern forming—one that seems to observe and respond to its surroundings.'
+                        },
+                        {
+                            id: 'ecosystem_formation',
+                            name: 'Ecosystem Formation',
+                            type: 'world',
+                            trigger: { condition: 'order_above', value: 0.7 },
+                            description: 'The ordered regions begin to form complex, interconnected systems.',
+                            effect: { type: 'resource_gain', resource: 'essence', amount: 40 },
+                            flavor: 'Life forms begin to interact with each other, creating a web of relationships and dependencies.'
+                        },
+                        {
+                            id: 'reality_stabilization',
+                            name: 'Reality Stabilization',
+                            type: 'tile',
+                            trigger: { condition: 'stabilize_order_tile', value: 0.8 },
+                            description: 'Your stabilization creates a permanent anchor point in reality.',
+                            effect: { type: 'special', special: 'reality_anchor' },
+                            flavor: 'This region now exists as a fixed point in the cosmos, immune to the forces of chaos.'
+                        }
+                    ]
+                },
+                chains: {
+                    consciousness_emergence: {
+                        name: 'The Emergence of Consciousness',
+                        steps: 3,
+                        currentStep: 0,
+                        description: 'A new form of awareness is developing in the ordered regions of the world.',
+                        stepDetails: [
+                            {
+                                description: 'The first glimmers of self-awareness appear in the ordered patterns.',
+                                effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
+                                flavor: 'Something is watching you from within the patterns you\'ve created.'
+                            },
+                            {
+                                description: 'The consciousness begins to communicate through pattern manipulation.',
+                                effect: { type: 'resource_gain', resource: 'essence', amount: 50 },
+                                flavor: 'Subtle changes in the environment suggest an attempt at communication.'
+                            },
+                            {
+                                description: 'The consciousness fully emerges and recognizes you as its creator.',
+                                effect: { type: 'special', special: 'consciousness_ally' },
+                                flavor: 'A new entity has been born from your efforts to create order from chaos.'
+                            }
+                        ]
+                    }
+                }
+            };
+        }
+        
         // Load saved progress if available
         const savedProgress = JSON.parse(localStorage.getItem('playerProgress'));
         if (savedProgress) {
@@ -157,7 +454,30 @@ const GameState = {
             
             // Initialize evolution data from saved progress if available
             if (savedProgress.evolution) {
+                // Make sure we preserve the availableTraits definition
+                const availableTraits = this.evolution.availableTraits;
                 this.evolution = savedProgress.evolution;
+                
+                // Ensure availableTraits is always defined with the correct structure
+                if (!this.evolution.availableTraits) {
+                    this.evolution.availableTraits = availableTraits;
+                }
+            }
+            
+            // Initialize events data from saved progress if available
+            if (savedProgress.events) {
+                // Make sure we preserve the event definitions
+                const availableEvents = this.events.availableEvents;
+                const chains = this.events.chains;
+                this.events = savedProgress.events;
+                
+                // Ensure event definitions are always preserved
+                if (!this.events.availableEvents) {
+                    this.events.availableEvents = availableEvents;
+                }
+                if (!this.events.chains) {
+                    this.events.chains = chains;
+                }
             }
         }
         
@@ -170,6 +490,215 @@ const GameState = {
         
         // Apply active trait effects
         this.applyTraitEffects();
+    },
+    
+    /**
+     * Checks for events that should be triggered
+     * @param {string} triggerType - Type of trigger ('world', 'tile', 'evolution')
+     * @param {Object} context - Context information for the trigger
+     * @returns {Array} Triggered events
+     */
+    checkEvents(triggerType, context = {}) {
+        if (!this.events) {
+            return [];
+        }
+        
+        const triggeredEvents = [];
+        const worldAge = this.worldEvolution.age;
+        
+        // Determine which event pool to use based on world age
+        let eventPool = 'early';
+        if (worldAge >= 10) {
+            eventPool = 'late';
+        } else if (worldAge >= 5) {
+            eventPool = 'mid';
+        }
+        
+        // Check each event in the pool
+        const eventsToCheck = this.events.availableEvents[eventPool] || [];
+        
+        for (const event of eventsToCheck) {
+            // Skip events that have already been completed
+            if (this.events.completedEvents.includes(event.id)) {
+                continue;
+            }
+            
+            // Skip events that don't match the trigger type
+            if (event.type !== triggerType && event.type !== 'chain') {
+                continue;
+            }
+            
+            // Check if the event is triggered
+            if (this.isEventTriggered(event, triggerType, context)) {
+                triggeredEvents.push(event);
+                
+                // For non-chain events, mark as completed
+                if (event.type !== 'chain') {
+                    this.events.completedEvents.push(event.id);
+                } else {
+                    // For chain events, update the chain progress
+                    this.advanceEventChain(event.chainId, event.step);
+                }
+            }
+        }
+        
+        return triggeredEvents;
+    },
+    
+    /**
+     * Checks if an event is triggered based on its conditions
+     * @param {Object} event - Event to check
+     * @param {string} triggerType - Type of trigger
+     * @param {Object} context - Context information for the trigger
+     * @returns {boolean} Whether the event is triggered
+     */
+    isEventTriggered(event, triggerType, context) {
+        if (!event.trigger || !event.trigger.condition) {
+            return false;
+        }
+        
+        const { condition, value } = event.trigger;
+        
+        switch (condition) {
+            // World triggers
+            case 'chaos_below':
+                return triggerType === 'world' && this.worldEvolution.globalChaos < value;
+            case 'chaos_above':
+                return triggerType === 'world' && this.worldEvolution.globalChaos > value;
+            case 'order_below':
+                return triggerType === 'world' && this.worldEvolution.globalOrder < value;
+            case 'order_above':
+                return triggerType === 'world' && this.worldEvolution.globalOrder > value;
+            case 'stability_above':
+                return triggerType === 'world' && this.resources.stability > value;
+            
+            // Tile triggers
+            case 'poke_chaos_tile':
+                return triggerType === 'tile' && 
+                       context.action === 'poke' && 
+                       context.tile && 
+                       context.tile.chaos > value;
+            case 'sense_order_tile':
+                return triggerType === 'tile' && 
+                       context.action === 'sense' && 
+                       context.tile && 
+                       context.tile.order > value;
+            case 'stabilize_tile':
+                return triggerType === 'tile' && 
+                       context.action === 'stabilize';
+            case 'stabilize_order_tile':
+                return triggerType === 'tile' && 
+                       context.action === 'stabilize' && 
+                       context.tile && 
+                       context.tile.order > value;
+            
+            // Evolution triggers
+            case 'any_path_level':
+                return triggerType === 'evolution' && 
+                       Object.values(this.evolution.paths).some(path => path.level >= value);
+            
+            default:
+                return false;
+        }
+    },
+    
+    /**
+     * Advances an event chain to the next step
+     * @param {string} chainId - ID of the chain
+     * @param {number} step - Current step
+     * @returns {Object} Updated chain information
+     */
+    advanceEventChain(chainId, step) {
+        if (!this.events.chains || !this.events.chains[chainId]) {
+            return null;
+        }
+        
+        const chain = this.events.chains[chainId];
+        
+        // Update the current step
+        chain.currentStep = step;
+        
+        // Check if the chain is complete
+        if (step >= chain.steps) {
+            // Mark all events in this chain as completed
+            const chainEvents = Object.values(this.events.availableEvents)
+                .flat()
+                .filter(event => event.type === 'chain' && event.chainId === chainId);
+            
+            for (const event of chainEvents) {
+                if (!this.events.completedEvents.includes(event.id)) {
+                    this.events.completedEvents.push(event.id);
+                }
+            }
+        }
+        
+        // Save the updated chain
+        this.events.eventChains[chainId] = chain;
+        
+        return {
+            chainId,
+            currentStep: step,
+            totalSteps: chain.steps,
+            isComplete: step >= chain.steps
+        };
+    },
+    
+    /**
+     * Applies the effects of an event
+     * @param {Object} event - Event to apply
+     * @returns {Object} Result of applying the event
+     */
+    applyEventEffect(event) {
+        if (!event.effect) {
+            return { success: false, message: 'No effect defined for event' };
+        }
+        
+        const { type } = event.effect;
+        
+        switch (type) {
+            case 'resource_gain':
+                // Apply resource gains/losses
+                const results = {};
+                for (const [resource, amount] of Object.entries(event.effect)) {
+                    if (resource !== 'type' && this.resources[resource] !== undefined) {
+                        this.updateResource(resource, amount);
+                        results[resource] = { amount, newValue: this.resources[resource] };
+                    }
+                }
+                return { success: true, type: 'resource_gain', results };
+            
+            case 'special':
+                // Handle special effects
+                const special = event.effect.special;
+                switch (special) {
+                    case 'reality_anchor':
+                        // Create a reality anchor (permanent order point)
+                        if (this.level.tileData && this.player.currentRow !== undefined && this.player.currentCol !== undefined) {
+                            const tile = this.level.tileData[this.player.currentRow][this.player.currentCol];
+                            if (tile) {
+                                tile.chaos = 0.1; // Set to minimum chaos
+                                tile.order = 0.9; // Set to maximum order
+                                tile.realityAnchor = true; // Mark as a reality anchor
+                                return { success: true, type: 'special', special, location: { row: this.player.currentRow, col: this.player.currentCol } };
+                            }
+                        }
+                        return { success: false, message: 'Could not create reality anchor' };
+                    
+                    case 'consciousness_ally':
+                        // Add consciousness as an ally
+                        if (!this.progress.allies) {
+                            this.progress.allies = [];
+                        }
+                        this.progress.allies.push('consciousness');
+                        return { success: true, type: 'special', special, ally: 'consciousness' };
+                    
+                    default:
+                        return { success: false, message: `Unknown special effect: ${special}` };
+                }
+            
+            default:
+                return { success: false, message: `Unknown effect type: ${type}` };
+        }
     },
     
     /**
@@ -281,13 +810,26 @@ const GameState = {
      * @returns {Array} Available traits
      */
     getAvailableTraits(path) {
+        // Ensure evolution paths and availableTraits exist
+        if (!this.evolution || !this.evolution.paths || !this.evolution.availableTraits) {
+            console.error('Evolution system not properly initialized');
+            return [];
+        }
+        
+        // Check if the requested path exists
         if (!this.evolution.paths[path]) {
             console.error(`Invalid evolution path: ${path}`);
             return [];
         }
         
+        // Check if traits for this path exist
+        if (!this.evolution.availableTraits[path]) {
+            console.error(`No traits defined for path: ${path}`);
+            return [];
+        }
+        
         const pathLevel = this.evolution.paths[path].level;
-        const alreadyUnlocked = this.evolution.paths[path].traits;
+        const alreadyUnlocked = this.evolution.paths[path].traits || [];
         
         return this.evolution.availableTraits[path].filter(trait => 
             trait.level <= pathLevel && !alreadyUnlocked.includes(trait.id)
@@ -458,10 +1000,11 @@ const GameState = {
      * Saves current progress to localStorage
      */
     saveProgress() {
-        // Include world evolution data, resources, and evolution in the saved progress
+        // Include world evolution data, resources, evolution, and events in the saved progress
         this.progress.worldEvolution = this.worldEvolution;
         this.progress.resources = this.resources;
         this.progress.evolution = this.evolution;
+        this.progress.events = this.events;
         localStorage.setItem('playerProgress', JSON.stringify(this.progress));
     },
     
@@ -507,8 +1050,26 @@ const GameState = {
         
         // Add evolution XP to each path
         const evolutionResults = {};
+        let leveledUp = false;
         for (const [path, points] of Object.entries(evolutionPoints)) {
-            evolutionResults[path] = this.addEvolutionXP(path, points);
+            const result = this.addEvolutionXP(path, points);
+            evolutionResults[path] = result;
+            if (result.leveledUp) {
+                leveledUp = true;
+            }
+        }
+        
+        // Check for evolution events if any path leveled up
+        if (leveledUp) {
+            const evolutionEvents = this.checkEvents('evolution');
+            if (evolutionEvents.length > 0) {
+                // Add to active events to be shown later
+                evolutionEvents.forEach(event => {
+                    if (!this.events.activeEvents.includes(event.id)) {
+                        this.events.activeEvents.push(event.id);
+                    }
+                });
+            }
         }
         
         // Evolve the world
@@ -615,6 +1176,13 @@ const GameState = {
                 survivor: { level: 0, xp: 0, xpToNext: 100, traits: [] }
             },
             activeTraits: []
+        };
+        
+        // Reset events
+        this.events = {
+            activeEvents: [],
+            completedEvents: [],
+            eventChains: {}
         };
         
         this.saveProgress();
@@ -1376,10 +1944,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Apply stability decay based on world chaos
         const worldChaos = GameState.worldEvolution.globalChaos;
-        const stabilityDecay = GameState.resourceRates.stabilityDecayPerTurn * (1 + worldChaos); // More decay in chaotic worlds
+        let stabilityDecay = GameState.resourceRates.stabilityDecayPerTurn * (1 + worldChaos); // More decay in chaotic worlds
+        
+        // Apply Resilience trait if active
+        if (GameState.evolution.activeTraits.some(trait => trait.effect === 'stability_loss_-50%')) {
+            stabilityDecay *= 0.5; // Reduce stability loss by 50%
+        }
         
         // Apply stability decay
         GameState.updateResource('stability', -stabilityDecay);
+        
+        // Apply Balancer trait if active
+        if (GameState.evolution.activeTraits.some(trait => trait.effect === 'stability_per_turn_+2')) {
+            GameState.updateResource('stability', 2); // Gain 2 stability each turn
+        }
+        
+        // Check for world events
+        const worldEvents = GameState.checkEvents('world');
+        if (worldEvents.length > 0) {
+            // Show the first triggered event
+            showEventNotification(worldEvents[0]);
+        }
         
         // Update UI
         updateUI();
@@ -1598,8 +2183,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize evolution UI
         updateEvolutionUI();
         
+        // Initialize events UI
+        updateEventsUI();
+        
         // Apply trait effects
         GameState.applyTraitEffects();
+        
+        // Check for world events
+        const worldEvents = GameState.checkEvents('world');
+        if (worldEvents.length > 0) {
+            // Show the first triggered event
+            showEventNotification(worldEvents[0]);
+        }
         
         highlightTiles(null);
         updateVision();
@@ -1609,6 +2204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameActive = true;
         document.getElementById('stats-window').style.display = 'none';
         document.getElementById('evolution-window').style.display = 'none';
+        document.getElementById('events-window').style.display = 'none';
     }
 
     /**
@@ -1811,49 +2407,82 @@ document.addEventListener('DOMContentLoaded', () => {
      * Updates the evolution UI
      */
     function updateEvolutionUI() {
+        // Check if GameState.evolution is properly initialized
+        if (!GameState.evolution || !GameState.evolution.paths) {
+            console.error('Evolution system not properly initialized');
+            return;
+        }
+        
         // Update each evolution path
         for (const path of ['explorer', 'manipulator', 'stabilizer', 'survivor']) {
             const pathData = GameState.evolution.paths[path];
+            if (!pathData) {
+                console.error(`Path data not found for: ${path}`);
+                continue;
+            }
+            
+            // Get DOM elements
+            const levelElement = document.getElementById(`${path}-level`);
+            const xpElement = document.getElementById(`${path}-xp`);
+            const xpNextElement = document.getElementById(`${path}-xp-next`);
+            const xpFillElement = document.getElementById(`${path}-xp-fill`);
+            const traitsContainer = document.getElementById(`${path}-traits`);
+            
+            if (!levelElement || !xpElement || !xpNextElement || !xpFillElement || !traitsContainer) {
+                console.error(`UI elements not found for path: ${path}`);
+                continue;
+            }
             
             // Update level and XP
-            document.getElementById(`${path}-level`).textContent = pathData.level;
-            document.getElementById(`${path}-xp`).textContent = pathData.xp;
-            document.getElementById(`${path}-xp-next`).textContent = pathData.xpToNext;
+            levelElement.textContent = pathData.level;
+            xpElement.textContent = pathData.xp;
+            xpNextElement.textContent = pathData.xpToNext;
             
             // Update XP bar
             const xpPercentage = (pathData.xp / pathData.xpToNext) * 100;
-            document.getElementById(`${path}-xp-fill`).style.width = `${xpPercentage}%`;
+            xpFillElement.style.width = `${xpPercentage}%`;
             
             // Update traits
-            const traitsContainer = document.getElementById(`${path}-traits`);
             traitsContainer.innerHTML = ''; // Clear existing traits
             
-            // Get available traits for this path
-            const availableTraits = GameState.getAvailableTraits(path);
-            
-            // Add unlocked traits
-            for (const traitId of pathData.traits) {
-                const trait = GameState.evolution.availableTraits[path].find(t => t.id === traitId);
-                if (trait) {
-                    const traitElement = createTraitElement(trait, path, true);
+            try {
+                // Get available traits for this path
+                const availableTraits = GameState.getAvailableTraits(path);
+                
+                // Add unlocked traits
+                const unlockedTraitIds = pathData.traits || [];
+                for (const traitId of unlockedTraitIds) {
+                    if (!GameState.evolution.availableTraits || !GameState.evolution.availableTraits[path]) {
+                        continue;
+                    }
+                    
+                    const trait = GameState.evolution.availableTraits[path].find(t => t.id === traitId);
+                    if (trait) {
+                        const traitElement = createTraitElement(trait, path, true);
+                        traitsContainer.appendChild(traitElement);
+                    }
+                }
+                
+                // Add available traits
+                for (const trait of availableTraits) {
+                    const traitElement = createTraitElement(trait, path, false);
                     traitsContainer.appendChild(traitElement);
                 }
-            }
-            
-            // Add available traits
-            for (const trait of availableTraits) {
-                const traitElement = createTraitElement(trait, path, false);
-                traitsContainer.appendChild(traitElement);
-            }
-            
-            // Add locked traits (higher level requirements)
-            const lockedTraits = GameState.evolution.availableTraits[path].filter(trait => 
-                trait.level > pathData.level && !pathData.traits.includes(trait.id)
-            );
-            
-            for (const trait of lockedTraits) {
-                const traitElement = createTraitElement(trait, path, false, true);
-                traitsContainer.appendChild(traitElement);
+                
+                // Add locked traits (higher level requirements)
+                if (GameState.evolution.availableTraits && GameState.evolution.availableTraits[path]) {
+                    const lockedTraits = GameState.evolution.availableTraits[path].filter(trait => 
+                        trait.level > pathData.level && !(pathData.traits || []).includes(trait.id)
+                    );
+                    
+                    for (const trait of lockedTraits) {
+                        const traitElement = createTraitElement(trait, path, false, true);
+                        traitsContainer.appendChild(traitElement);
+                    }
+                }
+            } catch (error) {
+                console.error(`Error updating traits for path ${path}:`, error);
+                traitsContainer.innerHTML = '<p class="error-message">Error loading traits. Please try again.</p>';
             }
         }
     }
@@ -1867,16 +2496,21 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {HTMLElement} Trait element
      */
     function createTraitElement(trait, path, unlocked, locked = false) {
+        if (!trait || !path) {
+            console.error('Invalid trait or path data');
+            return document.createElement('div'); // Return empty div
+        }
+        
         const traitElement = document.createElement('div');
         traitElement.className = `evolution-trait ${unlocked ? 'unlocked' : locked ? 'locked' : ''}`;
         
-        const costText = Object.entries(trait.cost)
+        const costText = trait.cost ? Object.entries(trait.cost)
             .map(([resource, amount]) => `${resource}: ${amount}`)
-            .join(', ');
+            .join(', ') : 'No cost';
         
         traitElement.innerHTML = `
-            <h4>${trait.name}</h4>
-            <div class="evolution-trait-description">${trait.description}</div>
+            <h4>${trait.name || 'Unknown Trait'}</h4>
+            <div class="evolution-trait-description">${trait.description || 'No description available'}</div>
             <div class="evolution-trait-cost">
                 <div class="evolution-trait-cost-item">${costText}</div>
                 ${!unlocked && !locked ? `<button class="evolution-trait-unlock-btn" data-path="${path}" data-trait="${trait.id}">Unlock</button>` : ''}
@@ -1885,41 +2519,47 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         // Add event listener to unlock button
-        if (!unlocked && !locked) {
+        if (!unlocked && !locked && trait.cost) {
             const unlockBtn = traitElement.querySelector('.evolution-trait-unlock-btn');
-            
-            // Check if player has enough resources
-            let canAfford = true;
-            for (const [resource, cost] of Object.entries(trait.cost)) {
-                if (GameState.resources[resource] < cost) {
-                    canAfford = false;
-                    break;
-                }
-            }
-            
-            if (!canAfford) {
-                unlockBtn.disabled = true;
-                unlockBtn.title = 'Not enough resources';
-            } else {
-                unlockBtn.addEventListener('click', () => {
-                    const result = GameState.unlockTrait(path, trait.id);
-                    if (result.success) {
-                        // Show success message
-                        const feedbackMessage = document.getElementById('feedback-message');
-                        if (feedbackMessage) {
-                            feedbackMessage.textContent = result.message;
-                            feedbackMessage.style.display = 'block';
-                            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
-                        }
-                        
-                        // Update UI
-                        updateEvolutionUI();
-                        updateUI();
-                    } else {
-                        // Show error message
-                        alert(result.message);
+            if (unlockBtn) {
+                // Check if player has enough resources
+                let canAfford = true;
+                for (const [resource, cost] of Object.entries(trait.cost)) {
+                    if (!GameState.resources || GameState.resources[resource] < cost) {
+                        canAfford = false;
+                        break;
                     }
-                });
+                }
+                
+                if (!canAfford) {
+                    unlockBtn.disabled = true;
+                    unlockBtn.title = 'Not enough resources';
+                } else {
+                    unlockBtn.addEventListener('click', () => {
+                        try {
+                            const result = GameState.unlockTrait(path, trait.id);
+                            if (result.success) {
+                                // Show success message
+                                const feedbackMessage = document.getElementById('feedback-message');
+                                if (feedbackMessage) {
+                                    feedbackMessage.textContent = result.message;
+                                    feedbackMessage.style.display = 'block';
+                                    setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
+                                }
+                                
+                                // Update UI
+                                updateEvolutionUI();
+                                updateUI();
+                            } else {
+                                // Show error message
+                                alert(result.message);
+                            }
+                        } catch (error) {
+                            console.error('Error unlocking trait:', error);
+                            alert('An error occurred while unlocking the trait. Please try again.');
+                        }
+                    });
+                }
             }
         }
         
@@ -1981,6 +2621,388 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach event listeners for the evolution system
     attachEvolutionListeners();
+    
+    // Initialize the game
+    startGame();
+    
+    // Stats button
+    const statsBtn = document.getElementById('stats-btn');
+    if (statsBtn) {
+        statsBtn.addEventListener('click', () => {
+            restoreStatsWindow();
+            updateStatsWindow();
+            document.getElementById('stats-window').style.display = 'block';
+        });
+    }
+    
+    // Close stats button
+    const closeStatsBtn = document.getElementById('close-stats-btn');
+    if (closeStatsBtn) {
+        closeStatsBtn.addEventListener('click', () => {
+            document.getElementById('stats-window').style.display = 'none';
+        });
+    }
+
+    /**
+     * Updates the events UI
+     */
+    function updateEventsUI() {
+        // Check if GameState.events is properly initialized
+        if (!GameState.events) {
+            console.error('Events system not properly initialized');
+            return;
+        }
+        
+        // Update active events
+        const activeEventsList = document.getElementById('active-events-list');
+        if (activeEventsList) {
+            activeEventsList.innerHTML = '';
+            
+            if (GameState.events.activeEvents && GameState.events.activeEvents.length > 0) {
+                GameState.events.activeEvents.forEach(eventId => {
+                    const event = findEventById(eventId);
+                    if (event) {
+                        const eventElement = createEventElement(event);
+                        activeEventsList.appendChild(eventElement);
+                    }
+                });
+            } else {
+                activeEventsList.innerHTML = '<p class="no-events-message">No active events.</p>';
+            }
+        }
+        
+        // Update completed events
+        const completedEventsList = document.getElementById('completed-events-list');
+        if (completedEventsList) {
+            completedEventsList.innerHTML = '';
+            
+            if (GameState.events.completedEvents && GameState.events.completedEvents.length > 0) {
+                // Get the last 10 completed events (most recent first)
+                const recentCompletedEvents = [...GameState.events.completedEvents].reverse().slice(0, 10);
+                
+                recentCompletedEvents.forEach(eventId => {
+                    const event = findEventById(eventId);
+                    if (event) {
+                        const eventElement = createEventElement(event, true);
+                        completedEventsList.appendChild(eventElement);
+                    }
+                });
+            } else {
+                completedEventsList.innerHTML = '<p class="no-events-message">No completed events.</p>';
+            }
+        }
+        
+        // Update event chains
+        const chainsEventsList = document.getElementById('chains-events-list');
+        if (chainsEventsList) {
+            chainsEventsList.innerHTML = '';
+            
+            if (GameState.events.eventChains && Object.keys(GameState.events.eventChains).length > 0) {
+                Object.entries(GameState.events.eventChains).forEach(([chainId, chainData]) => {
+                    const chainElement = createEventChainElement(chainId, chainData);
+                    chainsEventsList.appendChild(chainElement);
+                });
+            } else {
+                chainsEventsList.innerHTML = '<p class="no-events-message">No active event chains.</p>';
+            }
+        }
+    }
+    
+    /**
+     * Finds an event by its ID
+     * @param {string} eventId - ID of the event to find
+     * @returns {Object} The event object, or null if not found
+     */
+    function findEventById(eventId) {
+        if (!GameState.events || !GameState.events.availableEvents) {
+            return null;
+        }
+        
+        // Search in all event pools
+        for (const pool of ['early', 'mid', 'late']) {
+            if (GameState.events.availableEvents[pool]) {
+                const event = GameState.events.availableEvents[pool].find(e => e.id === eventId);
+                if (event) {
+                    return event;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Creates an event element for the events UI
+     * @param {Object} event - Event data
+     * @param {boolean} completed - Whether the event is completed
+     * @returns {HTMLElement} Event element
+     */
+    function createEventElement(event, completed = false) {
+        if (!event) {
+            return document.createElement('div');
+        }
+        
+        const eventElement = document.createElement('div');
+        eventElement.className = `event-card ${completed ? 'completed' : ''}`;
+        
+        // Create type badge
+        const typeBadge = document.createElement('span');
+        typeBadge.className = `event-type-badge event-type-${event.type}`;
+        typeBadge.textContent = event.type;
+        
+        // Create event content
+        eventElement.innerHTML = `
+            <h4>${event.name || 'Unknown Event'}</h4>
+            <div class="event-description">${event.description || 'No description available'}</div>
+            ${event.flavor ? `<p class="event-flavor-text">${event.flavor}</p>` : ''}
+            <div class="event-effects">
+                ${createEventEffectsHTML(event.effect)}
+            </div>
+        `;
+        
+        eventElement.appendChild(typeBadge);
+        
+        return eventElement;
+    }
+    
+    /**
+     * Creates HTML for event effects
+     * @param {Object} effect - Effect data
+     * @returns {string} HTML for the effects
+     */
+    function createEventEffectsHTML(effect) {
+        if (!effect || !effect.type) {
+            return '<p>No effects</p>';
+        }
+        
+        let html = '';
+        
+        switch (effect.type) {
+            case 'resource_gain':
+                for (const [resource, amount] of Object.entries(effect)) {
+                    if (resource !== 'type' && typeof amount === 'number') {
+                        const icon = getResourceIcon(resource);
+                        const sign = amount >= 0 ? '+' : '';
+                        html += `
+                            <div class="event-effect">
+                                <div class="event-effect-icon">${icon}</div>
+                                <div class="event-effect-text">${sign}${amount} ${resource}</div>
+                            </div>
+                        `;
+                    }
+                }
+                break;
+            
+            case 'special':
+                const specialEffect = effect.special;
+                let specialText = 'Special effect';
+                let specialIcon = '✨';
+                
+                switch (specialEffect) {
+                    case 'reality_anchor':
+                        specialText = 'Creates a reality anchor point';
+                        specialIcon = '🔱';
+                        break;
+                    case 'consciousness_ally':
+                        specialText = 'Consciousness becomes your ally';
+                        specialIcon = '👁️';
+                        break;
+                    default:
+                        specialText = `Special effect: ${specialEffect}`;
+                }
+                
+                html += `
+                    <div class="event-effect">
+                        <div class="event-effect-icon">${specialIcon}</div>
+                        <div class="event-effect-text">${specialText}</div>
+                    </div>
+                `;
+                break;
+            
+            default:
+                html = '<p>Unknown effect type</p>';
+        }
+        
+        return html;
+    }
+    
+    /**
+     * Gets an icon for a resource
+     * @param {string} resource - Resource type
+     * @returns {string} Icon for the resource
+     */
+    function getResourceIcon(resource) {
+        switch (resource) {
+            case 'energy': return '⚡';
+            case 'essence': return '✨';
+            case 'knowledge': return '📚';
+            case 'stability': return '⚖️';
+            default: return '🔮';
+        }
+    }
+    
+    /**
+     * Creates an event chain element for the events UI
+     * @param {string} chainId - ID of the chain
+     * @param {Object} chainData - Chain data
+     * @returns {HTMLElement} Chain element
+     */
+    function createEventChainElement(chainId, chainData) {
+        if (!chainId || !chainData) {
+            return document.createElement('div');
+        }
+        
+        // Get chain definition
+        const chainDefinition = GameState.events.chains[chainId];
+        if (!chainDefinition) {
+            return document.createElement('div');
+        }
+        
+        const chainElement = document.createElement('div');
+        chainElement.className = 'event-chain-card';
+        
+        // Calculate progress percentage
+        const currentStep = chainData.currentStep || 0;
+        const totalSteps = chainDefinition.steps || 1;
+        const progressPercentage = (currentStep / totalSteps) * 100;
+        
+        // Create steps HTML
+        let stepsHTML = '';
+        if (chainDefinition.stepDetails) {
+            chainDefinition.stepDetails.forEach((step, index) => {
+                const isCompleted = index < currentStep;
+                stepsHTML += `
+                    <div class="event-chain-step ${isCompleted ? 'completed' : ''}">
+                        <div class="event-chain-step-number">${index + 1}</div>
+                        <div class="event-chain-step-text">${step.description}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        chainElement.innerHTML = `
+            <h4>${chainDefinition.name || 'Unknown Chain'}</h4>
+            <div class="event-chain-description">${chainDefinition.description || 'No description available'}</div>
+            <div class="event-chain-progress">
+                <div class="event-chain-progress-bar">
+                    <div class="event-chain-progress-fill" style="width: ${progressPercentage}%"></div>
+                </div>
+                <div class="event-chain-progress-text">Progress: ${currentStep}/${totalSteps}</div>
+            </div>
+            <div class="event-chain-steps">
+                ${stepsHTML}
+            </div>
+        `;
+        
+        return chainElement;
+    }
+    
+    /**
+     * Shows the events window
+     */
+    function showEventsWindow() {
+        const eventsWindow = document.getElementById('events-window');
+        if (eventsWindow) {
+            updateEventsUI();
+            eventsWindow.style.display = 'block';
+        }
+    }
+    
+    /**
+     * Hides the events window
+     */
+    function hideEventsWindow() {
+        const eventsWindow = document.getElementById('events-window');
+        if (eventsWindow) {
+            eventsWindow.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Shows an event notification
+     * @param {Object} event - Event to show
+     */
+    function showEventNotification(event) {
+        if (!event) {
+            return;
+        }
+        
+        const notification = document.getElementById('event-notification');
+        const title = document.getElementById('event-notification-title');
+        const description = document.getElementById('event-notification-description');
+        const flavor = document.getElementById('event-notification-flavor');
+        const effects = document.getElementById('event-notification-effects');
+        
+        if (notification && title && description && flavor && effects) {
+            title.textContent = event.name || 'Event Triggered';
+            description.textContent = event.description || '';
+            flavor.textContent = event.flavor || '';
+            effects.innerHTML = createEventEffectsHTML(event.effect);
+            
+            notification.style.display = 'flex';
+            
+            // Apply the event effect
+            const effectResult = GameState.applyEventEffect(event);
+            console.log('Event effect applied:', effectResult);
+            
+            // Update UI to reflect changes
+            updateUI();
+        }
+    }
+    
+    /**
+     * Hides the event notification
+     */
+    function hideEventNotification() {
+        const notification = document.getElementById('event-notification');
+        if (notification) {
+            notification.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Attaches event listeners to the events window elements
+     */
+    function attachEventsListeners() {
+        // Tab buttons
+        const tabButtons = document.querySelectorAll('.events-tab-btn');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.events-tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                const type = button.getAttribute('data-type');
+                document.getElementById(`${type}-events-tab`).classList.add('active');
+            });
+        });
+        
+        // Close button
+        const closeButton = document.getElementById('close-events-btn');
+        if (closeButton) {
+            closeButton.addEventListener('click', hideEventsWindow);
+        }
+        
+        // Events button in action console
+        const eventsButton = document.getElementById('events-btn');
+        if (eventsButton) {
+            eventsButton.addEventListener('click', showEventsWindow);
+        }
+        
+        // Event notification close button
+        const notificationCloseButton = document.getElementById('event-notification-close-btn');
+        if (notificationCloseButton) {
+            notificationCloseButton.addEventListener('click', hideEventNotification);
+        }
+    }
+
+    // Attach event listeners for the evolution system
+    attachEvolutionListeners();
+    
+    // Attach event listeners for the events system
+    attachEventsListeners();
     
     // Initialize the game
     startGame();
