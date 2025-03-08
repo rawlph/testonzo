@@ -1081,14 +1081,31 @@ const GameState = {
      * @returns {Array} Array of non-path positions
      */
     getNonPathPositions(rows, cols) {
+        console.log(`Getting non-path positions for ${rows}x${cols} grid`);
+        
+        // Create an array to store positions
         const positions = [];
+        
+        // Get the start and goal positions
+        const startRow = 0;
+        const startCol = 0;
+        const goalRow = rows - 1;
+        const goalCol = cols - 1;
+        
+        // Add all positions except start and goal
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (this.level.tileData[r][c].type === 'normal') {
-                    positions.push([r, c]);
+                // Skip start and goal positions
+                if ((r === startRow && c === startCol) || (r === goalRow && c === goalCol)) {
+                    continue;
                 }
+                
+                // Add position to array
+                positions.push([r, c]);
             }
         }
+        
+        console.log(`Found ${positions.length} non-path positions`);
         return positions;
     },
     
@@ -1910,7 +1927,18 @@ function createGameUI() {
  * @param {Array} tileData - 2D array containing tile data
  */
 function buildGrid(rows, cols, tileData) {
-    console.log(`Building grid: ${rows}x${cols}`);
+    debug(`Building grid: ${rows}x${cols}`);
+    
+    // Validate input
+    if (!rows || !cols || rows <= 0 || cols <= 0) {
+        debug("Invalid grid dimensions", { rows, cols });
+        return null;
+    }
+    
+    if (!tileData) {
+        debug("No tile data provided");
+        return null;
+    }
     
     // Access grid configuration
     const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth;
@@ -1918,25 +1946,25 @@ function buildGrid(rows, cols, tileData) {
     const rowOffset = window.rowOffset || GameState.grid.rowOffset;
     const colOffset = window.colOffset || GameState.grid.colOffset;
     
-    console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
+    debug(`Grid config:`, { hexVisualWidth, hexHeight, rowOffset, colOffset });
     
     // Get the game container
     const gameContainer = document.getElementById('game-container');
     if (!gameContainer) {
-        console.error("Game container not found");
-        return;
+        debug("Game container not found");
+        return null;
     }
     
     // Get or create the grid element
     let grid = document.getElementById('grid');
     if (!grid) {
-        console.log("Grid element not found, creating one");
+        debug("Grid element not found, creating one");
         grid = document.createElement('div');
         grid.id = 'grid';
         grid.className = 'grid-container';
         gameContainer.appendChild(grid);
     } else {
-        console.log("Found existing grid element");
+        debug("Found existing grid element");
     }
     
     // Clear existing grid
@@ -1946,7 +1974,7 @@ function buildGrid(rows, cols, tileData) {
     const totalWidth = cols * colOffset;
     const totalHeight = (rows * rowOffset) + (hexHeight * 0.25);
     
-    console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
+    debug(`Grid dimensions:`, { totalWidth, totalHeight });
     
     // Set grid dimensions
     grid.style.width = `${totalWidth}px`;
@@ -1957,73 +1985,78 @@ function buildGrid(rows, cols, tileData) {
     grid.style.position = 'relative';
     grid.style.margin = '100px auto';
     grid.style.backgroundColor = '#333';
+    grid.style.border = '2px solid red'; // Add a border for visibility
     
     // Create hexagons for each tile
     let tileCount = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            const hexContainer = document.createElement('div');
-            hexContainer.className = 'hex-container unexplored';
-            hexContainer.setAttribute('data-row', r);
-            hexContainer.setAttribute('data-col', c);
-            hexContainer.id = `hex-${r}-${c}`;
-            
-            // Position the hex container
-            const xPos = c * colOffset;
-            const yPos = r * rowOffset;
-            hexContainer.style.left = `${xPos}px`;
-            hexContainer.style.top = `${yPos}px`;
-            
-            // Create the hex shape
-            const hex = document.createElement('div');
-            hex.className = 'hex';
-            
-            // Check if tileData exists for this position
-            if (!tileData || !tileData[r] || !tileData[r][c]) {
-                console.warn(`No tile data for position [${r}, ${c}]`);
-                continue;
-            }
-            
-            // Set the background color based on the chaos/order value
-            const chaos = tileData[r][c].chaos;
-            const tileType = tileData[r][c].type;
-            
-            // Add class for tile type
-            hex.classList.add(tileType);
-            
-            // Add color based on chaos level
-            if (chaos < 0.2) {
-                hex.classList.add('high-order');
-            } else if (chaos < 0.4) {
-                hex.classList.add('order');
-            } else if (chaos > 0.8) {
-                hex.classList.add('high-chaos');
-            } else if (chaos > 0.6) {
-                hex.classList.add('chaos');
-            }
-            
-            // Create inner hexagon
-            const hexInner = document.createElement('div');
-            hexInner.className = 'hex-inner';
-            
-            // Add coordinates for debugging
-            const coords = document.createElement('div');
-            coords.className = 'coords';
-            coords.textContent = `${r},${c}`;
-            
-            // Put it all together
-            hexInner.appendChild(coords);
-            hex.appendChild(hexInner);
-            hexContainer.appendChild(hex);
-            grid.appendChild(hexContainer);
-            tileCount++;
-            
-            // Add stability indicator if tile has stability
-            if (tileData[r][c].stability && tileData[r][c].stability > 0) {
-                const stabilityIndicator = document.createElement('div');
-                stabilityIndicator.className = 'stability-indicator';
-                stabilityIndicator.style.opacity = tileData[r][c].stability;
-                hexContainer.appendChild(stabilityIndicator);
+            try {
+                const hexContainer = document.createElement('div');
+                hexContainer.className = 'hex-container unexplored';
+                hexContainer.setAttribute('data-row', r);
+                hexContainer.setAttribute('data-col', c);
+                hexContainer.id = `hex-${r}-${c}`;
+                
+                // Position the hex container
+                const xPos = c * colOffset;
+                const yPos = r * rowOffset;
+                hexContainer.style.left = `${xPos}px`;
+                hexContainer.style.top = `${yPos}px`;
+                
+                // Create the hex shape
+                const hex = document.createElement('div');
+                hex.className = 'hex';
+                
+                // Check if tileData exists for this position
+                if (!tileData[r] || !tileData[r][c]) {
+                    debug(`No tile data for position [${r}, ${c}]`);
+                    continue;
+                }
+                
+                // Set the background color based on the chaos/order value
+                const chaos = tileData[r][c].chaos;
+                const tileType = tileData[r][c].type;
+                
+                // Add class for tile type
+                hex.classList.add(tileType);
+                
+                // Add color based on chaos level
+                if (chaos < 0.2) {
+                    hex.classList.add('high-order');
+                } else if (chaos < 0.4) {
+                    hex.classList.add('order');
+                } else if (chaos > 0.8) {
+                    hex.classList.add('high-chaos');
+                } else if (chaos > 0.6) {
+                    hex.classList.add('chaos');
+                }
+                
+                // Create inner hexagon
+                const hexInner = document.createElement('div');
+                hexInner.className = 'hex-inner';
+                
+                // Add coordinates for debugging
+                const coords = document.createElement('div');
+                coords.className = 'coords';
+                coords.textContent = `${r},${c}`;
+                
+                // Put it all together
+                hexInner.appendChild(coords);
+                hex.appendChild(hexInner);
+                hexContainer.appendChild(hex);
+                grid.appendChild(hexContainer);
+                tileCount++;
+                
+                // Add stability indicator if tile has stability
+                if (tileData[r][c].stability && tileData[r][c].stability > 0) {
+                    const stabilityIndicator = document.createElement('div');
+                    stabilityIndicator.className = 'stability-indicator';
+                    stabilityIndicator.style.opacity = tileData[r][c].stability;
+                    hexContainer.appendChild(stabilityIndicator);
+                }
+            } catch (error) {
+                debug(`Error creating tile at [${r}, ${c}]`, error.message);
             }
         }
     }
@@ -2046,7 +2079,7 @@ function buildGrid(rows, cols, tileData) {
         gameContainer.appendChild(zoeElement);
     }
     
-    console.log(`Grid built with ${tileCount} tiles`);
+    debug(`Grid built with ${tileCount} tiles`);
     
     // Position the grid in the center of the game container
     const gameContainerWidth = gameContainer.offsetWidth;
@@ -2057,7 +2090,7 @@ function buildGrid(rows, cols, tileData) {
     grid.style.left = `${gridLeft}px`;
     grid.style.top = `${gridTop}px`;
     
-    console.log(`Grid positioned at (${gridLeft}, ${gridTop})`);
+    debug(`Grid positioned at (${gridLeft}, ${gridTop})`);
     
     return grid;
 }
@@ -2096,17 +2129,17 @@ function startGame() {
         console.log(`Grid size: ${window.rows}x${window.cols}`);
         console.log(`Grid config: hexVisualWidth=${window.hexVisualWidth}, hexHeight=${window.hexHeight}, rowOffset=${window.rowOffset}, colOffset=${window.colOffset}`);
         
-        // Create the tile data
+        // Create the tile data using the standalone function
         window.tileData = createTileData(window.rows, window.cols);
         GameState.tileData = window.tileData;
         console.log("Tile data created");
         
-        // Place tiles on the grid
+        // Place tiles on the grid using the standalone function
         placeTiles(window.tileData, window.rows, window.cols);
         console.log("Tiles placed");
         
         // Build the grid
-        buildGrid(window.rows, window.cols, window.tileData);
+        const grid = buildGrid(window.rows, window.cols, window.tileData);
         console.log("Grid built");
         
         // Position player character
@@ -2133,7 +2166,9 @@ function startGame() {
         
         // Apply trait effects
         try {
-            GameState.applyTraitEffects();
+            if (typeof GameState.applyTraitEffects === 'function') {
+                GameState.applyTraitEffects();
+            }
         } catch (error) {
             console.error("Error applying trait effects:", error);
         }
@@ -2262,3 +2297,271 @@ function positionZoeCharacter() {
         console.log("Zoe not found on grid, hiding character");
     }
 }
+
+/**
+ * Ensures there is a traversable path from start to goal
+ * @param {Array} tileData - 2D array of tile data
+ * @param {number} rows - Number of rows
+ * @param {number} cols - Number of columns
+ */
+function ensureTraversablePath(tileData, rows, cols) {
+    console.log("Ensuring traversable path...");
+    
+    // Define start and goal positions
+    const startRow = 0;
+    const startCol = 0;
+    const goalRow = rows - 1;
+    const goalCol = cols - 1;
+    
+    // Check if there's a path from start to goal
+    const pathExists = verifyPath(tileData, startRow, startCol, goalRow, goalCol);
+    
+    // If no path exists, create one
+    if (!pathExists) {
+        console.log("No path found, creating direct path");
+        createDirectPath(tileData, startRow, startCol, goalRow, goalCol);
+    } else {
+        console.log("Path already exists");
+    }
+}
+
+/**
+ * Verifies if a path exists from start to goal
+ * @param {Array} tileData - 2D array of tile data
+ * @param {number} startRow - Starting row
+ * @param {number} startCol - Starting column
+ * @param {number} goalRow - Goal row
+ * @param {number} goalCol - Goal column
+ * @returns {boolean} Whether a path exists
+ */
+function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
+    // Create a visited array
+    const visited = [];
+    for (let r = 0; r < tileData.length; r++) {
+        visited[r] = [];
+        for (let c = 0; c < tileData[r].length; c++) {
+            visited[r][c] = false;
+        }
+    }
+    
+    // Create a queue for BFS
+    const queue = [[startRow, startCol]];
+    visited[startRow][startCol] = true;
+    
+    // BFS to find path
+    while (queue.length > 0) {
+        const [r, c] = queue.shift();
+        
+        // Check if we've reached the goal
+        if (r === goalRow && c === goalCol) {
+            return true;
+        }
+        
+        // Check adjacent tiles
+        const adjacentTiles = getAdjacentTiles(r, c);
+        
+        for (const [adjR, adjC] of adjacentTiles) {
+            // Check if tile is valid
+            if (adjR >= 0 && adjR < tileData.length && 
+                adjC >= 0 && adjC < tileData[0].length && 
+                !visited[adjR][adjC] && 
+                tileData[adjR][adjC].type !== 'blocked') {
+                
+                // Mark as visited and add to queue
+                visited[adjR][adjC] = true;
+                queue.push([adjR, adjC]);
+            }
+        }
+    }
+    
+    // No path found
+    return false;
+}
+
+/**
+ * Creates a direct path from start to goal
+ * @param {Array} tileData - 2D array of tile data
+ * @param {number} startRow - Starting row
+ * @param {number} startCol - Starting column
+ * @param {number} goalRow - Goal row
+ * @param {number} goalCol - Goal column
+ */
+function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
+    // Create a path using a simple algorithm
+    let currentRow = startRow;
+    let currentCol = startCol;
+    
+    while (currentRow !== goalRow || currentCol !== goalCol) {
+        // Move horizontally or vertically toward the goal
+        if (currentRow < goalRow) {
+            currentRow++;
+        } else if (currentRow > goalRow) {
+            currentRow--;
+        } else if (currentCol < goalCol) {
+            currentCol++;
+        } else if (currentCol > goalCol) {
+            currentCol--;
+        }
+        
+        // Clear any obstacles
+        if (tileData[currentRow][currentCol].type === 'blocked' || 
+            tileData[currentRow][currentCol].type === 'water') {
+            tileData[currentRow][currentCol].type = 'normal';
+            
+            // Adjust chaos/order levels
+            tileData[currentRow][currentCol].chaos = Math.min(tileData[currentRow][currentCol].chaos, 0.5);
+            tileData[currentRow][currentCol].order = 1 - tileData[currentRow][currentCol].chaos;
+        }
+    }
+}
+
+/**
+ * Debug function to help diagnose issues
+ * @param {string} message - Debug message
+ * @param {any} data - Optional data to log
+ */
+function debug(message, data) {
+    console.log(`DEBUG: ${message}`);
+    if (data !== undefined) {
+        console.log(data);
+    }
+    
+    // Also show in UI for visibility
+    const debugElement = document.getElementById('debug-output');
+    if (!debugElement) {
+        const debugOutput = document.createElement('div');
+        debugOutput.id = 'debug-output';
+        debugOutput.style.position = 'fixed';
+        debugOutput.style.top = '50%';
+        debugOutput.style.left = '50%';
+        debugOutput.style.transform = 'translate(-50%, -50%)';
+        debugOutput.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        debugOutput.style.color = 'white';
+        debugOutput.style.padding = '20px';
+        debugOutput.style.borderRadius = '5px';
+        debugOutput.style.zIndex = '1000';
+        debugOutput.style.maxWidth = '80%';
+        debugOutput.style.maxHeight = '80%';
+        debugOutput.style.overflow = 'auto';
+        document.body.appendChild(debugOutput);
+    }
+    
+    const debugElement2 = document.getElementById('debug-output');
+    if (debugElement2) {
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        if (data !== undefined) {
+            messageElement.textContent += ': ' + JSON.stringify(data);
+        }
+        debugElement2.appendChild(messageElement);
+        
+        // Limit the number of messages
+        if (debugElement2.children.length > 20) {
+            debugElement2.removeChild(debugElement2.firstChild);
+        }
+    }
+}
+
+// Initialize the game when the document is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM content loaded, initializing game...");
+    debug("DOM content loaded, initializing game...");
+    
+    try {
+        // Add basic CSS styles
+        addGameStyles();
+        debug("Added game styles");
+        
+        // Create UI elements
+        createGameUI();
+        debug("Created game UI");
+        
+        // Initialize game state
+        GameState.init();
+        debug("Game state initialized");
+        
+        // Extract frequently used values from state for backward compatibility
+        // This helps with the transition to the new state management system
+        let rows = GameState.grid.rows;
+        let cols = GameState.grid.cols;
+        const hexVisualWidth = GameState.grid.hexVisualWidth;
+        const hexHeight = GameState.grid.hexHeight;
+        const rowOffset = GameState.grid.rowOffset;
+        const colOffset = GameState.grid.colOffset;
+        let turnCount = GameState.player.turnCount;
+        let currentRow = GameState.player.currentRow;
+        let currentCol = GameState.player.currentCol;
+        let currentLevelSenses = GameState.player.currentLevelSenses;
+        let moveCounter = GameState.player.moveCounter;
+        let hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
+        let currentAction = GameState.player.currentAction;
+        let energy = GameState.resources.energy;
+        let movementPoints = GameState.player.movementPoints;
+        
+        // Extract progress data
+        let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
+              hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
+              orderContributions, uniquesensedTypes } = GameState.progress;
+        
+        let temporaryInventory = GameState.level.temporaryInventory;
+        let metrics = GameState.metrics;
+        let recentMetrics = GameState.recentMetrics;
+        
+        // Make these variables global so they can be accessed by all functions
+        window.rows = rows;
+        window.cols = cols;
+        window.hexVisualWidth = hexVisualWidth;
+        window.hexHeight = hexHeight;
+        window.rowOffset = rowOffset;
+        window.colOffset = colOffset;
+        window.turnCount = turnCount;
+        window.currentRow = currentRow;
+        window.currentCol = currentCol;
+        window.currentLevelSenses = currentLevelSenses;
+        window.moveCounter = moveCounter;
+        window.hasUsedsenserBonus = hasUsedsenserBonus;
+        window.currentAction = currentAction;
+        window.energy = energy;
+        window.movementPoints = movementPoints;
+        window.stats = stats;
+        window.traits = traits;
+        window.persistentInventory = persistentInventory;
+        window.xp = xp;
+        window.sensedTypes = sensedTypes;
+        window.sensesMade = sensesMade;
+        window.pokesMade = pokesMade;
+        window.hasFoundZoe = hasFoundZoe;
+        window.zoeLevelsCompleted = zoeLevelsCompleted;
+        window.essence = essence;
+        window.systemChaos = systemChaos;
+        window.systemOrder = systemOrder;
+        window.orderContributions = orderContributions;
+        window.uniquesensedTypes = uniquesensedTypes;
+        window.temporaryInventory = temporaryInventory;
+        window.metrics = metrics;
+        window.recentMetrics = recentMetrics;
+        window.tileData = null; // Will be set in startGame
+        window.isGameActive = true;
+        
+        debug("Global variables set", { rows, cols });
+        
+        // Create particles
+        createParticles(25);
+        debug("Particles created");
+        
+        // Attach event listeners for the evolution system
+        attachEvolutionListeners();
+        debug("Evolution listeners attached");
+        
+        // Attach event listeners for the events system
+        attachEventsListeners();
+        debug("Events listeners attached");
+        
+        // Initialize the game
+        startGame();
+        debug("Game started");
+    } catch (error) {
+        console.error("Error initializing game:", error);
+        debug("Error initializing game", error.message);
+    }
+});
