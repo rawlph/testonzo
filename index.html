@@ -132,7 +132,36 @@
     <p id="temp-inventory-display">Level Items: None</p>
     <p id="persistent-inventory-display">Persistent Items: None</p>
     <p id="turn-counter">Turns: 0</p>
-    <p id="energy-display">Energy: 0</p>
+    <div id="resource-display">
+        <div class="resource-bar-container">
+            <div class="resource-label">Energy</div>
+            <div class="resource-bar">
+                <div id="energy-bar" class="resource-bar-fill" style="width: 50%;"></div>
+            </div>
+            <div id="energy-value" class="resource-value">50/100</div>
+        </div>
+        <div class="resource-bar-container">
+            <div class="resource-label">Essence</div>
+            <div class="resource-bar">
+                <div id="essence-bar" class="resource-bar-fill essence-fill" style="width: 20%;"></div>
+            </div>
+            <div id="essence-value" class="resource-value">20/100</div>
+        </div>
+        <div class="resource-bar-container">
+            <div class="resource-label">Knowledge</div>
+            <div class="resource-bar">
+                <div id="knowledge-bar" class="resource-bar-fill knowledge-fill" style="width: 10%;"></div>
+            </div>
+            <div id="knowledge-value" class="resource-value">10/100</div>
+        </div>
+        <div class="resource-bar-container">
+            <div class="resource-label">Stability</div>
+            <div class="resource-bar">
+                <div id="stability-bar" class="resource-bar-fill stability-fill" style="width: 50%;"></div>
+            </div>
+            <div id="stability-value" class="resource-value">50/100</div>
+        </div>
+    </div>
 	<p id="system-balance">System: 50% Chaos / 50% Order</p>
 </div>
 <div class="admin-tools">

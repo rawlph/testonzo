@@ -29,6 +29,31 @@ const GameState = {
         hasUsedSenserBonus: false
     },
     
+    // Resource system
+    resources: {
+        energy: 0,      // Used for movement and basic actions
+        essence: 0,     // Used for stabilization and evolution
+        knowledge: 0,   // Used to unlock new abilities
+        stability: 50   // Affects success rate of actions (0-100 scale)
+    },
+    
+    // Resource limits and rates
+    resourceLimits: {
+        energy: 100,
+        essence: 1000,
+        knowledge: 500,
+        stability: 100
+    },
+    
+    // Resource generation/consumption rates
+    resourceRates: {
+        energyPerRest: 10,
+        essencePerStabilize: 1,
+        knowledgePerSense: 2,
+        stabilityDecayPerTurn: 1,
+        stabilityGainPerStabilize: 5
+    },
+    
     // Level data
     level: {
         tileData: null,
@@ -51,7 +76,12 @@ const GameState = {
         systemOrder: 0.5,
         orderContributions: 0,
         levelsWithPositiveOrder: 0,
-        uniqueSensedTypes: []
+        uniqueSensedTypes: [],
+        totalResources: {
+            energyGained: 0,
+            essenceGained: 0,
+            knowledgeGained: 0
+        }
     },
     
     // World evolution system
@@ -81,6 +111,11 @@ const GameState = {
             if (savedProgress.worldEvolution) {
                 this.worldEvolution = savedProgress.worldEvolution;
             }
+            
+            // Initialize resources from saved progress if available
+            if (savedProgress.resources) {
+                this.resources = savedProgress.resources;
+            }
         }
         
         // Initialize metrics trackers
@@ -106,14 +141,95 @@ const GameState = {
         this.player.currentAction = null;
         this.level.temporaryInventory = [];
         this.isActive = true;
+        
+        // Reset resources for new level
+        this.resources.energy = Math.min(this.player.energy * 2, this.resourceLimits.energy);
+        // Don't reset essence and knowledge as they persist between levels
+        this.resources.stability = 50; // Reset to neutral stability
+    },
+    
+    /**
+     * Updates a resource value
+     * @param {string} type - Resource type ('energy', 'essence', 'knowledge', 'stability')
+     * @param {number} amount - Amount to change (positive or negative)
+     * @returns {Object} Updated resource information
+     */
+    updateResource(type, amount) {
+        // Update the resource
+        this.resources[type] += amount;
+        
+        // Enforce limits
+        if (type === 'stability') {
+            this.resources.stability = Math.max(0, Math.min(this.resourceLimits.stability, this.resources.stability));
+        } else {
+            this.resources[type] = Math.max(0, Math.min(this.resourceLimits[type], this.resources[type]));
+            
+            // Track total resources gained (only for positive changes)
+            if (amount > 0 && this.progress.totalResources[`${type}Gained`] !== undefined) {
+                this.progress.totalResources[`${type}Gained`] += amount;
+            }
+        }
+        
+        // For energy, also update the player.energy for backward compatibility
+        if (type === 'energy') {
+            this.player.energy = this.resources.energy;
+        }
+        
+        // For essence, also update progress.essence for backward compatibility
+        if (type === 'essence') {
+            this.progress.essence = this.resources.essence;
+        }
+        
+        return {
+            type,
+            value: this.resources[type],
+            change: amount,
+            limit: this.resourceLimits[type]
+        };
+    },
+    
+    /**
+     * Applies stability effects to an action's success chance
+     * @param {string} actionType - Type of action ('sense', 'poke', 'stabilize')
+     * @param {number} baseChance - Base success chance (0-1)
+     * @returns {number} Modified success chance
+     */
+    applyStabilityToChance(actionType, baseChance) {
+        const stability = this.resources.stability;
+        let modifier = 0;
+        
+        // Different actions are affected differently by stability
+        switch (actionType) {
+            case 'sense':
+                // Sensing is easier with higher stability
+                modifier = (stability - 50) / 100; // -0.5 to +0.5
+                break;
+            case 'poke':
+                // Poking is more effective with lower stability (more chaos)
+                modifier = (50 - stability) / 100; // +0.5 to -0.5
+                break;
+            case 'stabilize':
+                // Stabilizing is easier with higher stability
+                modifier = (stability - 50) / 100; // -0.5 to +0.5
+                break;
+            default:
+                modifier = 0;
+        }
+        
+        // Apply the modifier
+        const modifiedChance = baseChance + (modifier * 0.3); // Scale the effect
+        
+        // Ensure the chance stays within 0-1 range
+        return Math.max(0.1, Math.min(0.95, modifiedChance));
     },
     
     /**
      * Saves current progress to localStorage
      */
     saveProgress() {
-        // Include world evolution data in the saved progress
+        // Include world evolution data and resources in the saved progress
         this.progress.worldEvolution = this.worldEvolution;
+        this.progress.resources = this.resources;
         localStorage.setItem('playerProgress', JSON.stringify(this.progress));
     },
     
@@ -163,7 +279,8 @@ const GameState = {
         return {
             traits: this.progress.traits,
             xp: this.progress.xp,
-            essence: this.progress.essence,
+            essence: this.resources.essence,
+            knowledge: this.resources.knowledge,
             worldAge: worldEvolutionResult.newAge,
             globalOrder: worldEvolutionResult.globalOrder,
             globalChaos: worldEvolutionResult.globalChaos
@@ -221,7 +338,12 @@ const GameState = {
             systemOrder: 0.5,
             orderContributions: 0,
             levelsWithPositiveOrder: 0,
-            uniqueSensedTypes: []
+            uniqueSensedTypes: [],
+            totalResources: {
+                energyGained: 0,
+                essenceGained: 0,
+                knowledgeGained: 0
+            }
         };
         
         // Reset world evolution
@@ -232,6 +354,14 @@ const GameState = {
             stabilityThreshold: 0.4,
             complexityThreshold: 0.6,
             tileVariance: 0.2
+        };
+        
+        // Reset resources
+        this.resources = {
+            energy: 0,
+            essence: 0,
+            knowledge: 0,
+            stability: 50
         };
         
         this.saveProgress();
@@ -654,16 +784,125 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} cols - Number of columns in the grid
      */
     function ensureTraversablePath(tileData, rows, cols) {
-        // Simple path: top row and rightmost column
+        // Define a guaranteed path from start to goal
+        // This path will follow the top row and then the rightmost column
+        const guaranteedPath = [];
+        
+        // Add top row to path
         for (let col = 0; col < cols; col++) {
-            if (tileData[0][col].type === 'blocked') {
-                tileData[0][col].type = 'normal';
+            guaranteedPath.push({ row: 0, col });
+        }
+        
+        // Add rightmost column to path (excluding the top-right corner which is already included)
+        for (let row = 1; row < rows; row++) {
+            guaranteedPath.push({ row, col: cols - 1 });
+        }
+        
+        // Clear any blocked tiles along the guaranteed path
+        guaranteedPath.forEach(pos => {
+            if (tileData[pos.row][pos.col].type === 'blocked' || tileData[pos.row][pos.col].type === 'water') {
+                tileData[pos.row][pos.col].type = 'normal';
+                
+                // Also adjust chaos/order levels to be more favorable
+                tileData[pos.row][pos.col].chaos = Math.min(tileData[pos.row][pos.col].chaos, 0.6);
+                tileData[pos.row][pos.col].order = 1 - tileData[pos.row][pos.col].chaos;
+            }
+        });
+        
+        // Verify path using pathfinding
+        const pathExists = verifyPath(tileData, 0, 0, rows - 1, cols - 1);
+        
+        // If no path exists (which shouldn't happen with our guaranteed path, but just in case),
+        // create a direct path
+        if (!pathExists) {
+            console.warn("Path verification failed, creating direct path");
+            createDirectPath(tileData, 0, 0, rows - 1, cols - 1);
+        }
+    }
+    
+    /**
+     * Verifies if a path exists from start to goal using breadth-first search
+     * @param {Array} tileData - 2D array of tile data
+     * @param {number} startRow - Starting row
+     * @param {number} startCol - Starting column
+     * @param {number} goalRow - Goal row
+     * @param {number} goalCol - Goal column
+     * @returns {boolean} Whether a path exists
+     */
+    function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
+        const rows = tileData.length;
+        const cols = tileData[0].length;
+        
+        // Create a visited array
+        const visited = Array(rows).fill().map(() => Array(cols).fill(false));
+        
+        // Queue for BFS
+        const queue = [{ row: startRow, col: startCol }];
+        visited[startRow][startCol] = true;
+        
+        while (queue.length > 0) {
+            const current = queue.shift();
+            
+            // Check if we've reached the goal
+            if (current.row === goalRow && current.col === goalCol) {
+                return true;
+            }
+            
+            // Get adjacent tiles
+            const adjacentTiles = getAdjacentTiles(current.row, current.col);
+            
+            // Check each adjacent tile
+            for (const tile of adjacentTiles) {
+                // Skip if already visited
+                if (visited[tile.row][tile.col]) continue;
+                
+                // Skip if blocked or water
+                if (tileData[tile.row][tile.col].type === 'blocked' || 
+                    tileData[tile.row][tile.col].type === 'water') continue;
+                
+                // Mark as visited and add to queue
+                visited[tile.row][tile.col] = true;
+                queue.push(tile);
             }
         }
         
-        for (let row = 1; row < rows; row++) {
-            if (tileData[row][cols - 1].type === 'blocked') {
-                tileData[row][cols - 1].type = 'normal';
+        // If we've exhausted the queue without finding the goal, no path exists
+        return false;
+    }
+    
+    /**
+     * Creates a direct path from start to goal
+     * @param {Array} tileData - 2D array of tile data
+     * @param {number} startRow - Starting row
+     * @param {number} startCol - Starting column
+     * @param {number} goalRow - Goal row
+     * @param {number} goalCol - Goal column
+     */
+    function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
+        // Create a path using a simple algorithm
+        let currentRow = startRow;
+        let currentCol = startCol;
+        
+        while (currentRow !== goalRow || currentCol !== goalCol) {
+            // Move horizontally or vertically toward the goal
+            if (currentRow < goalRow) {
+                currentRow++;
+            } else if (currentRow > goalRow) {
+                currentRow--;
+            } else if (currentCol < goalCol) {
+                currentCol++;
+            } else if (currentCol > goalCol) {
+                currentCol--;
+            }
+            
+            // Clear any obstacles
+            if (tileData[currentRow][currentCol].type === 'blocked' || 
+                tileData[currentRow][currentCol].type === 'water') {
+                tileData[currentRow][currentCol].type = 'normal';
+                
+                // Adjust chaos/order levels
+                tileData[currentRow][currentCol].chaos = Math.min(tileData[currentRow][currentCol].chaos, 0.5);
+                tileData[currentRow][currentCol].order = 1 - tileData[currentRow][currentCol].chaos;
             }
         }
     }
@@ -831,13 +1070,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirmEnd) return;
         }
         
-        GameState.player.movementPoints = GameState.progress.stats.movementRange; // Use upgraded range
-        GameState.player.turnCount++;
-        turnCount = GameState.player.turnCount; // Update local variable for compatibility
+        // Reset movement points
+        GameState.player.movementPoints = GameState.progress.stats.movementRange;
+        movementPoints = GameState.player.movementPoints;
         
+        // Increment turn counter
+        GameState.player.turnCount++;
+        turnCount = GameState.player.turnCount;
+        
+        // Track metrics
         GameState.metrics.incrementTurns();
         GameState.recentMetrics.incrementTurns();
         
+        // Apply stability decay based on world chaos
+        const worldChaos = GameState.worldEvolution.globalChaos;
+        const stabilityDecay = GameState.resourceRates.stabilityDecayPerTurn * (1 + worldChaos); // More decay in chaotic worlds
+        
+        // Apply stability decay
+        GameState.updateResource('stability', -stabilityDecay);
+        
+        // Update UI
         updateUI();
         highlightTiles(null);
         
@@ -853,16 +1105,41 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        const confirmRest = confirm("This ends the turn and lets you rest for 10 energy points. Are you sure?");
+        const confirmRest = confirm("This ends the turn and lets you rest to gain energy. Are you sure?");
         if (confirmRest) {
-            GameState.player.energy += 10;
-            energy = GameState.player.energy; // Update local variable for compatibility
+            // Calculate energy gain based on stability
+            const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
+            const baseEnergyGain = GameState.resourceRates.energyPerRest;
+            const energyGain = Math.round(baseEnergyGain * stabilityFactor);
             
+            // Update resources
+            GameState.updateResource('energy', energyGain);
+            
+            // Stability naturally increases slightly when resting
+            GameState.updateResource('stability', 2);
+            
+            // Update local variables for compatibility
+            energy = GameState.resources.energy;
+            
+            // End movement for this turn
             GameState.player.movementPoints = 0;
-            movementPoints = 0; // Update local variable for compatibility
+            movementPoints = 0;
             
+            // Track metrics
             GameState.metrics.incrementRests();
             GameState.recentMetrics.incrementRests();
+            
+            // Show feedback
+            const feedbackMessage = document.getElementById('feedback-message');
+            if (feedbackMessage) {
+                feedbackMessage.textContent = `Rested and gained ${energyGain} energy.`;
+                feedbackMessage.style.display = 'block';
+                setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+            }
+            
+            // Update UI with animation
+            updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
+            updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
             
             endTurn();
         }
@@ -1035,40 +1312,66 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         return;
                     }
-                    if (GameState.player.energy <= 0) {
+                    
+                    // Check energy
+                    const energyCost = traits.includes('pathfinder') && GameState.player.moveCounter % 2 !== 0 ? 0 : 1;
+                    if (GameState.resources.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
 
+                    // Track metrics
                     GameState.metrics.incrementMoves();
                     GameState.recentMetrics.incrementMoves();
-                    const energyCost = traits.includes('pathfinder') && moveCounter % 2 !== 0 ? 0 : 1;
                     GameState.metrics.addEnergyForMovement(energyCost);
                     GameState.recentMetrics.addEnergyForMovement(energyCost);
-                    moveCounter++;
+                    
+                    // Update move counter
+                    GameState.player.moveCounter++;
+                    moveCounter = GameState.player.moveCounter; // Update local variable
+                    
+                    // Move character
                     const currentHex = document.querySelector(`.hex-container[data-row="${currentRow}"][data-col="${currentCol}"]`);
                     if (currentHex) currentHex.querySelector('.character').style.display = 'none';
-                    currentRow = clickedRow;
-                    currentCol = clickedCol;
+                    
+                    // Update position
+                    GameState.player.currentRow = clickedRow;
+                    GameState.player.currentCol = clickedCol;
+                    currentRow = clickedRow; // Update local variable
+                    currentCol = clickedCol; // Update local variable
+                    
                     container.querySelector('.character').style.display = 'block';
 
-                    if (!traits.includes('pathfinder') || moveCounter % 2 === 0) {
-                        GameState.player.energy -= 1;
-                        energy = GameState.player.energy; // Update local variable
+                    // Consume energy if needed
+                    if (!traits.includes('pathfinder') || GameState.player.moveCounter % 2 === 0) {
+                        GameState.updateResource('energy', -energyCost);
+                        energy = GameState.resources.energy; // Update local variable
                     }
+                    
+                    // Consume movement point
                     GameState.player.movementPoints -= 1;
                     movementPoints = GameState.player.movementPoints; // Update local variable
+                    
+                    // Stability is affected by the tile's chaos/order
+                    const stabilityEffect = (tile.order - 0.5) * 2; // -1.0 to +1.0
+                    if (stabilityEffect !== 0) {
+                        GameState.updateResource('stability', stabilityEffect);
+                    }
 
+                    // Track special tile interactions
                     if (tile.type === 'zoe' || tile.type === 'key' || tile.type === 'energy') {
                         GameState.metrics.incrementSpecialTiles();
                         GameState.recentMetrics.incrementSpecialTiles();
                     }
+                    
+                    // Mark tile as explored
                     if (!tile.explored) {
                         GameState.metrics.incrementTilesExplored();
                         GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
 
+                    // Handle special tiles
                     if (tile.type === 'zoe') {
                         GameState.level.temporaryInventory.push('zoe');
                         temporaryInventory = GameState.level.temporaryInventory; // Update local variable
@@ -1083,49 +1386,74 @@ document.addEventListener('DOMContentLoaded', () => {
                             setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                         }
                     }
-                    if (tile.type === 'key') {
+                    else if (tile.type === 'key') {
                         GameState.level.temporaryInventory.push('key');
                         temporaryInventory = GameState.level.temporaryInventory; // Update local variable
                         tile.type = 'normal';
                         container.classList.remove('key');
                     }
-                    if (tile.type === 'energy') {
+                    else if (tile.type === 'energy') {
                         let energyGain = 5;
                         if (traits.includes('explorer')) energyGain += 1;
-                        GameState.player.energy += energyGain;
-                        energy = GameState.player.energy; // Update local variable
+                        
+                        // Apply stability bonus/penalty to energy gain
+                        const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
+                        energyGain = Math.round(energyGain * stabilityFactor);
+                        
+                        GameState.updateResource('energy', energyGain);
+                        energy = GameState.resources.energy; // Update local variable
+                        
                         tile.type = 'normal';
                         container.classList.remove('energy');
+                        
+                        // Show feedback
+                        const feedbackMessage = document.getElementById('feedback-message');
+                        if (feedbackMessage) {
+                            feedbackMessage.textContent = `Collected energy source! Gained ${energyGain} energy.`;
+                            feedbackMessage.style.display = 'block';
+                            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+                        }
+                        
+                        // Update UI with animation
+                        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
                     }
 
                     updateVision();
                     updateUI();
                     highlightTiles(currentAction);
 
-                    if (GameState.player.energy <= 0) {
+                    if (GameState.resources.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
                 } else if (currentAction === 'sense' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
-                    if (GameState.player.energy < energyCost) {
+                    if (GameState.resources.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
 
+                    // Consume energy
+                    GameState.updateResource('energy', -energyCost);
+                    energy = GameState.resources.energy; // Update local variable
+                    
+                    // Gain knowledge based on tile type and chaos/order ratio
+                    const knowledgeGain = Math.round(2 + (tile.order * 3)); // More knowledge from ordered tiles
+                    GameState.updateResource('knowledge', knowledgeGain);
+                    
+                    // Track metrics
                     GameState.metrics.incrementSenses();
                     GameState.recentMetrics.incrementSenses();
                     GameState.metrics.addEnergyForExploration(energyCost);
                     GameState.recentMetrics.addEnergyForExploration(energyCost);
+                    
                     if (!tile.explored) {
                         GameState.metrics.incrementTilesExplored();
                         GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
-
-                    GameState.player.energy -= energyCost;
-                    energy = GameState.player.energy; // Update local variable
                     
+                    // Update progress data
                     GameState.progress.sensedTypes.push(tile.type);
                     GameState.progress.sensesMade++;
                     GameState.player.currentLevelSenses++;
@@ -1156,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             stateDescription = "highly ordered";
                         }
                         
-                        feedbackMessage.textContent = `Sensed a ${tile.type} tile! It is ${stateDescription} (${chaosPercent}% chaos, ${orderPercent}% order).`;
+                        feedbackMessage.textContent = `Sensed a ${tile.type} tile! It is ${stateDescription} (${chaosPercent}% chaos, ${orderPercent}% order). Gained ${knowledgeGain} knowledge.`;
                         feedbackMessage.style.display = 'block';
                         
                         if (traits.includes('senser') && !GameState.player.hasUsedSenserBonus && !isCurrentTile) {
@@ -1166,6 +1494,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             const adjacent = getAdjacentTiles(currentRow, currentCol);
                             const randomAdj = adjacent[Math.floor(Math.random() * adjacent.length)];
                             const adjTile = tileData[randomAdj.row][randomAdj.col];
+                            
+                            // Gain additional knowledge from bonus sense
+                            const bonusKnowledgeGain = Math.round(1 + (adjTile.order * 2));
+                            GameState.updateResource('knowledge', bonusKnowledgeGain);
                             
                             GameState.progress.sensedTypes.push(adjTile.type);
                             if (!GameState.progress.uniqueSensedTypes.includes(adjTile.type)) {
@@ -1194,66 +1526,137 @@ document.addEventListener('DOMContentLoaded', () => {
                                 adjStateDescription = "highly ordered";
                             }
                             
-                            feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free! It is ${adjStateDescription} (${adjChaosPercent}% chaos, ${adjOrderPercent}% order).`;
+                            feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free! It is ${adjStateDescription} (${adjChaosPercent}% chaos, ${adjOrderPercent}% order). Gained ${bonusKnowledgeGain} knowledge.`;
                         }
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                     }
+                    
+                    // Update UI with animation
+                    updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
+                    updateResourceDisplay('knowledge', GameState.resources.knowledge, GameState.resourceLimits.knowledge, true);
+                    
                     updateUI();
 
-                    if (GameState.player.energy <= 0) {
+                    if (GameState.resources.energy <= 0) {
                         showLoseScreen();
                         return;
                     }
                 } else if (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
-                    if (GameState.player.energy < energyCost) {
+                    if (GameState.resources.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
                     
-                    GameState.player.energy -= energyCost;
-                    energy = GameState.player.energy; // Update local variable
+                    // Consume energy
+                    GameState.updateResource('energy', -energyCost);
+                    energy = GameState.resources.energy; // Update local variable
                     
-                    GameState.progress.pokesMade++;
-                    pokesMade = GameState.progress.pokesMade; // Update local variable
-                    
-                    const feedbackMessage = document.getElementById('feedback-message');
-                    if (feedbackMessage) {
-                        feedbackMessage.textContent = `Poked and revealed a ${tile.type} tile!`;
-                        feedbackMessage.style.display = 'block';
-                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-                    }
-                    updateUI();
-
-                    if (GameState.player.energy <= 0) {
-                        showLoseScreen();
-                        return;
-                    }
-
+                    // Track metrics
                     GameState.metrics.incrementPokes();
                     GameState.recentMetrics.incrementPokes();
                     GameState.metrics.addEnergyForExploration(energyCost);
                     GameState.recentMetrics.addEnergyForExploration(energyCost);
+                    
+                    // Update progress data
+                    GameState.progress.pokesMade++;
+                    pokesMade = GameState.progress.pokesMade; // Update local variable
+                    
                     if (!tile.explored) {
                         GameState.metrics.incrementTilesExplored();
                         GameState.recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
+                    
+                    // Determine poke effect based on tile chaos/order and stability
+                    let pokeEffect = "";
+                    let resourceEffect = null;
+                    
+                    // Calculate effect chance based on stability
+                    const baseChance = 0.7;
+                    const successChance = GameState.applyStabilityToChance('poke', baseChance);
+                    const isSuccess = Math.random() < successChance;
+                    
+                    if (isSuccess) {
+                        // Successful poke
+                        if (tile.chaos > 0.7) {
+                            // Chaotic tile - unpredictable effects
+                            const effects = [
+                                { name: "energy surge", resource: "energy", amount: Math.round(5 + Math.random() * 5) },
+                                { name: "stability fluctuation", resource: "stability", amount: Math.round(-10 + Math.random() * 20) },
+                                { name: "knowledge flash", resource: "knowledge", amount: Math.round(2 + Math.random() * 3) }
+                            ];
+                            resourceEffect = effects[Math.floor(Math.random() * effects.length)];
+                        } else if (tile.chaos > 0.4) {
+                            // Balanced tile - moderate effects
+                            const effects = [
+                                { name: "energy flow", resource: "energy", amount: 3 },
+                                { name: "stability shift", resource: "stability", amount: 5 },
+                                { name: "knowledge insight", resource: "knowledge", amount: 2 }
+                            ];
+                            resourceEffect = effects[Math.floor(Math.random() * effects.length)];
+                        } else {
+                            // Ordered tile - predictable, beneficial effects
+                            const effects = [
+                                { name: "energy harmony", resource: "energy", amount: 4 },
+                                { name: "stability reinforcement", resource: "stability", amount: 8 },
+                                { name: "knowledge clarity", resource: "knowledge", amount: 3 }
+                            ];
+                            resourceEffect = effects[Math.floor(Math.random() * effects.length)];
+                        }
+                        
+                        // Apply resource effect
+                        if (resourceEffect) {
+                            GameState.updateResource(resourceEffect.resource, resourceEffect.amount);
+                            pokeEffect = `${resourceEffect.name} (${resourceEffect.amount > 0 ? '+' : ''}${resourceEffect.amount} ${resourceEffect.resource})`;
+                            
+                            // Update UI with animation
+                            updateResourceDisplay(resourceEffect.resource, GameState.resources[resourceEffect.resource], GameState.resourceLimits[resourceEffect.resource], true);
+                        }
+                    } else {
+                        // Failed poke - negative effect
+                        const penalty = Math.round(2 + Math.random() * 3);
+                        GameState.updateResource('stability', -penalty);
+                        pokeEffect = `destabilization (-${penalty} stability)`;
+                        
+                        // Update UI with animation
+                        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
+                    }
+                    
+                    const feedbackMessage = document.getElementById('feedback-message');
+                    if (feedbackMessage) {
+                        feedbackMessage.textContent = `Poked a ${tile.type} tile! Effect: ${pokeEffect}`;
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2500);
+                    }
+                    
+                    // Update UI with animation for energy
+                    updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
+                    
+                    updateUI();
+
+                    if (GameState.resources.energy <= 0) {
+                        showLoseScreen();
+                        return;
+                    }
                 } else if (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
                     const energyCost = 3;
-                    if (GameState.player.energy < energyCost) {
+                    if (GameState.resources.energy < energyCost) {
                         showLoseScreen();
                         return;
                     }
                     
-                    GameState.player.energy -= energyCost;
-                    energy = GameState.player.energy; // Update local variable
+                    // Consume energy
+                    GameState.updateResource('energy', -energyCost);
+                    energy = GameState.resources.energy; // Update local variable
                     
-                    // Calculate stabilization effect based on current chaos level
-                    // More chaotic tiles are harder to stabilize
+                    // Calculate stabilization effect based on current chaos level and stability
                     const stabilizationPower = 0.2; // Base stabilization power
                     const chaosResistance = tile.chaos * 0.5; // Higher chaos = more resistance
-                    const effectiveStabilization = stabilizationPower * (1 - chaosResistance);
+                    
+                    // Apply stability bonus/penalty
+                    const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
+                    const effectiveStabilization = stabilizationPower * (1 - chaosResistance) * stabilityFactor;
                     
                     // Apply stabilization effect
                     const oldChaos = tile.chaos;
@@ -1264,8 +1667,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const orderCreated = tile.order - (1 - oldChaos);
                     const essenceGained = Math.max(1, Math.round(orderCreated * 10));
                     
-                    GameState.progress.essence += essenceGained;
-                    essence = GameState.progress.essence; // Update local variable
+                    // Update resources
+                    GameState.updateResource('essence', essenceGained);
+                    GameState.updateResource('stability', GameState.resourceRates.stabilityGainPerStabilize);
+                    
+                    essence = GameState.resources.essence; // Update local variable
                     
                     // Visual feedback - change tile appearance based on order level
                     if (tile.order > 0.7) {
@@ -1298,6 +1704,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         feedbackMessage.style.display = 'block';
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                     }
+                    
+                    // Update UI with animation
+                    updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
+                    updateResourceDisplay('essence', GameState.resources.essence, GameState.resourceLimits.essence, true);
+                    updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
+                    
                     updateUI();
                 } else {
                     const feedbackMessage = document.getElementById('feedback-message');
@@ -1468,7 +1880,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (statsDisplay) {
-            statsDisplay.textContent = `Moves: ${GameState.progress.stats.movementRange} | Luck: ${GameState.progress.stats.luck} | XP: ${GameState.progress.xp} | Essence: ${GameState.progress.essence}`;
+            statsDisplay.textContent = `Moves: ${GameState.progress.stats.movementRange} | Luck: ${GameState.progress.stats.luck} | XP: ${GameState.progress.xp}`;
         }
         
         if (traitsDisplay) {
@@ -1483,9 +1895,11 @@ document.addEventListener('DOMContentLoaded', () => {
             persistentInventoryDisplay.textContent = `Persistent Items: ${GameState.progress.persistentInventory.length > 0 ? GameState.progress.persistentInventory.join(', ') : 'None'}`;
         }
         
-        if (energyDisplay) {
-            energyDisplay.textContent = `Energy: ${GameState.player.energy} | MP: ${GameState.player.movementPoints}`;
-        }
+        // Update resource displays
+        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy);
+        updateResourceDisplay('essence', GameState.resources.essence, GameState.resourceLimits.essence);
+        updateResourceDisplay('knowledge', GameState.resources.knowledge, GameState.resourceLimits.knowledge);
+        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability);
         
         const systemBalance = document.getElementById('system-balance');
         if (systemBalance) {
@@ -1518,6 +1932,48 @@ document.addEventListener('DOMContentLoaded', () => {
         turnCount = GameState.player.turnCount;
         energy = GameState.player.energy;
         movementPoints = GameState.player.movementPoints;
+    }
+    
+    /**
+     * Updates a resource display in the UI
+     * @param {string} resourceType - Type of resource ('energy', 'essence', 'knowledge', 'stability')
+     * @param {number} value - Current value
+     * @param {number} max - Maximum value
+     * @param {boolean} animate - Whether to animate the change
+     */
+    function updateResourceDisplay(resourceType, value, max, animate = false) {
+        const bar = document.getElementById(`${resourceType}-bar`);
+        const valueDisplay = document.getElementById(`${resourceType}-value`);
+        
+        if (bar && valueDisplay) {
+            // Calculate percentage
+            const percentage = Math.min(100, Math.max(0, (value / max) * 100));
+            
+            // Update bar width
+            bar.style.width = `${percentage}%`;
+            
+            // Update value text
+            valueDisplay.textContent = `${Math.round(value)}/${max}`;
+            
+            // Apply animation if requested
+            if (animate) {
+                bar.classList.add('resource-change');
+                setTimeout(() => {
+                    bar.classList.remove('resource-change');
+                }, 500);
+            }
+            
+            // Update color for stability based on value
+            if (resourceType === 'stability') {
+                if (value < 30) {
+                    bar.style.background = 'linear-gradient(to right, #ff3300, #ff6600)';
+                } else if (value < 70) {
+                    bar.style.background = 'linear-gradient(to right, #ffcc00, #ffff00)';
+                } else {
+                    bar.style.background = 'linear-gradient(to right, #00cc66, #00ffcc)';
+                }
+            }
+        }
     }
 
     /**
