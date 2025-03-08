@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLevelSenses = 0; // For Explorer trait
     let moveCounter = 0; // For Pathfinder energy cost
     let hasUsedsenserBonus = false; // For senser free reveal
-    let currentAction = null; // 'move', 'sense', or 'poke'
+    let currentAction = null; // 'move', 'sense', 'poke', or 'stabilize'
     let energy = 5 * (rows + cols - 2); // Starting energy
     let movementPoints = 1; // Base MP per turn
 
@@ -95,12 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pokesMade: 0,
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
-		essence: 0,
-		systemChaos: 0.5, // Starting balanced state
-		systemOrder: 0.5,
+        essence: 0,
+        systemChaos: 0.5, // Starting balanced state
+        systemOrder: 0.5,
+        orderContributions: 0, // Initialize here
         uniquesensedTypes: []
     };
-    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
+    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, orderContributions, uniquesensedTypes } = playerProgress;
     let temporaryInventory = [];
 
     // DOM elements
@@ -117,12 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.hex-container').forEach(container => {
             const row = parseInt(container.getAttribute('data-row'));
             const col = parseInt(container.getAttribute('data-col'));
-            container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke');
+            container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke', 'highlight-stabilize');
             if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
                 container.classList.add('highlight-move');
-            } else if (action === 'sense' || action === 'poke') {
+            } else if (action === 'sense' || action === 'poke' || action === 'stabilize') {
                 if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
-                    container.classList.add(action === 'sense' ? 'highlight-sense' : 'highlight-poke');
+                    container.classList.add(action === 'sense' ? 'highlight-sense' : action === 'poke' ? 'highlight-poke' : 'highlight-stabilize');
                 }
             }
         });
@@ -169,7 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'normal',
                     effects: [],
                     state: 'active',
-                    explored: false
+                    explored: false,
+                    chaos: 0.5, // Default chaos level
+                    order: 0.5  // Default order level
                 };
             }
         }
@@ -294,21 +297,31 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.appendChild(hexRow);
         }
     }
-function attachVictoryScreenListeners() {
-    const statsWindow = document.getElementById('stats-window');
-    
-    document.getElementById('view-stats-btn').addEventListener('click', () => {
-        restoreStatsWindow();
-        updateStatsWindow();
-        statsWindow.style.display = 'block';
-    });
-    
-    document.getElementById('next-level-btn').addEventListener('click', () => {
-        statsWindow.style.display = 'none';
-        isGameActive = true;
-        startGame();
-    });
-}
+
+    function attachVictoryScreenListeners() {
+        const statsWindow = document.getElementById('stats-window');
+        document.getElementById('view-stats-btn').addEventListener('click', () => {
+            restoreStatsWindow();
+            updateStatsWindow();
+            statsWindow.style.display = 'block';
+        });
+        document.getElementById('next-level-btn').addEventListener('click', () => {
+            statsWindow.style.display = 'none';
+            isGameActive = true;
+            startGame();
+        });
+        document.getElementById('upgrade-btn').addEventListener('click', () => {
+            if (playerProgress.essence >= 5) {
+                playerProgress.essence -= 5;
+                stats.movementRange += 1;
+                localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
+                updateUI();
+                alert('Movement range increased by 1!');
+            } else {
+                alert('Not enough Essence!');
+            }
+        });
+    }
 
     function endTurn() {
         if (!isGameActive) {
@@ -344,7 +357,6 @@ function attachVictoryScreenListeners() {
     }
 
     function updateStatsWindow() {
-        // Helper function to safely update textContent
         const safeUpdate = (id, text) => {
             const element = document.getElementById(id);
             if (element) {
@@ -353,8 +365,6 @@ function attachVictoryScreenListeners() {
                 console.warn(`Element with id '${id}' not found.`);
             }
         };
-
-        // Recent Knowledge
         safeUpdate('recent-turns', `Turns: ${recentMetrics.turnsTaken}`);
         safeUpdate('recent-senses', `Senses: ${recentMetrics.sensesMade}`);
         safeUpdate('recent-pokes', `Pokes: ${recentMetrics.pokesMade}`);
@@ -363,8 +373,6 @@ function attachVictoryScreenListeners() {
         const safestPathLength = 2 * (Math.min(rows, cols) - 1);
         const recentEfficiency = recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
         safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
-
-        // General Stats
         safeUpdate('general-turns', `Total Turns: ${playerProgress.totalTurns || 0}`);
         safeUpdate('general-senses', `Total Senses: ${playerProgress.sensesMade || 0}`);
         safeUpdate('general-pokes', `Total Pokes: ${playerProgress.pokesMade || 0}`);
@@ -372,14 +380,12 @@ function attachVictoryScreenListeners() {
         safeUpdate('general-efficiency', `Efficiency: N/A`);
     }
 
-    // Stats button event listener
     document.getElementById('stats-btn').addEventListener('click', () => {
         restoreStatsWindow();
         updateStatsWindow();
         document.getElementById('stats-window').style.display = 'block';
     });
 
-    // Close stats button event listener
     document.getElementById('close-stats-btn').addEventListener('click', () => {
         document.getElementById('stats-window').style.display = 'none';
     });
@@ -397,17 +403,13 @@ function attachVictoryScreenListeners() {
                 <button id="view-stats-btn">View Stats</button>
             `;
             statsWindow.style.display = 'block';
-
-            // Restart button event listener
             document.getElementById('restart-btn').addEventListener('click', () => {
                 statsWindow.style.display = 'none';
                 isGameActive = true;
                 startGame();
             });
-
-            // View Stats button event listener
             document.getElementById('view-stats-btn').addEventListener('click', () => {
-                restoreStatsWindow(); // Restore stats content before updating
+                restoreStatsWindow();
                 updateStatsWindow();
                 document.getElementById('stats-window').style.display = 'block';
             });
@@ -415,71 +417,57 @@ function attachVictoryScreenListeners() {
         isGameActive = false;
     }
 
-function restoreStatsWindow() {
-    const statsWindow = document.getElementById('stats-window');
-    
-    // Set button text based on game state
-    let buttonText = isGameActive ? "Close" : "Back to Victory Screen";
-
-    // Render the stats window content
-    statsWindow.innerHTML = `
-        <div class="stats-columns">
-            <div class="column recent-knowledge">
-                <h2>Recent Knowledge</h2>
-                <p id="recent-turns">Turns: 0</p>
-                <p id="recent-senses">Senses: 0</p>
-                <p id="recent-pokes">Pokes: 0</p>
-                <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
-                <p id="recent-efficiency">Efficiency: 0.00</p>
+    function restoreStatsWindow() {
+        const statsWindow = document.getElementById('stats-window');
+        let buttonText = isGameActive ? "Close" : "Back to Victory Screen";
+        statsWindow.innerHTML = `
+            <div class="stats-columns">
+                <div class="column recent-knowledge">
+                    <h2>Recent Knowledge</h2>
+                    <p id="recent-turns">Turns: 0</p>
+                    <p id="recent-senses">Senses: 0</p>
+                    <p id="recent-pokes">Pokes: 0</p>
+                    <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+                    <p id="recent-efficiency">Efficiency: 0.00</p>
+                </div>
+                <div class="column general-stats">
+                    <h2>General Stats</h2>
+                    <p id="general-turns">Total Turns: 0</p>
+                    <p id="general-senses">Total Senses: 0</p>
+                    <p id="general-pokes">Total Pokes: 0</p>
+                    <p id="general-energy-ratio">Energy Ratio: N/A</p>
+                    <p id="general-efficiency">Efficiency: N/A</p>
+                </div>
             </div>
-            <div class="column general-stats">
-                <h2>General Stats</h2>
-                <p id="general-turns">Total Turns: 0</p>
-                <p id="general-senses">Total Senses: 0</p>
-                <p id="general-pokes">Total Pokes: 0</p>
-                <p id="general-energy-ratio">Energy Ratio: N/A</p>
-                <p id="general-efficiency">Efficiency: N/A</p>
-            </div>
-        </div>
-        <button id="close-stats-btn">${buttonText}</button>
-    `;
-
-    // Attach event listener to the button
-    document.getElementById('close-stats-btn').addEventListener('click', () => {
-        if (isGameActive) {
-            // During gameplay, just close the stats window
-            statsWindow.style.display = 'none';
-        } else {
-            // After game ends, return to the victory screen
-            if (victoryScreenContent) {
-                statsWindow.innerHTML = victoryScreenContent;
-                statsWindow.style.display = 'block';
-                // Re-attach event listeners for victory screen buttons
-                attachVictoryScreenListeners();
-            } else {
-                // Fallback: hide the window if no victory content
+            <button id="close-stats-btn">${buttonText}</button>
+        `;
+        document.getElementById('close-stats-btn').addEventListener('click', () => {
+            if (isGameActive) {
                 statsWindow.style.display = 'none';
+            } else {
+                if (victoryScreenContent) {
+                    statsWindow.innerHTML = victoryScreenContent;
+                    statsWindow.style.display = 'block';
+                    attachVictoryScreenListeners();
+                } else {
+                    statsWindow.style.display = 'none';
+                }
             }
-        }
-    });
-}
+        });
+    }
 
     function startGame() {
-        console.log("Starting game..."); // Debugging log
-        metrics.reset(); // Reset metrics for the new level
-        recentMetrics.reset(); // Reset recentMetrics
-        tileData = createTileData(rows, cols); // Assign to outer scope
+        console.log("Starting game...");
+        metrics.reset();
+        recentMetrics.reset();
+        tileData = createTileData(rows, cols);
         placeTiles(tileData, rows, cols);
         buildGrid(rows, cols, tileData);
 
-        // Attach event listeners to hex containers after the grid is built
         const hexContainers = document.querySelectorAll('.hex-container');
         hexContainers.forEach(container => {
             container.addEventListener('click', () => {
-                if (!isGameActive) {
-                    return;
-                }
-
+                if (!isGameActive) return;
                 const clickedRow = parseInt(container.getAttribute('data-row'));
                 const clickedCol = parseInt(container.getAttribute('data-col'));
                 const tile = tileData[clickedRow][clickedCol];
@@ -642,31 +630,32 @@ function restoreStatsWindow() {
                         tile.explored = true;
                     }
                 } else if (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
-					const energyCost = 3; // Adjustable for balance
-					if (energy < energyCost) {
-						showLoseScreen();
-						return;
-					}
-					energy -= energyCost;
-					tile.chaos = Math.max(0, tile.chaos - 0.2); // Reduce chaos by 20%
-					tile.order = 1 - tile.chaos;
-					playerProgress.essence = (playerProgress.essence || 0) + 1; // Earn 1 Essence
-					feedbackMessage.textContent = `Stabilized tile! Chaos: ${(tile.chaos * 100).toFixed(0)}%, Order: ${(tile.order * 100).toFixed(0)}%. Gained 1 Essence.`;
-					feedbackMessage.style.display = 'block';
-					setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-					updateUI();
-				}else {
+                    const energyCost = 3;
+                    if (energy < energyCost) {
+                        showLoseScreen();
+                        return;
+                    }
+                    energy -= energyCost;
+                    tile.chaos = Math.max(0, tile.chaos - 0.2);
+                    tile.order = 1 - tile.chaos;
+                    playerProgress.essence += 1;
+                    const feedbackMessage = document.getElementById('feedback-message');
+                    if (feedbackMessage) {
+                        feedbackMessage.textContent = `Stabilized tile! Chaos: ${(tile.chaos * 100).toFixed(0)}%, Order: ${(tile.order * 100).toFixed(0)}%. Gained 1 Essence.`;
+                        feedbackMessage.style.display = 'block';
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+                    }
+                    updateUI();
+                } else {
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
                         feedbackMessage.textContent = currentAction === 'move' ?
                             "You can only move to adjacent, non-blocked tiles!" :
-                            "You can only sense or poke adjacent tiles or your current tile!";
+                            "You can only sense, poke, or stabilize adjacent tiles or your current tile!";
                         feedbackMessage.style.display = 'block';
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                     }
                 }
-
-playerProgress.orderContributions = playerProgress.orderContributions || 0; // is this correctly placed?
 
                 // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
@@ -680,16 +669,22 @@ playerProgress.orderContributions = playerProgress.orderContributions || 0; // i
                     } else if (energy > 0) {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
-						const avgChaos = totalChaos / (rows * cols);
-						const orderContribution = playerProgress.systemOrder - 0.5; // Positive if Order > 50%
-						playerProgress.orderContributions += orderContribution;
-						
-						if (playerProgress.orderContributions >= 5 && !traits.includes('orderKeeper')) { 
-						// 5 net Order from 10 levels
-							traits.push('orderKeeper'); // Example trait
-							alert('Earned Order Keeper trait for stabilizing 10 levels!');
-						}
-						
+                        let totalChaos = 0;
+                        for (let r = 0; r < rows; r++) {
+                            for (let c = 0; c < cols; c++) {
+                                totalChaos += tileData[r][c].chaos;
+                            }
+                        }
+                        const avgChaos = totalChaos / (rows * cols);
+                        playerProgress.systemChaos = avgChaos;
+                        playerProgress.systemOrder = 1 - avgChaos;
+                        const orderContribution = playerProgress.systemOrder - 0.5;
+                        playerProgress.orderContributions += orderContribution;
+
+                        if (playerProgress.orderContributions >= 5 && !traits.includes('orderKeeper')) {
+                            traits.push('orderKeeper');
+                            alert('Earned Order Keeper trait for stabilizing 10 levels!');
+                        }
                         if (currentLevelSenses >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
@@ -699,12 +694,7 @@ playerProgress.orderContributions = playerProgress.orderContributions || 0; // i
                         if (uniquesensedTypes.length >= 5 && !traits.includes('explorer')) {
                             traits.push('explorer');
                         }
-						let totalChaos = 0;
-						for (let r = 0; r < rows; r++) {
-							for (let c = 0; c < cols; c++) {
-								totalChaos += tileData[r][c].chaos;
-							}
-						}
+
                         let xpGain = 10 + energy;
                         if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
                             playerProgress.hasFoundZoe = true;
@@ -728,12 +718,6 @@ playerProgress.orderContributions = playerProgress.orderContributions || 0; // i
                         xp = playerProgress.xp;
                         playerProgress.traits = traits;
                         playerProgress.uniquesensedTypes = uniquesensedTypes;
-                        localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
-
-						playerProgress.systemChaos = Math.min(1, playerProgress.systemChaos + 0.1); // Decay to chaos
-						playerProgress.systemOrder = 1 - playerProgress.systemChaos;
-						playerProgress.systemChaos = avgChaos;
-						playerProgress.systemOrder = 1 - avgChaos;
                         playerProgress.sensesMade += metrics.sensesMade;
                         playerProgress.pokesMade += metrics.pokesMade;
                         playerProgress.totalTurns = (playerProgress.totalTurns || 0) + metrics.turnsTaken;
@@ -750,50 +734,33 @@ playerProgress.orderContributions = playerProgress.orderContributions || 0; // i
                             const sensedTypesText = Object.entries(typeCounts)
                                 .map(([type, count]) => `${type}: ${count}`)
                                 .join(', ');
-                            const safestPathLength = 2 * (Math.min(rows, cols) - 1); // e.g., 4 for 3x3
+                            const safestPathLength = 2 * (Math.min(rows, cols) - 1);
                             const energyRatio = metrics.getEnergyUsageRatio().toFixed(2);
                             const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
-victoryScreenContent = `
-            <h2>Level Complete!</h2>
-			<p>Essence: ${playerProgress.essence}</p>
-            <p>Turns: ${turnCount}</p>
-            <p>Energy Remaining: ${energy}</p>
-            <p>Senses Made: ${playerProgress.sensesMade}</p>
-            <p>Pokes Made: ${playerProgress.pokesMade}</p>
-            <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
-            <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
-            <p>Sensed Types: ${sensedTypesText || 'None'}</p>
-            <button id="next-level-btn">Next Level</button>
-			 <button id="upgrade-btn">Spend 5 Essence: +1 Movement</button>
-            <button id="view-stats-btn">View Stats</button>
-        `;
-        statsWindow.innerHTML = victoryScreenContent;
-        statsWindow.style.display = 'block';
-
-        // Attach listeners once
-        attachVictoryScreenListeners();
-
+                            victoryScreenContent = `
+                                <h2>Level Complete!</h2>
+                                <p>Essence: ${playerProgress.essence}</p>
+                                <p>Turns: ${turnCount}</p>
+                                <p>Energy Remaining: ${energy}</p>
+                                <p>Senses Made: ${playerProgress.sensesMade}</p>
+                                <p>Pokes Made: ${playerProgress.pokesMade}</p>
+                                <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
+                                <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
+                                <p>Sensed Types: ${sensedTypesText || 'None'}</p>
+                                <button id="next-level-btn">Next Level</button>
+                                <button id="upgrade-btn">Spend 5 Essence: +1 Movement</button>
+                                <button id="view-stats-btn">View Stats</button>
+                            `;
+                            statsWindow.innerHTML = victoryScreenContent;
+                            statsWindow.style.display = 'block';
+                            attachVictoryScreenListeners();
                             isGameActive = false;
-							
-							// Attach listeners once
-    document.getElementById('view-stats-btn').addEventListener('click', () => {
-        restoreStatsWindow();
-        updateStatsWindow(); // Update stats values
-        statsWindow.style.display = 'block';
-    });
-
-    document.getElementById('next-level-btn').addEventListener('click', () => {
-        statsWindow.style.display = 'none';
-        isGameActive = true;
-        startGame();
-    });
                         }
-                    } // Added missing closing brace here
-                } // Closes the victory condition if block
-            }); // Closes the addEventListener
-        }); // Closes the forEach loop
+                    }
+                }
+            });
+        });
 
-        // Rest of startGame setup
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) {
@@ -825,15 +792,15 @@ victoryScreenContent = `
 
     function updateUI() {
         if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
-        if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp}`;
+        if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp} | Essence: ${playerProgress.essence}`;
         if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
         if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
         if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
         if (energyDisplay) energyDisplay.textContent = `Energy: ${energy} | MP: ${movementPoints}`;
-		const systemBalance = document.getElementById('system-balance');
-		if (systemBalance) {
-        systemBalance.textContent = `System: ${(playerProgress.systemChaos * 100).toFixed(0)}% Chaos / ${(playerProgress.systemOrder * 100).toFixed(0)}% Order`;
-		if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp} | Essence: ${playerProgress.essence}`;		 
+        const systemBalance = document.getElementById('system-balance');
+        if (systemBalance) {
+            systemBalance.textContent = `System: ${(playerProgress.systemChaos * 100).toFixed(0)}% Chaos / ${(playerProgress.systemOrder * 100).toFixed(0)}% Order`;
+        }
     }
 
     function getAdjacentTiles(row, col) {
@@ -849,7 +816,6 @@ victoryScreenContent = `
         return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
     }
 
-    // Button event listeners
     document.getElementById('move-btn').addEventListener('click', () => {
         currentAction = 'move';
         highlightTiles('move');
@@ -859,11 +825,11 @@ victoryScreenContent = `
         currentAction = 'sense';
         highlightTiles('sense');
     });
-	
-	document.getElementById('stabilize-btn').addEventListener('click', () => {
-		currentAction = 'stabilize';
-		highlightTiles('stabilize'); // Reuse poke/sense highlight logic
-	});
+
+    document.getElementById('stabilize-btn').addEventListener('click', () => {
+        currentAction = 'stabilize';
+        highlightTiles('stabilize');
+    });
 
     document.getElementById('poke-btn').addEventListener('click', () => {
         currentAction = 'poke';
@@ -874,10 +840,8 @@ victoryScreenContent = `
 
     document.getElementById('rest-btn').addEventListener('click', rest);
 
-    // Initialize the game
     startGame();
 
-    // Next Level button
     const statsWindow = document.getElementById('stats-window');
     statsWindow.addEventListener('click', (e) => {
         if (e.target.id === 'next-level-btn') {
@@ -887,7 +851,6 @@ victoryScreenContent = `
         }
     });
 
-    // Admin tool: Resize grid
     const resizeBtn = document.getElementById('resize-btn');
     if (resizeBtn) {
         resizeBtn.addEventListener('click', () => {
@@ -903,7 +866,6 @@ victoryScreenContent = `
         });
     }
 
-    // Admin tool: Reset stats
     const resetStatsBtn = document.getElementById('reset-stats-btn');
     if (resetStatsBtn) {
         resetStatsBtn.addEventListener('click', () => {
@@ -918,9 +880,13 @@ victoryScreenContent = `
                 pokesMade: 0,
                 hasFoundZoe: false,
                 zoeLevelsCompleted: 0,
+                essence: 0,
+                systemChaos: 0.5,
+                systemOrder: 0.5,
+                orderContributions: 0,
                 uniquesensedTypes: []
             };
-            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress);
+            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, orderContributions, uniquesensedTypes } = playerProgress);
             startGame();
         });
     }
