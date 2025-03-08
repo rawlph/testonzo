@@ -1352,9 +1352,133 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
-    // Add CSS styles for action results
+    // Add CSS styles for action results and hex grid
     const style = document.createElement('style');
     style.textContent = `
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        .hex-grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0 auto;
+        }
+        
+        .hex-container {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            transition: transform 0.2s ease;
+        }
+        
+        .hex {
+            width: 86.6px;  /* 100 * cos(30 degrees) */
+            height: 100px;
+            background-color: #ccc;
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+        
+        .hex-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+            z-index: 2;
+        }
+        
+        .normal-tile .hex {
+            background-color: #95a5a6;
+        }
+        
+        .water-tile .hex {
+            background-color: #3498db;
+        }
+        
+        .energy-tile .hex {
+            background-color: #f1c40f;
+        }
+        
+        .blocked-tile .hex {
+            background-color: #7f8c8d;
+        }
+        
+        .goal-tile .hex {
+            background-color: #2ecc71;
+        }
+        
+        .unexplored {
+            opacity: 0.4;
+        }
+        
+        .explored {
+            opacity: 1;
+        }
+        
+        .sensed {
+            box-shadow: 0 0 10px rgba(30, 144, 255, 0.7);
+        }
+        
+        .stabilized {
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        }
+        
+        .player-position::after {
+            content: '👤';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            z-index: 3;
+        }
+        
+        .zoe-indicator, .key-indicator, .goal-indicator {
+            position: absolute;
+            font-size: 20px;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+        
+        .action-console {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        
+        .action-console button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .action-console button:hover {
+            background-color: #2980b9;
+        }
+        
         .action-result {
             position: fixed;
             bottom: 80px;
@@ -1392,19 +1516,19 @@ document.addEventListener('DOMContentLoaded', () => {
             cursor: pointer;
         }
         
-        .move-highlight {
+        .move-highlight .hex {
             box-shadow: 0 0 10px 5px rgba(60, 60, 200, 0.7);
         }
         
-        .sense-highlight {
+        .sense-highlight .hex {
             box-shadow: 0 0 10px 5px rgba(60, 200, 60, 0.7);
         }
         
-        .poke-highlight {
+        .poke-highlight .hex {
             box-shadow: 0 0 10px 5px rgba(200, 60, 60, 0.7);
         }
         
-        .stabilize-highlight {
+        .stabilize-highlight .hex {
             box-shadow: 0 0 10px 5px rgba(200, 200, 60, 0.7);
         }
         
@@ -1412,6 +1536,33 @@ document.addEventListener('DOMContentLoaded', () => {
             0% { opacity: 0.7; }
             50% { opacity: 1; }
             100% { opacity: 0.7; }
+        }
+        
+        .window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 80%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
         }
     `;
     document.head.appendChild(style);
@@ -2075,138 +2226,158 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
 }
 
 /**
- * Builds the visual hex grid based on tile data
+ * Builds the hex grid based on the tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
- * @param {Array} tileData - 2D array of tile data
+ * @param {Array} tileData - The 2D array of tile data
  */
 function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
     
-    // Access grid configuration from window or GameState
-    const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth;
-    const hexHeight = window.hexHeight || GameState.grid.hexHeight;
-    const rowOffset = window.rowOffset || GameState.grid.rowOffset;
-    const colOffset = window.colOffset || GameState.grid.colOffset;
+    // Get grid configuration from window or GameState
+    const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth || 86.6;
+    const hexHeight = window.hexHeight || GameState.grid.hexHeight || 100;
+    const rowOffset = window.rowOffset || GameState.grid.rowOffset || 75;
+    const colOffset = window.colOffset || GameState.grid.colOffset || 86.6;
     
     console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
-    const grid = document.querySelector('.grid');
-    if (!grid) {
-        console.error('Grid element not found in HTML');
+    // Get the grid element
+    const gridElement = document.getElementById('hex-grid');
+    if (!gridElement) {
+        console.error('Hex grid element not found!');
         return;
     }
     
-    // Clear existing grid
-    grid.innerHTML = '';
+    // Clear the grid
+    gridElement.innerHTML = '';
     
-    const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
-    const totalHeight = (rows - 1) * rowOffset + hexHeight;
-    grid.style.width = `${totalWidth}px`;
-    grid.style.height = `${totalHeight}px`;
-    grid.style.position = 'relative';
+    // Calculate total width and height of the grid
+    const totalWidth = cols * colOffset + hexVisualWidth;
+    const totalHeight = rows * rowOffset + hexHeight;
     
     console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
-
+    
+    // Set grid dimensions
+    gridElement.style.width = `${totalWidth}px`;
+    gridElement.style.height = `${totalHeight}px`;
+    
+    // Create hex containers for each tile
     for (let row = 0; row < rows; row++) {
-        const hexRow = document.createElement('div');
-        hexRow.classList.add('hex-row');
-        hexRow.style.position = 'absolute';
-        hexRow.style.top = `${row * rowOffset}px`;
-        hexRow.style.left = '0';
-
         for (let col = 0; col < cols; col++) {
+            // Create hex container
             const hexContainer = document.createElement('div');
-            hexContainer.classList.add('hex-container');
-            hexContainer.setAttribute('data-row', row);
-            hexContainer.setAttribute('data-col', col);
+            hexContainer.className = 'hex-container';
+            hexContainer.id = `hex-${row}-${col}`;
             
-            // Add chaos/order data attributes
-            const chaos = tileData[row][col].chaos;
-            const order = tileData[row][col].order;
-            
-            // Set data attributes for styling
-            if (order > 0.7) {
-                hexContainer.setAttribute('data-order', 'high');
-            } else if (order > 0.5) {
-                hexContainer.setAttribute('data-order', 'medium');
-            } else if (order > 0.3) {
-                hexContainer.setAttribute('data-order', 'low');
-            } else if (chaos > 0.7) {
-                hexContainer.setAttribute('data-chaos', 'high');
-            } else if (chaos > 0.5) {
-                hexContainer.setAttribute('data-chaos', 'medium');
-            }
-
-            const isOddRow = row % 2 === 1;
-            const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
-            const hexLeft = col * colOffset + rowShift;
-
-            hexContainer.style.position = 'absolute';
-            hexContainer.style.left = `${hexLeft}px`;
-            hexContainer.style.top = '0';
-
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('width', hexVisualWidth);
-            svg.setAttribute('height', hexHeight);
-            svg.setAttribute('viewBox', '0 0 86.6 100');
-            svg.style.overflow = 'visible';
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
-            
-            // Adjust path color based on chaos/order
-            if (order > 0.7) {
-                path.style.fill = '#00ccff';
-                path.style.filter = 'brightness(1.2)';
-            } else if (order > 0.5) {
-                path.style.fill = '#00aa99';
-                path.style.filter = 'brightness(1.1)';
-            } else if (chaos > 0.7) {
-                path.style.fill = '#aa3300';
-                path.style.filter = 'brightness(0.9)';
-            } else if (chaos > 0.5) {
-                path.style.fill = '#884400';
-                path.style.filter = 'brightness(0.95)';
+            // Safety check for tileData
+            if (!tileData || !tileData[row] || !tileData[row][col]) {
+                console.error(`No tile data for position [${row}, ${col}]`);
+                continue;
             }
             
-            svg.appendChild(path);
-            hexContainer.appendChild(svg);
-
-            const character = document.createElement('div');
-            character.classList.add('character');
-            hexContainer.appendChild(character);
+            const tile = tileData[row][col];
             
-            // Add a visual indicator of the tile's chaos/order state
-            const stateIndicator = document.createElement('div');
-            stateIndicator.classList.add('tile-state-indicator');
+            // Add tile type class
+            hexContainer.classList.add(`${tile.type}-tile`);
             
-            if (order > 0.7) {
-                stateIndicator.classList.add('tile-state-order-high');
-            } else if (order > 0.5) {
-                stateIndicator.classList.add('tile-state-order-medium');
-            } else if (chaos > 0.7) {
-                stateIndicator.classList.add('tile-state-chaos-high');
-            } else if (chaos > 0.5) {
-                stateIndicator.classList.add('tile-state-chaos-medium');
+            // Add explored/unexplored class
+            if (tile.explored) {
+                hexContainer.classList.add('explored');
             } else {
-                stateIndicator.classList.add('tile-state-balanced');
-            }
-            
-            hexContainer.appendChild(stateIndicator);
-
-            const tileType = tileData[row][col].type;
-            hexContainer.classList.add(tileType);
-
-            if (!tileData[row][col].explored) {
                 hexContainer.classList.add('unexplored');
             }
-
-            hexRow.appendChild(hexContainer);
+            
+            // Add visual indicators for special tiles
+            if (tile.hasZoe) {
+                const zoeIndicator = document.createElement('div');
+                zoeIndicator.className = 'zoe-indicator';
+                zoeIndicator.textContent = '👩‍🚀';
+                hexContainer.appendChild(zoeIndicator);
+            }
+            
+            if (tile.hasKey) {
+                const keyIndicator = document.createElement('div');
+                keyIndicator.className = 'key-indicator';
+                keyIndicator.textContent = '🔑';
+                hexContainer.appendChild(keyIndicator);
+            }
+            
+            if (tile.isGoal) {
+                const goalIndicator = document.createElement('div');
+                goalIndicator.className = 'goal-indicator';
+                goalIndicator.textContent = '🏁';
+                hexContainer.appendChild(goalIndicator);
+            }
+            
+            // Calculate hex position
+            let xPosition = col * colOffset;
+            let yPosition = row * rowOffset;
+            
+            // Offset even rows
+            if (row % 2 === 1) {
+                xPosition += colOffset / 2;
+            }
+            
+            hexContainer.style.left = `${xPosition}px`;
+            hexContainer.style.top = `${yPosition}px`;
+            
+            // Create hex shape
+            const hexShape = document.createElement('div');
+            hexShape.className = 'hex';
+            
+            // Adjust chaos/order visual indicator
+            const chaosLevel = tile.chaos;
+            const hue = (1 - chaosLevel) * 240; // 240 (blue) for order, 0 (red) for chaos
+            hexShape.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
+            
+            // Create indicators for hex
+            const hexIndicator = document.createElement('div');
+            hexIndicator.className = 'hex-indicator';
+            hexIndicator.textContent = `${row},${col}`;
+            
+            // Append elements
+            hexContainer.appendChild(hexShape);
+            hexContainer.appendChild(hexIndicator);
+            gridElement.appendChild(hexContainer);
+            
+            // Add click event listener for tile interaction
+            hexContainer.addEventListener('click', function() {
+                console.log(`Clicked on tile [${row}, ${col}], type: ${tile.type}, action: ${window.currentAction || 'none'}`);
+                
+                // If there's a current action, perform it
+                if (window.currentAction) {
+                    performAction(window.currentAction, row, col);
+                }
+            });
         }
-        grid.appendChild(hexRow);
     }
     
+    // Set starting position
+    const startRow = Math.floor(rows / 2);
+    const startCol = Math.floor(cols / 2);
+    const startHex = document.getElementById(`hex-${startRow}-${startCol}`);
+    
+    if (startHex) {
+        startHex.classList.add('player-position');
+        
+        // Set current position
+        window.currentRow = startRow;
+        window.currentCol = startCol;
+        GameState.player.currentRow = startRow;
+        GameState.player.currentCol = startCol;
+    } else {
+        console.error(`Start hex not found at [${startRow}, ${startCol}]`);
+    }
+    
+    // Save tile data to window for easy access
+    window.tileData = tileData;
+    
+    // Update vision based on current position
+    updateVision();
+    
     console.log(`Grid built with ${rows * cols} tiles`);
+    return gridElement;
 }
 
 /**
@@ -2479,110 +2650,157 @@ function restoreStatsWindow() {
  * Initializes or restarts the game with current settings
  */
 function startGame() {
-    console.log("Starting game...");
+    console.log('Starting game...');
     
-    // Reset metrics
+    // Reset metrics, player state, and local variables
     GameState.metrics.reset();
-    GameState.recentMetrics.reset();
-    
-    // Reset player state
     GameState.resetPlayerState();
     
-    // Update local variables for compatibility
-    window.rows = GameState.grid.rows;
-    window.cols = GameState.grid.cols;
-    window.turnCount = GameState.player.turnCount;
-    window.currentRow = GameState.player.currentRow;
-    window.currentCol = GameState.player.currentCol;
-    window.currentLevelSenses = GameState.player.currentLevelSenses;
-    window.moveCounter = GameState.player.moveCounter;
-    window.hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
-    window.currentAction = GameState.player.currentAction;
-    window.energy = GameState.player.energy;
-    window.movementPoints = GameState.player.movementPoints;
-    window.temporaryInventory = GameState.level.temporaryInventory;
+    // Reset local variables for compatibility
+    window.turnCount = 0;
+    window.currentLevelSenses = 0;
+    window.moveCounter = 0;
+    window.hasUsedSenserBonus = false;
+    window.currentAction = '';
     
-    console.log(`Grid size: ${window.rows}x${window.cols}`);
+    // Get grid dimensions
+    const rows = GameState.grid.rows;
+    const cols = GameState.grid.cols;
+    
+    console.log(`Grid size: ${rows}x${cols}`);
     
     // Create and initialize tile data
-    GameState.level.tileData = createTileData(window.rows, window.cols);
-    window.tileData = GameState.level.tileData; // Update global reference
+    const tileData = createTileData(rows, cols);
+    console.log('Tile data created');
     
-    console.log("Tile data created");
+    // Place tiles (blocked, water, energy, goal, key, etc.)
+    placeTiles(tileData, rows, cols);
+    console.log('Tiles placed');
     
-    // Place tiles and build grid
-    placeTiles(window.tileData, window.rows, window.cols);
-    console.log("Tiles placed");
+    // Ensure the game container and grid elements exist
+    ensureGameContainer();
     
-    buildGrid(window.rows, window.cols, window.tileData);
-    console.log("Grid built");
-
-    document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
-    const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
-    if (startingHex) {
-        const character = startingHex.querySelector('.character');
-        if (character) character.style.display = 'block';
-    } else {
-        console.error("Starting hex not found");
+    // Build the hex grid
+    buildGrid(rows, cols, tileData);
+    console.log('Grid built');
+    
+    // Hide all character elements initially
+    document.querySelectorAll('.character').forEach(char => {
+        char.style.display = 'none';
+    });
+    
+    // Show starting character if found
+    const startingCharacter = document.getElementById('character-start');
+    if (startingCharacter) {
+        startingCharacter.style.display = 'block';
     }
-
-    if (GameState.progress.hasFoundZoe) {
-        const goalTile = document.querySelector(`.hex-container[data-row="${window.rows - 1}"][data-col="${window.cols - 1}"]`);
-        if (goalTile) goalTile.classList.add('goal-visible');
+    
+    // Make goal tile visible if player has progressed before
+    if (GameState.progress && GameState.progress.hasFoundZoe) {
+        const goalTile = document.querySelector('.goal-indicator');
+        if (goalTile) {
+            goalTile.style.visibility = 'visible';
+        }
     }
     
-    // Initialize evolution UI
+    // Update evolution and events UI
     try {
         updateEvolutionUI();
-        console.log("Evolution UI updated");
+        console.log('Evolution UI updated');
     } catch (error) {
-        console.error("Error updating evolution UI:", error);
+        console.error('Error updating evolution UI:', error);
     }
     
-    // Initialize events UI
     try {
         updateEventsUI();
-        console.log("Events UI updated");
+        console.log('Events UI updated');
     } catch (error) {
-        console.error("Error updating events UI:", error);
+        console.error('Error updating events UI:', error);
     }
     
     // Apply trait effects
     GameState.applyTraitEffects();
     
-    // Check for world events
-    try {
-        const worldEvents = GameState.checkEvents('world');
-        console.log("World events checked:", worldEvents);
-        if (worldEvents.length > 0) {
-            // Show the first triggered event
-            showEventNotification(worldEvents[0]);
-        }
-    } catch (error) {
-        console.error("Error checking world events:", error);
+    // Check for world events that should trigger at start
+    const eventsTriggered = GameState.checkEvents('gameStart', {});
+    console.log('World events checked:', eventsTriggered);
+    
+    // Show notification if any events were triggered
+    if (eventsTriggered && eventsTriggered.length > 0) {
+        const event = eventsTriggered[0];
+        showEventNotification(event);
     }
     
-    highlightTiles(null);
+    // Update UI elements
+    highlightTiles('');
     updateVision();
     updateUI();
     
-    GameState.isActive = true;
+    // Set game state to active
     window.isGameActive = true;
+    GameState.gameActive = true;
     
     // Hide all windows
-    const statsWindow = document.getElementById('stats-window');
-    if (statsWindow) statsWindow.style.display = 'none';
+    document.querySelectorAll('.window').forEach(window => {
+        window.style.display = 'none';
+    });
+}
+
+/**
+ * Ensures the game container and hex grid elements exist
+ */
+function ensureGameContainer() {
+    // Get or create game container
+    let gameContainer = document.querySelector('.game-container');
+    if (!gameContainer) {
+        console.log('Creating game container');
+        gameContainer = document.createElement('div');
+        gameContainer.className = 'game-container';
+        document.body.appendChild(gameContainer);
+    }
     
-    const evolutionWindow = document.getElementById('evolution-window');
-    if (evolutionWindow) evolutionWindow.style.display = 'none';
+    // Get or create hex grid
+    let hexGrid = document.getElementById('hex-grid');
+    if (!hexGrid) {
+        console.log('Creating hex grid');
+        hexGrid = document.createElement('div');
+        hexGrid.id = 'hex-grid';
+        hexGrid.className = 'hex-grid';
+        gameContainer.appendChild(hexGrid);
+    }
     
-    const eventsWindow = document.getElementById('events-window');
-    if (eventsWindow) eventsWindow.style.display = 'none';
+    // Ensure hex grid is visible
+    hexGrid.style.display = 'block';
     
-    const eventNotification = document.getElementById('event-notification');
-    if (eventNotification) eventNotification.style.display = 'none';
+    // Get or create action console
+    let actionConsole = document.querySelector('.action-console');
+    if (!actionConsole) {
+        console.log('Creating action console');
+        actionConsole = document.createElement('div');
+        actionConsole.className = 'action-console';
+        
+        // Add action buttons
+        const actionButtons = [
+            { id: 'move-btn', text: 'Move', action: 'move' },
+            { id: 'sense-btn', text: 'Sense', action: 'sense' },
+            { id: 'poke-btn', text: 'Poke', action: 'poke' },
+            { id: 'stabilize-btn', text: 'Stabilize', action: 'stabilize' },
+            { id: 'end-turn-btn', text: 'End Turn', action: 'endTurn' },
+            { id: 'rest-btn', text: 'Rest', action: 'rest' }
+        ];
+        
+        actionButtons.forEach(button => {
+            const btn = document.createElement('button');
+            btn.id = button.id;
+            btn.textContent = button.text;
+            actionConsole.appendChild(btn);
+        });
+        
+        gameContainer.appendChild(actionConsole);
+    }
     
-    console.log("Game started successfully");
+    // Make sure action console is visible
+    actionConsole.style.display = 'flex';
 }
 
 /**
