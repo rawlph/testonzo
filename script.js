@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         zoeLevelsCompleted: 0,
 		essence: 0,
 		systemChaos: 0.5, // Starting balanced state
-		systemOrder: 0.5
+		systemOrder: 0.5,
         uniquesensedTypes: []
     };
     let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
