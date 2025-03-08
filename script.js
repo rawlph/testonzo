@@ -1366,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .game-container {
             position: relative;
             width: 100%;
-            height: 85vh;
+            height: 80vh;
             margin: 0 auto;
             padding-top: 20px;
             overflow: hidden;
@@ -1384,7 +1384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             position: absolute;
             width: 100px;
             height: 115px;
-            margin: 0;
             transform-origin: center center;
             transition: transform 0.2s ease;
             z-index: 1;
@@ -1394,10 +1393,11 @@ document.addEventListener('DOMContentLoaded', () => {
             position: absolute;
             width: 100px;
             height: 115px;
-            background-color: #ccc;
+            background-color: #2c3e50;
             /* Pointy-top hexagon */
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             transition: background-color 0.3s ease;
+            opacity: 0.9;
         }
         
         .hex-indicator {
@@ -1405,18 +1405,18 @@ document.addEventListener('DOMContentLoaded', () => {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 12px;
-            color: white;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
             text-shadow: 1px 1px 2px black;
             z-index: 2;
         }
         
         .normal-tile .hex {
-            background-color: #95a5a6;
+            background-color: #3498db;
         }
         
         .water-tile .hex {
-            background-color: #3498db;
+            background-color: #1abc9c;
         }
         
         .energy-tile .hex {
@@ -1466,31 +1466,39 @@ document.addEventListener('DOMContentLoaded', () => {
             z-index: 2;
         }
         
-        .action-console {
+        .top-action-console {
             display: flex;
             justify-content: center;
             gap: 10px;
             padding: 10px;
             background-color: rgba(0, 0, 0, 0.7);
             position: fixed;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
             z-index: 100;
+            box-shadow: 0 0 15px rgba(0, 100, 255, 0.7);
         }
         
-        .action-console button {
+        .action-console {
+            display: none !important; /* Hide the bottom action console */
+        }
+        
+        .top-action-console button {
             padding: 8px 16px;
             background-color: #3498db;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
+            transition: all 0.2s;
         }
         
-        .action-console button:hover {
+        .top-action-console button:hover {
             background-color: #2980b9;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 1);
+            transform: translateY(-2px);
         }
         
         .highlight {
@@ -1537,7 +1545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         #current-action {
-            bottom: 120px;
+            top: 60px;
             background-color: rgba(60, 60, 200, 0.8);
         }
         
@@ -1744,6 +1752,21 @@ function highlightTiles(action) {
         const newTile = tile.cloneNode(true);
         tile.parentNode.replaceChild(newTile, tile);
     });
+    
+    // If action is null, undefined, or empty, just clear highlights and return
+    if (!action) {
+        // Update UI to show no current action
+        const actionText = document.getElementById('current-action');
+        if (actionText) {
+            actionText.textContent = 'Current Action: None';
+        }
+        
+        // Reset current action
+        window.currentAction = '';
+        GameState.player.currentAction = '';
+        
+        return;
+    }
     
     // Update UI to show current action
     const actionText = document.getElementById('current-action');
@@ -2299,17 +2322,6 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
 function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
     
-    // Get grid configuration from window or GameState
-    // Using pointy-top hex grid measurements
-    const hexWidth = 100; // Width of a single hex
-    const hexHeight = 115; // Height of a single hex (height > width for pointy-top)
-    
-    // Offset values for pointy-top hex grid
-    const rowOffset = hexHeight * 0.75; // 3/4 of the hex height
-    const colOffset = hexWidth;
-    
-    console.log(`Grid config: hexWidth=${hexWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
-    
     // Get the grid element
     const gridElement = document.getElementById('hex-grid');
     if (!gridElement) {
@@ -2320,9 +2332,17 @@ function buildGrid(rows, cols, tileData) {
     // Clear the grid
     gridElement.innerHTML = '';
     
+    // Define hex dimensions for pointy-top orientation
+    const hexWidth = 100;  // Width of a single hex
+    const hexHeight = 115; // Height of a single hex
+    
+    // Calculate offsets for honeycomb pattern
+    const xOffset = hexWidth * 0.75; // Offset for columns (3/4 of width)
+    const yOffset = hexHeight * 0.5; // Offset for odd/even columns (1/2 of height)
+    
     // Calculate total width and height of the grid
-    const totalWidth = (cols + 0.5) * colOffset;
-    const totalHeight = (rows * rowOffset) + (hexHeight * 0.25);
+    const totalWidth = cols * xOffset + (hexWidth / 4);
+    const totalHeight = rows * hexHeight + (hexHeight / 2);
     
     console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
     
@@ -2356,7 +2376,30 @@ function buildGrid(rows, cols, tileData) {
                 hexContainer.classList.add('unexplored');
             }
             
-            // Add visual indicators for special tiles
+            // Calculate position for honeycomb layout (pointy-top)
+            let xPos = col * xOffset;
+            let yPos = row * hexHeight;
+            
+            // Offset even/odd columns
+            if (col % 2 === 1) {
+                yPos += yOffset;
+            }
+            
+            // Position the hex container
+            hexContainer.style.left = `${xPos}px`;
+            hexContainer.style.top = `${yPos}px`;
+            
+            // Create hex shape
+            const hexShape = document.createElement('div');
+            hexShape.className = 'hex';
+            
+            // Adjust chaos/order visual indicator
+            const chaosLevel = tile.chaos || 0.5;
+            const hue = (1 - chaosLevel) * 200 + 200; // Blue (400) for order, Green (200) for balance
+            const saturation = 70 + (Math.abs(chaosLevel - 0.5) * 30); // More saturated at extremes
+            hexShape.style.backgroundColor = `hsl(${hue}, ${saturation}%, 50%)`;
+            
+            // Create indicators for special tiles
             if (tile.hasZoe) {
                 const zoeIndicator = document.createElement('div');
                 zoeIndicator.className = 'zoe-indicator';
@@ -2378,31 +2421,7 @@ function buildGrid(rows, cols, tileData) {
                 hexContainer.appendChild(goalIndicator);
             }
             
-            // Calculate hex position for pointy-top orientation
-            let xPosition = col * colOffset;
-            let yPosition = row * rowOffset;
-            
-            // Offset odd columns (for pointy-top)
-            if (col % 2 === 1) {
-                yPosition += rowOffset / 2;
-            }
-            
-            // Center the grid
-            xPosition += colOffset / 2;
-            
-            hexContainer.style.left = `${xPosition}px`;
-            hexContainer.style.top = `${yPosition}px`;
-            
-            // Create hex shape
-            const hexShape = document.createElement('div');
-            hexShape.className = 'hex';
-            
-            // Adjust chaos/order visual indicator
-            const chaosLevel = tile.chaos;
-            const hue = (1 - chaosLevel) * 240; // 240 (blue) for order, 0 (red) for chaos
-            hexShape.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
-            
-            // Create indicators for hex
+            // Create small coordinate indicator for debugging
             const hexIndicator = document.createElement('div');
             hexIndicator.className = 'hex-indicator';
             hexIndicator.textContent = `${row},${col}`;
@@ -2578,52 +2597,43 @@ function endTurn() {
 }
 
 /**
- * Allows player to rest to gain energy at the cost of ending turn
+ * Handles the player resting to regain energy
  */
 function rest() {
-    if (!GameState.isActive) {
-        console.log("Level complete—cannot rest!");
+    console.log('Player resting');
+    
+    // Check if game is active
+    if (!window.isGameActive) {
+        console.warn('Cannot rest, game is not active');
         return;
     }
     
-    const confirmRest = confirm("This ends the turn and lets you rest to gain energy. Are you sure?");
-    if (confirmRest) {
-        // Calculate energy gain based on stability
-        const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
-        const baseEnergyGain = GameState.resourceRates.energyPerRest;
-        const energyGain = Math.round(baseEnergyGain * stabilityFactor);
-        
-        // Update resources
-        GameState.updateResource('energy', energyGain);
-        
-        // Stability naturally increases slightly when resting
-        GameState.updateResource('stability', 2);
-        
-        // Update local variables for compatibility
-        energy = GameState.resources.energy;
-        
-        // End movement for this turn
-        GameState.player.movementPoints = 0;
-        movementPoints = 0;
-        
-        // Track metrics
-        GameState.metrics.incrementRests();
-        GameState.recentMetrics.incrementRests();
-        
-        // Show feedback
-        const feedbackMessage = document.getElementById('feedback-message');
-        if (feedbackMessage) {
-            feedbackMessage.textContent = `Rested and gained ${energyGain} energy.`;
-            feedbackMessage.style.display = 'block';
-            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
-        }
-        
-        // Update UI with animation
-        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
-        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
-        
-        endTurn();
+    // Track the rest action
+    GameState.metrics.incrementRests();
+    
+    // Calculate energy gain (base gain is 5)
+    let energyGain = 5;
+    
+    // Apply trait effects for resting
+    if (GameState.progress.traits.includes('efficient_rest')) {
+        energyGain += 2;
     }
+    
+    // Update energy
+    GameState.updateResource('energy', energyGain);
+    console.log(`Energy increased by ${energyGain}`);
+    
+    // Clear any current action
+    window.currentAction = '';
+    
+    // Clear highlights
+    highlightTiles('');
+    
+    // End the turn
+    endTurn();
+    
+    // Update UI
+    updateUI();
 }
 
 /**
@@ -2859,14 +2869,21 @@ function ensureGameContainer() {
     // Ensure hex grid is visible
     hexGrid.style.display = 'block';
     
-    // Check if action console already exists
-    let actionConsole = document.querySelector('.action-console');
+    // Remove any existing action console (bottom)
+    const oldActionConsole = document.querySelector('.action-console');
+    if (oldActionConsole) {
+        oldActionConsole.remove();
+        console.log('Removed old action console');
+    }
     
-    // Only create the action console if it doesn't exist
-    if (!actionConsole) {
-        console.log('Creating action console');
-        actionConsole = document.createElement('div');
-        actionConsole.className = 'action-console';
+    // Check if top action console already exists
+    let topActionConsole = document.querySelector('.top-action-console');
+    
+    // Only create the top action console if it doesn't exist
+    if (!topActionConsole) {
+        console.log('Creating top action console');
+        topActionConsole = document.createElement('div');
+        topActionConsole.className = 'top-action-console';
         
         // Add action buttons
         const actionButtons = [
@@ -2882,11 +2899,13 @@ function ensureGameContainer() {
             const btn = document.createElement('button');
             btn.id = button.id;
             btn.textContent = button.text;
-            actionConsole.appendChild(btn);
+            topActionConsole.appendChild(btn);
         });
         
+        document.body.insertBefore(topActionConsole, document.body.firstChild);
+        
         // Attach event listeners to the buttons
-        const moveBtn = actionConsole.querySelector('#move-btn');
+        const moveBtn = topActionConsole.querySelector('#move-btn');
         if (moveBtn) {
             moveBtn.addEventListener('click', () => {
                 window.currentAction = 'move';
@@ -2894,7 +2913,7 @@ function ensureGameContainer() {
             });
         }
         
-        const senseBtn = actionConsole.querySelector('#sense-btn');
+        const senseBtn = topActionConsole.querySelector('#sense-btn');
         if (senseBtn) {
             senseBtn.addEventListener('click', () => {
                 window.currentAction = 'sense';
@@ -2902,7 +2921,7 @@ function ensureGameContainer() {
             });
         }
         
-        const pokeBtn = actionConsole.querySelector('#poke-btn');
+        const pokeBtn = topActionConsole.querySelector('#poke-btn');
         if (pokeBtn) {
             pokeBtn.addEventListener('click', () => {
                 window.currentAction = 'poke';
@@ -2910,7 +2929,7 @@ function ensureGameContainer() {
             });
         }
         
-        const stabilizeBtn = actionConsole.querySelector('#stabilize-btn');
+        const stabilizeBtn = topActionConsole.querySelector('#stabilize-btn');
         if (stabilizeBtn) {
             stabilizeBtn.addEventListener('click', () => {
                 window.currentAction = 'stabilize';
@@ -2918,23 +2937,21 @@ function ensureGameContainer() {
             });
         }
         
-        const endTurnBtn = actionConsole.querySelector('#end-turn-btn');
+        const endTurnBtn = topActionConsole.querySelector('#end-turn-btn');
         if (endTurnBtn) {
             endTurnBtn.addEventListener('click', endTurn);
         }
         
-        const restBtn = actionConsole.querySelector('#rest-btn');
+        const restBtn = topActionConsole.querySelector('#rest-btn');
         if (restBtn) {
             restBtn.addEventListener('click', rest);
         }
-        
-        gameContainer.appendChild(actionConsole);
     } else {
-        console.log('Action console already exists');
+        console.log('Top action console already exists');
     }
     
-    // Make sure action console is visible
-    actionConsole.style.display = 'flex';
+    // Make sure top action console is visible
+    topActionConsole.style.display = 'flex';
 }
 
 /**
@@ -3112,14 +3129,24 @@ function updateResourceDisplay(resourceType, value, max, animate = false) {
 function getAdjacentTiles(row, col) {
     console.log(`Getting adjacent tiles for [${row}, ${col}]`);
     
-    const directions = [
-        [-1, 0],  // North
-        [-1, 1],  // Northeast
-        [0, 1],   // East
-        [1, 0],   // South
-        [1, -1],  // Southwest
-        [0, -1]   // West
-    ];
+    // Define different neighbor directions based on column parity (even/odd)
+    const directions = col % 2 === 0 
+        ? [ // Even column
+            [-1, 0], // Top left
+            [-1, 1], // Top right
+            [0, 1],  // Right
+            [1, 0],  // Bottom right
+            [0, -1], // Left
+            [-1, -1] // Top left
+        ]
+        : [ // Odd column
+            [-1, 0], // Top left
+            [0, 1],  // Top right
+            [1, 1],  // Bottom right
+            [1, 0],  // Bottom left
+            [1, -1], // Bottom left
+            [0, -1]  // Left
+        ];
     
     const adjacentPositions = [];
     
