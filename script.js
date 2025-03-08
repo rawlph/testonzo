@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         systemChaos: 0.5, // Starting balanced state
         systemOrder: 0.5,
         orderContributions: 0, // Initialize here
+		levelsWithPositiveOrder: 0,
         uniquesensedTypes: []
     };
     let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, orderContributions, uniquesensedTypes } = playerProgress;
@@ -332,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
             if (!confirmEnd) return;
         }
-        movementPoints = 1;
+movementPoints = stats.movementRange; // Use upgraded range
         turnCount++;
         metrics.incrementTurns();
         recentMetrics.incrementTurns();
@@ -675,16 +676,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                 totalChaos += tileData[r][c].chaos;
                             }
                         }
-                        const avgChaos = totalChaos / (rows * cols);
-                        playerProgress.systemChaos = avgChaos;
-                        playerProgress.systemOrder = 1 - avgChaos;
+    const avgChaos = totalChaos / (rows * cols);
+    playerProgress.systemChaos = avgChaos;
+    playerProgress.systemOrder = 1 - avgChaos;
+	
+	
                         const orderContribution = playerProgress.systemOrder - 0.5;
                         playerProgress.orderContributions += orderContribution;
 
-                        if (playerProgress.orderContributions >= 5 && !traits.includes('orderKeeper')) {
-                            traits.push('orderKeeper');
-                            alert('Earned Order Keeper trait for stabilizing 10 levels!');
-                        }
+						if (playerProgress.systemOrder > 0.5) {
+							playerProgress.levelsWithPositiveOrder = (playerProgress.levelsWithPositiveOrder || 0) + 1;
+						if (playerProgress.levelsWithPositiveOrder >= 5 && !traits.includes('orderKeeper')) {
+								traits.push('orderKeeper');
+								alert('Earned Order Keeper trait for completing 5 levels with >50% order!');
+							}
                         if (currentLevelSenses >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
@@ -782,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         moveCounter = 0;
         hasUsedsenserBonus = false;
         currentAction = null;
-        movementPoints = 1;
+        movementPoints = stats.movementRange; // Start with upgraded range;
         highlightTiles(null);
         updateVision();
         updateUI();
@@ -884,6 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 systemChaos: 0.5,
                 systemOrder: 0.5,
                 orderContributions: 0,
+				levelsWithPositiveOrder: 0,
                 uniquesensedTypes: []
             };
             ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, orderContributions, uniquesensedTypes } = playerProgress);
