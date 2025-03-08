@@ -611,7 +611,7 @@ function restoreStatsWindow() {
                         showLoseScreen();
                         return;
                     }
-                } else if (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
+                } elif (currentAction === 'poke' && (isCurrentTile || isAdjacent)) {
                     const energyCost = traits.includes('zoeAdept') ? (isCurrentTile ? 2 : 1) : (isCurrentTile ? 4 : 2);
                     if (energy < energyCost) {
                         showLoseScreen();
