@@ -2202,9 +2202,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         GameState.isActive = true;
         isGameActive = true;
+        
+        // Hide all windows
         document.getElementById('stats-window').style.display = 'none';
         document.getElementById('evolution-window').style.display = 'none';
         document.getElementById('events-window').style.display = 'none';
+        document.getElementById('event-notification').style.display = 'none';
     }
 
     /**
@@ -2924,8 +2927,11 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function showEventNotification(event) {
         if (!event) {
+            console.error('No event provided to showEventNotification');
             return;
         }
+        
+        console.log('Showing event notification:', event);
         
         const notification = document.getElementById('event-notification');
         const title = document.getElementById('event-notification-title');
@@ -2933,30 +2939,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const flavor = document.getElementById('event-notification-flavor');
         const effects = document.getElementById('event-notification-effects');
         
-        if (notification && title && description && flavor && effects) {
-            title.textContent = event.name || 'Event Triggered';
-            description.textContent = event.description || '';
-            flavor.textContent = event.flavor || '';
-            effects.innerHTML = createEventEffectsHTML(event.effect);
-            
-            notification.style.display = 'flex';
-            
-            // Apply the event effect
-            const effectResult = GameState.applyEventEffect(event);
-            console.log('Event effect applied:', effectResult);
-            
-            // Update UI to reflect changes
-            updateUI();
+        if (!notification || !title || !description || !flavor || !effects) {
+            console.error('Event notification elements not found');
+            return;
         }
+        
+        title.textContent = event.name || 'Event Triggered';
+        description.textContent = event.description || '';
+        flavor.textContent = event.flavor || '';
+        effects.innerHTML = createEventEffectsHTML(event.effect);
+        
+        notification.style.display = 'flex';
+        
+        // Apply the event effect
+        const effectResult = GameState.applyEventEffect(event);
+        console.log('Event effect applied:', effectResult);
+        
+        // Update UI to reflect changes
+        updateUI();
     }
     
     /**
      * Hides the event notification
      */
     function hideEventNotification() {
+        console.log('Hiding event notification');
         const notification = document.getElementById('event-notification');
         if (notification) {
             notification.style.display = 'none';
+        } else {
+            console.error('Event notification element not found');
         }
     }
     
@@ -2995,6 +3007,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const notificationCloseButton = document.getElementById('event-notification-close-btn');
         if (notificationCloseButton) {
             notificationCloseButton.addEventListener('click', hideEventNotification);
+        } else {
+            console.error('Event notification close button not found');
         }
     }
 
