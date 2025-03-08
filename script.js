@@ -788,11 +788,11 @@ const GameState = {
      * @returns {Array} 2D array of tile data
      */
     createTileData(rows, cols) {
-        console.log(`Creating tile data: ${rows}x${cols}`);
+        debug(`Creating tile data: ${rows}x${cols}`);
         
         // Validate input
         if (!rows || !cols || rows <= 0 || cols <= 0) {
-            console.error(`Invalid grid dimensions: ${rows}x${cols}`);
+            debug(`Invalid grid dimensions: ${rows}x${cols}`);
             // Default to 5x5 if invalid dimensions
             rows = 5;
             cols = 5;
@@ -804,7 +804,7 @@ const GameState = {
         // Default variance value (20% variance)
         const variance = 0.2;
         
-        console.log(`Global chaos: ${globalChaos}, Variance: ${variance}`);
+        debug(`Global chaos: ${globalChaos}, Variance: ${variance}`);
         
         // Create a 2D array to store tile data
         const tileData = [];
@@ -831,12 +831,12 @@ const GameState = {
                 
                 // For debugging, log a sample of tile data
                 if (r === 0 && c === 0) {
-                    console.log(`Sample tile data at [0,0]: `, tileData[0][0]);
+                    debug(`Sample tile data at [0,0]:`, tileData[0][0]);
                 }
             }
         }
         
-        console.log(`Tile data created with ${rows * cols} tiles`);
+        debug(`Tile data created with ${rows * cols} tiles`);
         return tileData;
     },
     
@@ -973,11 +973,11 @@ const GameState = {
      * @param {number} cols - Number of columns
      */
     placeTiles(tileData, rows, cols) {
-        console.log(`Placing tiles on ${rows}x${cols} grid`);
+        debug(`Placing tiles on ${rows}x${cols} grid`);
         
         // Validate input
         if (!tileData || !rows || !cols) {
-            console.error("Invalid parameters for placeTiles");
+            debug("Invalid parameters for placeTiles");
             return;
         }
         
@@ -986,7 +986,7 @@ const GameState = {
             const goalRow = rows - 1;
             const goalCol = cols - 1;
             tileData[goalRow][goalCol].type = 'goal';
-            console.log(`Goal tile set at [${goalRow}, ${goalCol}]`);
+            debug(`Goal tile set at [${goalRow}, ${goalCol}]`);
             
             // Set player start position in the top left
             const playerStartRow = 0;
@@ -997,29 +997,29 @@ const GameState = {
             GameState.player.currentCol = playerStartCol;
             
             // Generate non-path positions
-            const nonPathPositions = this.getNonPathPositions(rows, cols);
-            console.log(`Got ${nonPathPositions.length} non-path positions`);
+            const nonPathPositions = getNonPathPositions(rows, cols);
+            debug(`Got ${nonPathPositions.length} non-path positions`);
             
             // Shuffle positions for random placement
             nonPathPositions.sort(() => Math.random() - 0.5);
             
             // Place Zoe (if available)
             let zoeRow, zoeCol;
-            if (nonPathPositions.length > 0 && !this.progress.hasFoundZoe) {
+            if (nonPathPositions.length > 0 && !GameState.progress.hasFoundZoe) {
                 const zoePos = nonPathPositions.pop();
                 zoeRow = zoePos[0];
                 zoeCol = zoePos[1];
                 tileData[zoeRow][zoeCol].type = 'zoe';
-                console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
+                debug(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
             }
             
             // Place key
-            if (nonPathPositions.length > 0 && this.level.requiresKey) {
+            if (nonPathPositions.length > 0 && GameState.level.requiresKey) {
                 const keyPos = nonPathPositions.pop();
                 const keyRow = keyPos[0];
                 const keyCol = keyPos[1];
                 tileData[keyRow][keyCol].type = 'key';
-                console.log(`Key placed at [${keyRow}, ${keyCol}]`);
+                debug(`Key placed at [${keyRow}, ${keyCol}]`);
             }
             
             // Calculate counts for special tiles
@@ -1059,18 +1059,18 @@ const GameState = {
                 energyCount++;
             }
             
-            console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
+            debug(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
             
             // Ensure traversable path
-            this.ensureTraversablePath(tileData, rows, cols);
-            console.log("Ensured traversable path");
+            ensureTraversablePath(tileData, rows, cols);
+            debug("Ensured traversable path");
             
             // Log a sample of tile data after placement
-            console.log(`Sample tile at [0,0] after placement:`, tileData[0][0]);
-            console.log(`Sample tile at [${goalRow},${goalCol}] (goal):`, tileData[goalRow][goalCol]);
+            debug(`Sample tile at [0,0] after placement:`, tileData[0][0]);
+            debug(`Sample tile at [${goalRow},${goalCol}] (goal):`, tileData[goalRow][goalCol]);
             
         } catch (error) {
-            console.error("Error in placeTiles:", error);
+            debug("Error in placeTiles:", error.message);
         }
     },
     
@@ -1117,6 +1117,209 @@ const GameState = {
      */
     ensureTraversablePath(tileData, rows, cols) {
         // Implementation of ensureTraversablePath method
+    },
+    
+    /**
+     * Updates a resource value
+     * @param {string} type - Resource type
+     * @param {number} amount - Amount to change (positive or negative)
+     * @returns {number} New resource value
+     */
+    updateResource(type, amount) {
+        if (!this.resources || !this.resourceLimits) {
+            console.warn(`Resources or resource limits not initialized`);
+            return 0;
+        }
+        
+        if (!this.resources[type]) {
+            console.warn(`Resource type ${type} not found`);
+            return 0;
+        }
+        
+        // Update resource value
+        this.resources[type] += amount;
+        
+        // Ensure value is within limits
+        this.resources[type] = Math.max(0, Math.min(this.resources[type], this.resourceLimits[type]));
+        
+        // Update window variable for compatibility
+        if (type === 'energy') {
+            window.energy = this.resources.energy;
+        }
+        
+        console.log(`Updated ${type}: ${this.resources[type]} (${amount > 0 ? '+' : ''}${amount})`);
+        return this.resources[type];
+    },
+    
+    /**
+     * Resets the player state for a new game
+     */
+    resetPlayerState() {
+        console.log("Resetting player state");
+        
+        // Reset player position
+        this.player.currentRow = 0;
+        this.player.currentCol = 0;
+        this.player.turnCount = 0;
+        this.player.currentLevelSenses = [];
+        this.player.moveCounter = 0;
+        this.player.hasUsedSenserBonus = false;
+        this.player.currentAction = null;
+        this.player.movementPoints = this.progress.stats.movementRange || 1;
+        
+        // Reset resources
+        this.resources.energy = 10;
+        this.resources.essence = 0;
+        this.resources.knowledge = 0;
+        this.resources.stability = 0;
+        
+        // Reset level state
+        this.level.temporaryInventory = [];
+        this.level.hasKey = false;
+        this.level.foundZoe = false;
+        
+        console.log("Player state reset");
+    },
+    
+    /**
+     * Applies effects from active traits
+     */
+    applyTraitEffects() {
+        console.log("Applying trait effects");
+        
+        if (!this.evolution || !this.evolution.paths) {
+            console.warn("Evolution system not properly initialized");
+            return;
+        }
+        
+        // Clear active traits
+        this.evolution.activeTraits = [];
+        
+        // Collect all unlocked traits
+        Object.values(this.evolution.paths).forEach(path => {
+            if (path.traits) {
+                path.traits.forEach(trait => {
+                    if (trait.unlocked) {
+                        this.evolution.activeTraits.push(trait);
+                    }
+                });
+            }
+        });
+        
+        console.log(`Found ${this.evolution.activeTraits.length} active traits`);
+        
+        // Apply effects for each trait
+        this.evolution.activeTraits.forEach(trait => {
+            console.log(`Applying effect for trait: ${trait.name}`);
+            
+            switch (trait.effect) {
+                case 'movement_cost_-1':
+                    // Reduce movement cost
+                    console.log("Applying movement cost reduction");
+                    break;
+                    
+                case 'vision_range_+1':
+                    // Increase vision range
+                    console.log("Applying vision range increase");
+                    break;
+                    
+                case 'all_resources_regen_1':
+                    // Resources will regenerate each turn
+                    console.log("Applying resource regeneration");
+                    break;
+                    
+                case 'gain_essence_from_chaos':
+                    // Will be handled during interactions
+                    console.log("Applying chaos essence gain");
+                    break;
+                    
+                case 'gain_stability_from_order':
+                    // Will be handled during interactions
+                    console.log("Applying order stability gain");
+                    break;
+                    
+                case 'gain_knowledge_from_balance':
+                    // Will be handled during interactions
+                    console.log("Applying balance knowledge gain");
+                    break;
+                    
+                case 'chaos_resistance':
+                    // Will be handled during chaos effects
+                    console.log("Applying chaos resistance");
+                    break;
+                    
+                case 'poke_success_+20%':
+                    // Will be handled during poke action
+                    console.log("Applying poke success increase");
+                    break;
+                    
+                case 'see_chaos_levels':
+                    // Will be handled during rendering
+                    console.log("Applying chaos vision");
+                    break;
+                    
+                default:
+                    console.log(`Unknown trait effect: ${trait.effect}`);
+            }
+        });
+        
+        console.log("Trait effects applied");
+    },
+    
+    /**
+     * Gets available traits for a given evolution path
+     * @param {string} path - Evolution path ID
+     * @returns {Array} Array of available trait IDs
+     */
+    getAvailableTraits(path) {
+        console.log(`Getting available traits for path: ${path}`);
+        
+        if (!this.evolution || !this.evolution.paths || !this.evolution.paths[path]) {
+            console.warn("Evolution system not properly initialized");
+            return [];
+        }
+        
+        const pathData = this.evolution.paths[path];
+        const availableTraits = [];
+        
+        // Check if path is unlocked
+        if (!pathData.unlocked) {
+            console.log(`Path ${path} is locked`);
+            return [];
+        }
+        
+        // Get traits that are not unlocked yet
+        pathData.traits.forEach(trait => {
+            if (!trait.unlocked) {
+                // Check if player has enough XP
+                if (pathData.xp >= trait.cost) {
+                    availableTraits.push(trait.id);
+                }
+            }
+        });
+        
+        console.log(`Found ${availableTraits.length} available traits for path ${path}`);
+        return availableTraits;
+    },
+    
+    /**
+     * Updates grid dimensions
+     * @param {number} rows - New row count
+     * @param {number} cols - New column count
+     * @returns {boolean} Whether the update was successful
+     */
+    updateGridSize(rows, cols) {
+        console.log(`Updating grid size to ${rows}x${cols}`);
+        
+        if (rows >= 3 && cols >= 3 && rows <= 20 && cols <= 20) {
+            this.grid.rows = rows;
+            this.grid.cols = cols;
+            console.log(`Grid size updated to ${rows}x${cols}`);
+            return true;
+        }
+        
+        console.warn(`Invalid grid dimensions: ${rows}x${cols}`);
+        return false;
     }
 };
 
@@ -2462,6 +2665,115 @@ function debug(message, data) {
     }
 }
 
+/**
+ * Allows the player to rest, recovering energy at the cost of a turn
+ */
+function rest() {
+    console.log("Resting...");
+    debug("Player is resting");
+    
+    // Increment turn counter
+    GameState.player.turnCount++;
+    window.turnCount = GameState.player.turnCount;
+    
+    // Track in metrics
+    GameState.metrics.incrementRests();
+    GameState.metrics.incrementTurns();
+    
+    // Restore a significant amount of energy
+    const energyRestoreOnRest = 6;
+    GameState.updateResource('energy', energyRestoreOnRest);
+    
+    // Apply trait effects that happen when resting
+    if (GameState.evolution && GameState.evolution.activeTraits) {
+        GameState.evolution.activeTraits.forEach(trait => {
+            if (trait.effect === 'enhanced_rest') {
+                GameState.updateResource('energy', 2); // Additional energy
+                GameState.updateResource('stability', 1); // Bonus stability
+            }
+        });
+    }
+    
+    // Check for rest-based events
+    try {
+        const triggeredEvents = GameState.checkEvents('rest');
+        if (triggeredEvents && triggeredEvents.length > 0) {
+            showEventNotification(triggeredEvents[0]);
+        }
+    } catch (error) {
+        debug("Error checking rest events", error.message);
+    }
+    
+    // Evolve the world (small chance when resting)
+    if (Math.random() < 0.3) {
+        try {
+            GameState.evolveWorld();
+        } catch (error) {
+            debug("Error evolving world", error.message);
+        }
+    }
+    
+    // Update UI
+    updateUI();
+    
+    showNotification(`Rested and recovered ${energyRestoreOnRest} energy.`);
+    debug(`Rested and recovered ${energyRestoreOnRest} energy.`);
+}
+
+/**
+ * Ends the current turn and advances the game state
+ */
+function endTurn() {
+    console.log("Ending turn...");
+    debug("Ending turn");
+    
+    // Increment turn counter
+    GameState.player.turnCount++;
+    window.turnCount = GameState.player.turnCount;
+    
+    // Track in metrics
+    GameState.metrics.incrementTurns();
+    
+    // Restore some energy each turn
+    const energyRestorePerTurn = 2;
+    GameState.updateResource('energy', energyRestorePerTurn);
+    
+    // Apply trait effects that happen each turn
+    if (GameState.evolution && GameState.evolution.activeTraits) {
+        GameState.evolution.activeTraits.forEach(trait => {
+            if (trait.effect === 'all_resources_regen_1') {
+                GameState.updateResource('essence', 1);
+                GameState.updateResource('knowledge', 1);
+                GameState.updateResource('stability', 1);
+            }
+        });
+    }
+    
+    // Check for turn-based events
+    try {
+        const triggeredEvents = GameState.checkEvents('turn', { turnCount: GameState.player.turnCount });
+        if (triggeredEvents && triggeredEvents.length > 0) {
+            showEventNotification(triggeredEvents[0]);
+        }
+    } catch (error) {
+        debug("Error checking turn events", error.message);
+    }
+    
+    // Evolve the world (small chance each turn)
+    if (Math.random() < 0.2) {
+        try {
+            GameState.evolveWorld();
+        } catch (error) {
+            debug("Error evolving world", error.message);
+        }
+    }
+    
+    // Update UI
+    updateUI();
+    
+    debug(`Turn ${GameState.player.turnCount} started`);
+}
+
 // Initialize the game when the document is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
@@ -2565,3 +2877,543 @@ document.addEventListener('DOMContentLoaded', () => {
         debug("Error initializing game", error.message);
     }
 });
+
+/**
+ * Updates the events UI with current event data
+ */
+function updateEventsUI() {
+    debug("Updating events UI");
+    
+    // Check if events system is initialized
+    if (!GameState.events) {
+        debug("Events system not initialized");
+        return;
+    }
+    
+    // Get the events containers
+    const triggeredEventsContainer = document.getElementById('triggered-events');
+    const availableEventsContainer = document.getElementById('available-events');
+    const chainsEventsContainer = document.getElementById('chains-events');
+    
+    if (!triggeredEventsContainer || !availableEventsContainer || !chainsEventsContainer) {
+        debug("Events containers not found");
+        return;
+    }
+    
+    // Clear existing content
+    triggeredEventsContainer.innerHTML = '';
+    availableEventsContainer.innerHTML = '';
+    chainsEventsContainer.innerHTML = '';
+    
+    // Add triggered events
+    if (GameState.events.triggered && GameState.events.triggered.length > 0) {
+        GameState.events.triggered.forEach(event => {
+            const eventElement = createEventElement(event, true);
+            triggeredEventsContainer.appendChild(eventElement);
+        });
+    } else {
+        triggeredEventsContainer.innerHTML = '<div class="no-events">No events triggered yet.</div>';
+    }
+    
+    // Add available events
+    if (GameState.events.available && GameState.events.available.length > 0) {
+        GameState.events.available.forEach(event => {
+            const eventElement = createEventElement(event);
+            availableEventsContainer.appendChild(eventElement);
+        });
+    } else {
+        availableEventsContainer.innerHTML = '<div class="no-events">No available events.</div>';
+    }
+    
+    // Add event chains
+    if (GameState.events.chains && Object.keys(GameState.events.chains).length > 0) {
+        Object.entries(GameState.events.chains).forEach(([chainId, chainData]) => {
+            const chainElement = createEventChainElement(chainId, chainData);
+            chainsEventsContainer.appendChild(chainElement);
+        });
+    } else {
+        chainsEventsContainer.innerHTML = '<div class="no-events">No event chains available.</div>';
+    }
+    
+    debug("Events UI updated");
+}
+
+/**
+ * Creates an event element for the events UI
+ * @param {Object} event - Event data
+ * @param {boolean} completed - Whether the event has been completed
+ * @returns {HTMLElement} Event element
+ */
+function createEventElement(event, completed = false) {
+    if (!event) {
+        return document.createElement('div');
+    }
+    
+    const eventElement = document.createElement('div');
+    eventElement.className = `event-item ${completed ? 'completed' : ''}`;
+    
+    const eventHeader = document.createElement('div');
+    eventHeader.className = 'event-header';
+    
+    const eventName = document.createElement('h3');
+    eventName.textContent = event.name || 'Unknown Event';
+    
+    const eventStatus = document.createElement('span');
+    eventStatus.className = 'event-status';
+    eventStatus.textContent = completed ? 'Completed' : 'Available';
+    
+    eventHeader.appendChild(eventName);
+    eventHeader.appendChild(eventStatus);
+    
+    const eventDescription = document.createElement('p');
+    eventDescription.className = 'event-description';
+    eventDescription.textContent = event.description || 'No description available';
+    
+    const eventEffects = document.createElement('div');
+    eventEffects.className = 'event-effects';
+    eventEffects.innerHTML = createEventEffectsHTML(event.effect);
+    
+    eventElement.appendChild(eventHeader);
+    eventElement.appendChild(eventDescription);
+    eventElement.appendChild(eventEffects);
+    
+    return eventElement;
+}
+
+/**
+ * Creates HTML for event effects
+ * @param {Object} effect - Event effect data
+ * @returns {string} HTML for event effects
+ */
+function createEventEffectsHTML(effect) {
+    if (!effect) {
+        return '<div class="event-effect">No effects</div>';
+    }
+    
+    let html = '<div class="event-effects-title">Effects:</div>';
+    
+    if (effect.type === 'resource_gain') {
+        html += `<div class="event-effect">Gain ${effect.amount} ${getResourceIcon(effect.resource)} ${effect.resource}</div>`;
+    } else if (effect.type === 'resource_loss') {
+        html += `<div class="event-effect">Lose ${effect.amount} ${getResourceIcon(effect.resource)} ${effect.resource}</div>`;
+    } else if (effect.type === 'increaseChaos') {
+        html += `<div class="event-effect">Increase chaos by ${effect.value * 100}%</div>`;
+    } else if (effect.type === 'increaseOrder') {
+        html += `<div class="event-effect">Increase order by ${effect.value * 100}%</div>`;
+    } else if (effect.type === 'spawnEnergyTile') {
+        html += `<div class="event-effect">Spawn an energy tile</div>`;
+    } else if (effect.type === 'grantResource') {
+        html += `<div class="event-effect">Gain ${effect.value} ${getResourceIcon(effect.resource)} ${effect.resource}</div>`;
+    } else if (effect.type === 'unlockEvolutionPath') {
+        html += `<div class="event-effect">Unlock the ${effect.path} evolution path</div>`;
+    } else {
+        html += `<div class="event-effect">Unknown effect: ${effect.type}</div>`;
+    }
+    
+    return html;
+}
+
+/**
+ * Gets an icon for a resource
+ * @param {string} resource - Resource name
+ * @returns {string} HTML for resource icon
+ */
+function getResourceIcon(resource) {
+    switch (resource) {
+        case 'energy':
+            return '⚡';
+        case 'essence':
+            return '✨';
+        case 'knowledge':
+            return '📚';
+        case 'stability':
+            return '🛡️';
+        default:
+            return '';
+    }
+}
+
+/**
+ * Creates an event chain element for the events UI
+ * @param {string} chainId - Chain ID
+ * @param {Object} chainData - Chain data
+ * @returns {HTMLElement} Chain element
+ */
+function createEventChainElement(chainId, chainData) {
+    if (!chainId || !chainData) {
+        return document.createElement('div');
+    }
+    
+    const chainElement = document.createElement('div');
+    chainElement.className = `event-chain ${chainData.completed ? 'completed' : ''}`;
+    
+    const chainHeader = document.createElement('div');
+    chainHeader.className = 'event-chain-header';
+    
+    const chainName = document.createElement('h3');
+    chainName.textContent = chainData.name || 'Unknown Chain';
+    
+    const chainStatus = document.createElement('span');
+    chainStatus.className = 'event-chain-status';
+    chainStatus.textContent = chainData.completed ? 'Completed' : `Step ${chainData.currentStep + 1}/${chainData.events.length}`;
+    
+    chainHeader.appendChild(chainName);
+    chainHeader.appendChild(chainStatus);
+    
+    const chainDescription = document.createElement('p');
+    chainDescription.className = 'event-chain-description';
+    chainDescription.textContent = chainData.description || 'No description available';
+    
+    const chainEvents = document.createElement('div');
+    chainEvents.className = 'event-chain-events';
+    
+    if (chainData.events && chainData.events.length > 0) {
+        chainData.events.forEach((eventId, index) => {
+            const eventElement = document.createElement('div');
+            eventElement.className = `event-chain-event ${index < chainData.currentStep ? 'completed' : index === chainData.currentStep ? 'current' : 'upcoming'}`;
+            
+            const event = findEventById(eventId);
+            eventElement.textContent = event ? event.name : eventId;
+            
+            chainEvents.appendChild(eventElement);
+        });
+    } else {
+        chainEvents.innerHTML = '<div class="no-events">No events in this chain.</div>';
+    }
+    
+    chainElement.appendChild(chainHeader);
+    chainElement.appendChild(chainDescription);
+    chainElement.appendChild(chainEvents);
+    
+    return chainElement;
+}
+
+/**
+ * Finds an event by its ID
+ * @param {string} eventId - Event ID
+ * @returns {Object} Event data
+ */
+function findEventById(eventId) {
+    if (!GameState.events || !GameState.events.available) {
+        return null;
+    }
+    
+    // Check available events
+    const availableEvent = GameState.events.available.find(event => event.id === eventId);
+    if (availableEvent) {
+        return availableEvent;
+    }
+    
+    // Check triggered events
+    if (GameState.events.triggered) {
+        const triggeredEvent = GameState.events.triggered.find(event => event.id === eventId);
+        if (triggeredEvent) {
+            return triggeredEvent;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Shows an event notification
+ * @param {Object} event - Event data
+ */
+function showEventNotification(event) {
+    debug("Showing event notification", event);
+    
+    if (!event) {
+        debug("No event provided");
+        return;
+    }
+    
+    const eventNotification = document.getElementById('event-notification');
+    if (!eventNotification) {
+        debug("Event notification element not found");
+        return;
+    }
+    
+    const titleElement = document.getElementById('event-notification-title');
+    const descriptionElement = document.getElementById('event-notification-description');
+    const effectsElement = document.getElementById('event-notification-effects');
+    
+    if (titleElement) {
+        titleElement.textContent = event.name || 'Unknown Event';
+    }
+    
+    if (descriptionElement) {
+        descriptionElement.textContent = event.description || 'No description available';
+    }
+    
+    if (effectsElement) {
+        effectsElement.innerHTML = createEventEffectsHTML(event.effect);
+    }
+    
+    eventNotification.style.display = 'block';
+    debug("Event notification shown");
+}
+
+/**
+ * Hides the event notification
+ */
+function hideEventNotification() {
+    debug("Hiding event notification");
+    
+    const eventNotification = document.getElementById('event-notification');
+    if (eventNotification) {
+        eventNotification.style.display = 'none';
+        debug("Event notification hidden");
+    } else {
+        debug("Event notification element not found");
+    }
+}
+
+/**
+ * Updates all UI elements with current game state
+ */
+function updateUI() {
+    debug("Updating UI");
+    
+    try {
+        // Get UI element references
+        const turnDisplay = document.getElementById('turn-counter');
+        const statsDisplay = document.getElementById('stats-display');
+        const traitsDisplay = document.getElementById('traits-display');
+        const tempInventoryDisplay = document.getElementById('temp-inventory-display');
+        const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
+        
+        if (turnDisplay) {
+            turnDisplay.textContent = `Turns: ${GameState.player.turnCount}`;
+        }
+        
+        if (statsDisplay) {
+            statsDisplay.textContent = `Moves: ${GameState.progress.stats.movementRange} | Luck: ${GameState.progress.stats.luck} | XP: ${GameState.progress.xp}`;
+        }
+        
+        if (traitsDisplay) {
+            traitsDisplay.textContent = `Traits: ${GameState.progress.traits.length > 0 ? GameState.progress.traits.join(', ') : 'None'}`;
+        }
+        
+        if (tempInventoryDisplay) {
+            tempInventoryDisplay.textContent = `Level Items: ${GameState.level.temporaryInventory.length > 0 ? GameState.level.temporaryInventory.join(', ') : 'None'}`;
+        }
+        
+        if (persistentInventoryDisplay) {
+            persistentInventoryDisplay.textContent = `Persistent Items: ${GameState.progress.persistentInventory.length > 0 ? GameState.progress.persistentInventory.join(', ') : 'None'}`;
+        }
+        
+        // Update resource displays
+        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy);
+        updateResourceDisplay('essence', GameState.resources.essence, GameState.resourceLimits.essence);
+        updateResourceDisplay('knowledge', GameState.resources.knowledge, GameState.resourceLimits.knowledge);
+        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability);
+        
+        const systemBalance = document.getElementById('system-balance');
+        if (systemBalance) {
+            // Determine world state description
+            let worldStateDesc = "";
+            if (GameState.worldEvolution.globalChaos > 0.8) {
+                worldStateDesc = "Primordial Chaos";
+            } else if (GameState.worldEvolution.globalChaos > 0.6) {
+                worldStateDesc = "Emerging Patterns";
+            } else if (GameState.worldEvolution.globalChaos > 0.4) {
+                worldStateDesc = "Balanced Forces";
+            } else if (GameState.worldEvolution.globalChaos > 0.2) {
+                worldStateDesc = "Ordered Systems";
+            } else {
+                worldStateDesc = "Harmonious Order";
+            }
+            
+            const chaosPercent = (GameState.worldEvolution.globalChaos * 100).toFixed(0);
+            const orderPercent = (GameState.worldEvolution.globalOrder * 100).toFixed(0);
+            const worldAge = GameState.worldEvolution.age;
+            
+            systemBalance.innerHTML = `
+                <span class="world-state">${worldStateDesc}</span> | 
+                <span class="world-age">Age: ${worldAge}</span> | 
+                <span class="world-balance">${chaosPercent}% Chaos / ${orderPercent}% Order</span>
+            `;
+        }
+        
+        // Update local variables for compatibility
+        window.turnCount = GameState.player.turnCount;
+        window.energy = GameState.resources.energy;
+        window.movementPoints = GameState.player.movementPoints;
+        
+        debug("UI updated");
+    } catch (error) {
+        debug("Error updating UI", error.message);
+    }
+}
+
+/**
+ * Updates a resource display
+ * @param {string} resourceType - Type of resource
+ * @param {number} value - Current value
+ * @param {number} max - Maximum value
+ * @param {boolean} animate - Whether to animate the change
+ */
+function updateResourceDisplay(resourceType, value, max, animate = false) {
+    const progressElement = document.getElementById(`${resourceType}-progress`);
+    const valueElement = document.getElementById(`${resourceType}-value`);
+    const textElement = document.getElementById(`${resourceType}-text`);
+    
+    if (!progressElement || !valueElement || !textElement) {
+        return;
+    }
+    
+    // Ensure value is within bounds
+    value = Math.max(0, Math.min(value, max));
+    
+    // Calculate percentage
+    const percentage = (value / max) * 100;
+    
+    // Update value element
+    if (animate) {
+        valueElement.style.transition = 'width 0.3s';
+    } else {
+        valueElement.style.transition = 'none';
+    }
+    
+    valueElement.style.width = `${percentage}%`;
+    
+    // Update text
+    textElement.textContent = `${value}/${max}`;
+}
+
+/**
+ * Updates the statistics window with current metrics
+ */
+function updateStatsWindow() {
+    debug("Updating stats window");
+    
+    try {
+        const safeUpdate = (id, text) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = text;
+            }
+        };
+        
+        // Update recent stats
+        safeUpdate('recent-turns', `Turns: ${GameState.metrics.turnsTaken}`);
+        safeUpdate('recent-senses', `Senses: ${GameState.metrics.sensesMade}`);
+        safeUpdate('recent-pokes', `Pokes: ${GameState.metrics.pokesMade}`);
+        
+        const recentEnergyRatio = GameState.metrics.getEnergyUsageRatio().toFixed(2);
+        safeUpdate('recent-energy-ratio', `Energy Ratio: ${recentEnergyRatio}`);
+        
+        const safestPathLength = 2 * (Math.min(window.rows, window.cols) - 1);
+        const recentEfficiency = GameState.metrics.getMovementEfficiency(safestPathLength).toFixed(2);
+        safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
+        
+        // Update general stats
+        safeUpdate('general-turns', `Total Turns: ${GameState.progress.totalTurns || 0}`);
+        safeUpdate('general-senses', `Total Senses: ${GameState.progress.sensesMade || 0}`);
+        safeUpdate('general-pokes', `Total Pokes: ${GameState.progress.pokesMade || 0}`);
+        safeUpdate('general-energy-ratio', `Energy Ratio: N/A`);
+        safeUpdate('general-efficiency', `Efficiency: N/A`);
+        
+        debug("Stats window updated");
+    } catch (error) {
+        debug("Error updating stats window", error.message);
+    }
+}
+
+/**
+ * Updates visible tiles based on player's vision range
+ * Clears fog of war permanently for explored tiles
+ */
+function updateVision() {
+    debug("Updating vision");
+    
+    try {
+        // Default vision range is 1
+        let visionRange = 1;
+        
+        // Apply Enhanced Vision trait if active
+        if (GameState.evolution && GameState.evolution.activeTraits) {
+            if (GameState.evolution.activeTraits.some(trait => trait.effect === 'vision_range_+1')) {
+                visionRange += 1;
+                debug("Enhanced vision trait active, range increased to 2");
+            }
+        }
+        
+        const visibleTiles = getTilesInRange(window.currentRow, window.currentCol, visionRange);
+        debug(`Found ${visibleTiles.length} tiles in vision range`);
+        
+        document.querySelectorAll('.hex-container').forEach(container => {
+            const row = parseInt(container.getAttribute('data-row'));
+            const col = parseInt(container.getAttribute('data-col'));
+            
+            // Check if this tile is visible
+            const isVisible = visibleTiles.some(t => t.row === row && t.col === col);
+            
+            if (isVisible) {
+                // Remove unexplored class if visible
+                container.classList.remove('unexplored');
+                
+                // Mark as explored in data
+                if (window.tileData && window.tileData[row] && window.tileData[row][col]) {
+                    window.tileData[row][col].explored = true;
+                }
+            }
+        });
+        
+        debug("Vision updated");
+    } catch (error) {
+        debug("Error updating vision", error.message);
+    }
+}
+
+/**
+ * Gets adjacent tiles for a given position
+ * @param {number} row - Row position
+ * @param {number} col - Column position
+ * @returns {Array} Array of adjacent tile positions
+ */
+function getAdjacentTiles(row, col) {
+    const adjacentTiles = [];
+    
+    // Check all six adjacent hexes
+    const directions = [
+        [-1, 0],  // Up
+        [-1, 1],  // Up-Right
+        [0, 1],   // Right
+        [1, 0],   // Down
+        [1, -1],  // Down-Left
+        [0, -1]   // Left
+    ];
+    
+    for (const [dr, dc] of directions) {
+        const newRow = row + dr;
+        const newCol = col + dc;
+        
+        // Check if the new position is within bounds
+        if (newRow >= 0 && newRow < window.rows && newCol >= 0 && newCol < window.cols) {
+            adjacentTiles.push([newRow, newCol]);
+        }
+    }
+    
+    return adjacentTiles;
+}
+
+/**
+ * Shows a notification to the player
+ * @param {string} message - The message to display
+ */
+function showNotification(message) {
+    debug(`Showing notification: ${message}`);
+    
+    const notification = document.getElementById('notification');
+    if (notification) {
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    } else {
+        debug("Notification element not found");
+    }
+}
