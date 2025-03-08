@@ -1348,6 +1348,7 @@ const MetricsTracker = {
 
 let victoryScreenContent = '';
 
+// Initialize the game when the document is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
@@ -2375,24 +2376,43 @@ function startGame() {
  * Updates all UI elements with current game state
  */
 function updateUI() {
+    console.log("Updating UI...");
+    
+    // Get UI element references
+    const turnDisplay = document.getElementById('turn-counter');
+    const statsDisplay = document.getElementById('stats-display');
+    const traitsDisplay = document.getElementById('traits-display');
+    const tempInventoryDisplay = document.getElementById('temp-inventory-display');
+    const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
+    
     if (turnDisplay) {
         turnDisplay.textContent = `Turns: ${GameState.player.turnCount}`;
+    } else {
+        console.warn("Turn counter element not found");
     }
     
     if (statsDisplay) {
         statsDisplay.textContent = `Moves: ${GameState.progress.stats.movementRange} | Luck: ${GameState.progress.stats.luck} | XP: ${GameState.progress.xp}`;
+    } else {
+        console.warn("Stats display element not found");
     }
     
     if (traitsDisplay) {
         traitsDisplay.textContent = `Traits: ${GameState.progress.traits.length > 0 ? GameState.progress.traits.join(', ') : 'None'}`;
+    } else {
+        console.warn("Traits display element not found");
     }
     
     if (tempInventoryDisplay) {
         tempInventoryDisplay.textContent = `Level Items: ${GameState.level.temporaryInventory.length > 0 ? GameState.level.temporaryInventory.join(', ') : 'None'}`;
+    } else {
+        console.warn("Temporary inventory display element not found");
     }
     
     if (persistentInventoryDisplay) {
         persistentInventoryDisplay.textContent = `Persistent Items: ${GameState.progress.persistentInventory.length > 0 ? GameState.progress.persistentInventory.join(', ') : 'None'}`;
+    } else {
+        console.warn("Persistent inventory display element not found");
     }
     
     // Update resource displays
@@ -2426,12 +2446,16 @@ function updateUI() {
             <span class="world-age">Age: ${worldAge}</span> | 
             <span class="world-balance">${chaosPercent}% Chaos / ${orderPercent}% Order</span>
         `;
+    } else {
+        console.warn("System balance element not found");
     }
     
     // Update local variables for compatibility
-    turnCount = GameState.player.turnCount;
-    energy = GameState.player.energy;
-    movementPoints = GameState.player.movementPoints;
+    window.turnCount = GameState.player.turnCount;
+    window.energy = GameState.resources.energy;
+    window.movementPoints = GameState.player.movementPoints;
+    
+    console.log("UI updated");
 }
 
 /**
