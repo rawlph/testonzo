@@ -1352,244 +1352,6 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
-    // Add CSS styles for hex grid and action bar
-    const style = document.createElement('style');
-    style.textContent = `
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #111;
-            color: #eee;
-        }
-        
-        .game-container {
-            position: relative;
-            width: 100%;
-            height: 80vh;
-            margin: 0 auto;
-            padding-top: 20px;
-            overflow: hidden;
-        }
-        
-        .hex-grid {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            margin: 0 auto;
-            transform-origin: center center;
-        }
-        
-        .hex-container {
-            position: absolute;
-            width: 100px;
-            height: 115px;
-            transform-origin: center center;
-            transition: transform 0.2s ease;
-            z-index: 1;
-        }
-        
-        .hex {
-            position: absolute;
-            width: 100px;
-            height: 115px;
-            background-color: #2c3e50;
-            /* Pointy-top hexagon */
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            transition: background-color 0.3s ease;
-            opacity: 0.9;
-        }
-        
-        .hex-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
-            text-shadow: 1px 1px 2px black;
-            z-index: 2;
-        }
-        
-        .normal-tile .hex {
-            background-color: #3498db;
-        }
-        
-        .water-tile .hex {
-            background-color: #1abc9c;
-        }
-        
-        .energy-tile .hex {
-            background-color: #f1c40f;
-        }
-        
-        .blocked-tile .hex {
-            background-color: #7f8c8d;
-        }
-        
-        .goal-tile .hex {
-            background-color: #2ecc71;
-        }
-        
-        .unexplored {
-            opacity: 0.4;
-        }
-        
-        .explored {
-            opacity: 1;
-        }
-        
-        .sensed {
-            opacity: 1;
-        }
-        
-        .stabilized .hex {
-            box-shadow: 0 0 10px 5px rgba(255, 215, 0, 0.7);
-        }
-        
-        .player-position::after {
-            content: '👤';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            z-index: 3;
-        }
-        
-        .zoe-indicator, .key-indicator, .goal-indicator {
-            position: absolute;
-            font-size: 20px;
-            top: 40%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2;
-        }
-        
-        .top-action-console {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            box-shadow: 0 0 15px rgba(0, 100, 255, 0.7);
-        }
-        
-        .action-console {
-            display: none !important; /* Hide the bottom action console */
-        }
-        
-        .top-action-console button {
-            padding: 8px 16px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
-            transition: all 0.2s;
-        }
-        
-        .top-action-console button:hover {
-            background-color: #2980b9;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 1);
-            transform: translateY(-2px);
-        }
-        
-        .highlight {
-            animation: pulse 1.5s infinite;
-            cursor: pointer;
-            z-index: 10;
-        }
-        
-        .move-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(60, 60, 200, 0.7);
-        }
-        
-        .sense-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(60, 200, 60, 0.7);
-        }
-        
-        .poke-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(200, 60, 60, 0.7);
-        }
-        
-        .stabilize-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(200, 200, 60, 0.7);
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
-        }
-        
-        .action-result {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-            text-align: center;
-            font-size: 16px;
-            max-width: 80%;
-        }
-        
-        #current-action {
-            top: 60px;
-            background-color: rgba(60, 60, 200, 0.8);
-        }
-        
-        #sense-result {
-            background-color: rgba(60, 200, 60, 0.8);
-        }
-        
-        #poke-result {
-            background-color: rgba(200, 60, 60, 0.8);
-        }
-        
-        #stabilize-result {
-            background-color: rgba(200, 200, 60, 0.8);
-        }
-        
-        .window {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 1000;
-            min-width: 300px;
-            max-width: 80%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-        }
-    `;
-    document.head.appendChild(style);
-    
     // Attach event listeners for UI elements
     const statsBtn = document.getElementById('stats-btn');
     if (statsBtn) {
@@ -1722,123 +1484,128 @@ document.addEventListener('DOMContentLoaded', () => {
  * Creates particle effects in the game background
  * @param {number} count - Number of particles to create
  */
-function createParticles(count) {
-    const container = document.createElement('div');
-    container.classList.add('particle-container');
-    document.body.appendChild(container);
-    for (let i = 0; i < count; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.animationDuration = `${5 + Math.random() * 8}s`;
-        particle.style.animationDelay = `${Math.random() * 5}s`;
-        container.appendChild(particle);
+    function createParticles(count) {
+        const container = document.createElement('div');
+        container.classList.add('particle-container');
+        document.body.appendChild(container);
+        for (let i = 0; i < count; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.animationDuration = `${5 + Math.random() * 8}s`;
+            particle.style.animationDelay = `${Math.random() * 5}s`;
+            container.appendChild(particle);
+        }
     }
-}
 
 /**
- * Highlights tiles based on the selected action
- * @param {string} action - The action type ('move', 'sense', 'poke', 'stabilize')
+ * Highlights tiles that can be interacted with based on the current action
+ * @param {string} action - The action to highlight tiles for ('move', 'sense', 'poke', 'stabilize')
  */
-function highlightTiles(action) {
-    console.log(`Highlighting tiles for action: ${action}`);
-    
-    // Clear any existing highlights
-    const highlightedTiles = document.querySelectorAll('.hex-container.highlight');
-    highlightedTiles.forEach(tile => {
-        tile.classList.remove('highlight', 'move-highlight', 'sense-highlight', 'poke-highlight', 'stabilize-highlight');
+    function highlightTiles(action) {
+        console.log(`Highlighting tiles for action: ${action}`);
         
-        // Remove previous click event listeners
-        const newTile = tile.cloneNode(true);
-        tile.parentNode.replaceChild(newTile, tile);
-    });
-    
-    // If action is null, undefined, or empty, just clear highlights and return
-    if (!action) {
-        // Update UI to show no current action
-        const actionText = document.getElementById('current-action');
-        if (actionText) {
-            actionText.textContent = 'Current Action: None';
+        // Clear previous highlights
+        document.querySelectorAll('.highlighted').forEach(el => {
+            el.classList.remove('highlighted');
+        });
+        
+        // Update current action
+        window.currentAction = action;
+        GameState.player.currentAction = action;
+        
+        // Get the player's current position
+        const currentRow = window.currentRow;
+        const currentCol = window.currentCol;
+        
+        console.log(`Player position: [${currentRow}, ${currentCol}]`);
+        
+        // Get range based on action
+        let range = 1; // Default range
+        
+        if (action === 'move') {
+            // For move, range is based on movement range stat
+            range = GameState.progress.stats.movementRange || 1;
+            console.log(`Movement range: ${range}`);
+        } else if (action === 'sense' || action === 'poke' || action === 'stabilize') {
+            // These actions typically have a range of 1
+            range = 1;
         }
         
-        // Reset current action
-        window.currentAction = '';
-        GameState.player.currentAction = '';
+        // Get tiles within range
+        const tilesInRange = getTilesInRange(currentRow, currentCol, range);
+        console.log(`Found ${tilesInRange.length} tiles in range`);
         
-        return;
-    }
-    
-    // Update UI to show current action
-    const actionText = document.getElementById('current-action');
-    if (actionText) {
-        actionText.textContent = `Current Action: ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-    }
-    
-    // Store the current action in the window and GameState
-    window.currentAction = action;
-    GameState.player.currentAction = action;
-    
-    // Get tiles that can be interacted with based on the action
-    let tilesInRange = [];
-    
-    if (action === 'move') {
-        // For move, highlight adjacent tiles
-        tilesInRange = getAdjacentTiles(window.currentRow, window.currentCol);
-    } else if (action === 'sense' || action === 'poke' || action === 'stabilize') {
-        // For sense/poke/stabilize, use a range of 1
-        tilesInRange = getTilesInRange(window.currentRow, window.currentCol, 1);
-    }
-    
-    console.log(`Found ${tilesInRange.length} tiles in range for ${action}`, tilesInRange);
-    
-    // Highlight the tiles and add click event listeners
-    tilesInRange.forEach(pos => {
-        // Ensure pos is an array with row and col
-        if (!Array.isArray(pos)) {
-            console.warn(`Invalid tile position: ${pos}`);
-            return;
-        }
-        
-        const row = pos[0];
-        const col = pos[1];
-        const hexId = `hex-${row}-${col}`;
-        const hexElement = document.getElementById(hexId);
-        
-        if (hexElement) {
-            // Check if tileData exists for this position
-            if (!window.tileData || !window.tileData[row] || !window.tileData[row][col]) {
-                console.warn(`No tile data for position [${row}, ${col}]`);
+        // Highlight each tile based on action type
+        tilesInRange.forEach(pos => {
+            const [row, col] = pos;
+            const tileId = `hex-${row}-${col}`;
+            const tileElement = document.getElementById(tileId);
+            
+            if (!tileElement) {
+                console.warn(`Tile element not found: ${tileId}`);
                 return;
             }
             
-            const tileData = window.tileData[row][col];
+            // Check if this is a valid tile for the action
+            let isValidTile = false;
             
-            // For move action, only highlight if the tile is not blocked
-            if (action === 'move' && tileData.type === 'blocked') {
-                console.log(`Tile [${row}, ${col}] is blocked, not highlighting for move`);
-                return;
+            if (action === 'move') {
+                // Can move to tiles that aren't blocked and aren't occupied by the player
+                const tileType = window.tileData[row][col].type;
+                isValidTile = tileType !== 'blocked' && !(row === currentRow && col === currentCol);
+            } else if (action === 'sense') {
+                // Can sense any adjacent tile
+                isValidTile = !(row === currentRow && col === currentCol);
+            } else if (action === 'poke') {
+                // Can poke any adjacent tile that isn't already stable
+                const stability = window.tileData[row][col].stability || 0;
+                isValidTile = stability < 1 && !(row === currentRow && col === currentCol);
+            } else if (action === 'stabilize') {
+                // Can stabilize the current tile
+                isValidTile = (row === currentRow && col === currentCol);
             }
             
-            // Add appropriate highlight class
-            hexElement.classList.add('highlight', `${action}-highlight`);
-            
-            // Add click event listener for the action
-            hexElement.addEventListener('click', function() {
-                performAction(action, row, col);
-            });
-            
-            console.log(`Highlighted tile [${row}, ${col}] for ${action}`);
-        } else {
-            console.warn(`Element with ID ${hexId} not found`);
-        }
-    });
-}
+            // Add highlight if valid
+            if (isValidTile) {
+                tileElement.classList.add('highlighted');
+                
+                // Add click event for the highlighted tile
+                tileElement.addEventListener('click', function onTileClick() {
+                    console.log(`Clicked on tile: ${tileId} for action: ${action}`);
+                    
+                    // Remove highlight and click event after action
+                    document.querySelectorAll('.highlighted').forEach(el => {
+                        el.classList.remove('highlighted');
+                        el.removeEventListener('click', onTileClick);
+                    });
+                    
+                    // Perform the action
+                    if (action === 'move') {
+                        moveToTile(row, col);
+                    } else if (action === 'sense') {
+                        senseTile(row, col);
+                    } else if (action === 'poke') {
+                        pokeTile(row, col);
+                    } else if (action === 'stabilize') {
+                        stabilizeTile(row, col);
+                    }
+                    
+                    // Reset current action
+                    window.currentAction = null;
+                    GameState.player.currentAction = null;
+                });
+            }
+        });
+        
+        console.log(`Highlighted ${document.querySelectorAll('.highlighted').length} tiles`);
+    }
 
 /**
  * Updates visible tiles based on player's vision range
  * Clears fog of war permanently for explored tiles
  */
-function updateVision() {
+    function updateVision() {
     // Default vision range is 1
     let visionRange = 1;
     
@@ -1848,431 +1615,295 @@ function updateVision() {
     }
     
     const visibleTiles = getTilesInRange(window.currentRow, window.currentCol, visionRange);
-    
-    document.querySelectorAll('.hex-container').forEach(container => {
-        const row = parseInt(container.getAttribute('data-row'));
-        const col = parseInt(container.getAttribute('data-col'));
+
+        document.querySelectorAll('.hex-container').forEach(container => {
+            const row = parseInt(container.getAttribute('data-row'));
+            const col = parseInt(container.getAttribute('data-col'));
         
         // Check if this tile is visible
         const isVisible = visibleTiles.some(t => t.row === row && t.col === col);
         
         if (isVisible) {
             // Remove unexplored class if visible
-            container.classList.remove('unexplored');
+                container.classList.remove('unexplored');
             
             // Mark as explored in data
             if (window.tileData && window.tileData[row] && window.tileData[row][col]) {
                 window.tileData[row][col].explored = true;
             }
-        }
-    });
-}
+            }
+        });
+    }
 
 /**
- * Returns all tiles within a specified range of the given position
- * @param {number} row - The row of the center tile
- * @param {number} col - The column of the center tile
- * @param {number} range - The maximum range from the center tile
- * @returns {Array} Array of positions [row, col] within range
+ * Gets all tiles within a specified range from a position
+ * @param {number} row - Starting row
+ * @param {number} col - Starting column
+ * @param {number} range - Vision range
+ * @returns {Array} Array of tile positions within range
  */
-function getTilesInRange(row, col, range) {
-    console.log(`Getting tiles in range ${range} from [${row}, ${col}]`);
+    function getTilesInRange(row, col, range) {
+        const tiles = [];
+    const rows = window.rows;
+    const cols = window.cols;
     
-    const tiles = [];
-    const totalRows = window.rows;
-    const totalCols = window.cols;
-    
-    // Check all potential tile positions in a square area
-    for (let r = Math.max(0, row - range); r <= Math.min(totalRows - 1, row + range); r++) {
-        for (let c = Math.max(0, col - range); c <= Math.min(totalCols - 1, col + range); c++) {
-            // Calculate Manhattan distance (simplified for hexagonal grid)
-            // For a true hex grid, we'd need a more complex distance calculation
-            const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
-            
-            // If within range, add to tiles array
-            if (distance <= range) {
-                tiles.push([r, c]);
+        for (let r = Math.max(0, row - range); r <= Math.min(rows - 1, row + range); r++) {
+            for (let c = Math.max(0, col - range); c <= Math.min(cols - 1, col + range); c++) {
+                const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
+                if (distance <= range) tiles.push({ row: r, col: c });
             }
         }
+        return tiles;
     }
-    
-    console.log(`Found ${tiles.length} tiles in range:`, tiles);
-    return tiles;
-}
 
 /**
- * Creates tile data for the grid
+ * Creates the initial tile data structure
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
  * @returns {Array} 2D array of tile data
  */
-function createTileData(rows, cols) {
+    function createTileData(rows, cols) {
     console.log(`Creating tile data: ${rows}x${cols}`);
     
-    // Safety check
-    if (!rows || !cols || rows <= 0 || cols <= 0) {
-        console.error(`Invalid grid dimensions: ${rows}x${cols}`);
-        // Use default values if invalid
-        rows = 5;
-        cols = 5;
-    }
+        const tileData = [];
+    const globalChaos = GameState.worldEvolution.globalChaos;
+    const variance = GameState.worldEvolution.tileVariance;
     
-    // Create world parameters
-    const globalChaos = GameState.worldEvolution.globalChaos || 0.8; // High chaos by default
-    const chaosVariance = 0.2; // Amount of random variation
+    console.log(`Global chaos: ${globalChaos}, Variance: ${variance}`);
     
-    console.log(`Global chaos: ${globalChaos}, Variance: ${chaosVariance}`);
-    
-    // Create empty 2D array
-    const tileData = [];
-    
-    for (let row = 0; row < rows; row++) {
-        tileData[row] = [];
-        
-        for (let col = 0; col < cols; col++) {
-            // Calculate base chaos value
-            let chaos = globalChaos;
+        for (let row = 0; row < rows; row++) {
+            tileData[row] = [];
+            for (let col = 0; col < cols; col++) {
+            // Calculate chaos level with some variance
+            // More variance at the edges of the grid (representing frontier areas)
+            const edgeFactor = Math.max(
+                Math.abs(row / rows - 0.5) * 2,
+                Math.abs(col / cols - 0.5) * 2
+            );
+            const extraVariance = edgeFactor * variance * 0.5;
             
-            // Add random variation
-            chaos += (Math.random() * chaosVariance * 2 - chaosVariance);
+            // Generate chaos value with variance
+            let chaos = globalChaos + (Math.random() * 2 - 1) * (variance + extraVariance);
             
-            // Ensure chaos is between 0 and 1
-            chaos = Math.max(0, Math.min(1, chaos));
+            // Ensure chaos stays within 0-1 range
+            chaos = Math.max(0.1, Math.min(0.9, chaos));
             
-            // Determine tile type based on chaos value
-            const tileType = GameState.determineTileType(chaos);
+            // Create special pockets of order/chaos
+            if (Math.random() < 0.1) {
+                // 10% chance of a special pocket
+                if (Math.random() < 0.5) {
+                    // Order pocket
+                    chaos = Math.max(0.1, chaos - 0.3);
+                } else {
+                    // Chaos pocket
+                    chaos = Math.min(0.9, chaos + 0.3);
+                }
+            }
             
-            // Create tile data
-            tileData[row][col] = {
-                row: row,
-                col: col,
-                type: tileType,
+                tileData[row][col] = {
+                type: 'normal', // Will be set in placeTiles
+                    effects: [],
+                    state: 'active',
+                    explored: false,
                 chaos: chaos,
-                explored: false,
-                sensed: false,
-                hasZoe: false,
-                hasKey: false,
-                isGoal: false
-            };
+                order: 1 - chaos
+                };
+            }
         }
-    }
     
     console.log(`Tile data created with ${rows * cols} tiles`);
-    return tileData;
-}
+        return tileData;
+    }
 
 /**
  * Gets positions that are not part of the main path
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
- * @returns {Array} Array of positions [row, col] not on the main path
+ * @returns {Array} Array of positions not on the main path
  */
-function getNonPathPositions(rows, cols) {
-    console.log(`Getting non-path positions for ${rows}x${cols} grid`);
-    
-    // Define the main path positions (approximate)
-    const startRow = Math.floor(rows / 2);
-    const startCol = Math.floor(cols / 2);
-    const goalRow = rows - 1;
-    const goalCol = cols - 1;
-    
-    const nonPathPositions = [];
-    
-    // Find positions that are not on the main path
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            // Skip the start and goal positions
-            if ((r === startRow && c === startCol) || (r === goalRow && c === goalCol)) {
-                continue;
-            }
-            
-            // Skip positions that are likely on the main path (diagonal)
-            // This is a simplified approximation
-            const isOnMainPath = Math.abs(r - startRow) === Math.abs(c - startCol) &&
-                                r >= Math.min(startRow, goalRow) && r <= Math.max(startRow, goalRow) &&
-                                c >= Math.min(startCol, goalCol) && c <= Math.max(startCol, goalCol);
-            
-            if (!isOnMainPath) {
-                nonPathPositions.push([r, c]);
+    function getNonPathPositions(rows, cols) {
+        const path = [];
+        for (let col = 0; col < cols; col++) path.push({ row: 0, col });
+        for (let row = 1; row < rows; row++) path.push({ row, col: cols - 1 });
+
+        const nonPathPositions = [];
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const isPath = path.some(p => p.row === row && p.col === col);
+                const isStartOrGoal = (row === 0 && col === 0) || (row === rows - 1 && col === cols - 1);
+                if (!isPath && !isStartOrGoal) {
+                    nonPathPositions.push({ row, col });
+                }
             }
         }
+        return nonPathPositions;
     }
-    
-    console.log(`Found ${nonPathPositions.length} non-path positions`);
-    return nonPathPositions;
-}
 
 /**
- * Places tiles on the grid based on the generated tile data
- * @param {Array} tileData - The 2D array of tile data
+ * Places different tile types on the grid
+ * @param {Array} tileData - 2D array of tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
  */
-function placeTiles(tileData, rows, cols) {
+    function placeTiles(tileData, rows, cols) {
     console.log(`Placing tiles on ${rows}x${cols} grid`);
     
-    // Safety check
-    if (!tileData || !Array.isArray(tileData) || tileData.length === 0) {
-        console.error('Invalid tileData in placeTiles:', tileData);
-        return;
-    }
+    // Always set the goal tile
+        tileData[rows - 1][cols - 1].type = 'goal';
+    console.log(`Goal tile set at [${rows - 1}, ${cols - 1}]`);
     
-    // Set the goal tile at the bottom right
-    const goalRow = rows - 1;
-    const goalCol = cols - 1;
-    
-    if (tileData[goalRow] && tileData[goalRow][goalCol]) {
-        tileData[goalRow][goalCol].type = 'goal';
-        tileData[goalRow][goalCol].isGoal = true;
-        tileData[goalRow][goalCol].chaos = 0.2; // Goal tiles are more ordered
-        console.log(`Goal tile set at [${goalRow}, ${goalCol}]`);
-    } else {
-        console.error(`Cannot set goal tile at [${goalRow}, ${goalCol}], position is invalid`);
-    }
-    
-    // Set the start position (Zoe's position) to normal type, always traversable
-    const zoeRow = Math.floor(rows / 2);
-    const zoeCol = Math.floor(cols / 2);
-    
-    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
-        tileData[zoeRow][zoeCol].type = 'normal'; // Ensure it's not blocked
-        tileData[zoeRow][zoeCol].hasZoe = true;
-        tileData[zoeRow][zoeCol].explored = true; // It's already explored
-        console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
-    } else {
-        console.error(`Cannot place Zoe at [${zoeRow}, ${zoeCol}], position is invalid`);
-    }
-    
-    // Get positions for special tiles (excluding start and goal positions)
-    const nonPathPositions = getNonPathPositions(rows, cols);
+    // Get non-path positions
+        let nonPathPositions = getNonPathPositions(rows, cols);
     console.log(`Got ${nonPathPositions.length} non-path positions`);
     
-    if (nonPathPositions.length === 0) {
-        console.warn('No positions available for special tiles');
-        return;
-    }
-    
-    // Shuffle the remaining positions
-    const shuffledPositions = [...nonPathPositions].sort(() => Math.random() - 0.5);
-    
-    // Place the key at a random position
-    if (shuffledPositions.length > 0) {
-        const [keyRow, keyCol] = shuffledPositions.pop();
-        if (tileData[keyRow] && tileData[keyRow][keyCol]) {
-            tileData[keyRow][keyCol].hasKey = true;
-            // Ensure the key position is not blocked
-            if (tileData[keyRow][keyCol].type === 'blocked') {
-                tileData[keyRow][keyCol].type = 'normal';
-            }
-            console.log(`Key placed at [${keyRow}, ${keyCol}]`);
-        } else {
-            console.error(`Cannot place key at [${keyRow}, ${keyCol}], position is invalid`);
+    // Shuffle non-path positions
+        for (let i = nonPathPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
         }
+
+    // Place Zoe if not found yet
+    if (!GameState.progress.hasFoundZoe) {
+            const zoeRow = 2;
+            const zoeCol = 2;
+            tileData[zoeRow][zoeCol].type = 'zoe';
+        console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
+            nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
+        }
+
+    // Place a key
+        if (nonPathPositions.length > 0) {
+        const keyPos = nonPathPositions.shift();
+        tileData[keyPos.row][keyPos.col].type = 'key';
+        console.log(`Key placed at [${keyPos.row}, ${keyPos.col}]`);
     }
     
-    // Place some blocked tiles, water tiles, and energy tiles
+    // Determine tile types based on chaos levels
     let blockedCount = 0;
     let waterCount = 0;
     let energyCount = 0;
     
-    shuffledPositions.forEach(([r, c]) => {
-        if (!tileData[r] || !tileData[r][c]) {
-            console.warn(`Invalid position [${r}, ${c}] in shuffledPositions`);
-            return;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            // Skip already assigned tiles (goal, zoe, key)
+            if (tileData[row][col].type !== 'normal') {
+                continue;
+            }
+            
+            // Skip the start position
+            if (row === 0 && col === 0) {
+                continue;
+            }
+            
+            // Determine tile type based on chaos level
+            const chaos = tileData[row][col].chaos;
+            const tileType = GameState.determineTileType(chaos);
+            tileData[row][col].type = tileType;
+            
+            // Count tile types
+            if (tileType === 'blocked') blockedCount++;
+            if (tileType === 'water') waterCount++;
+            if (tileType === 'energy') energyCount++;
         }
-        
-        // Skip positions already assigned (Zoe, key, goal)
-        if (tileData[r][c].hasZoe || tileData[r][c].hasKey || tileData[r][c].isGoal) {
-            return;
-        }
-        
-        const chance = Math.random();
-        
-        if (chance < 0.5 && blockedCount < Math.floor(rows * cols * 0.2)) {
-            tileData[r][c].type = 'blocked';
-            blockedCount++;
-        } else if (chance < 0.7 && waterCount < Math.floor(rows * cols * 0.1)) {
-            tileData[r][c].type = 'water';
-            waterCount++;
-        } else if (chance < 0.8 && energyCount < Math.floor(rows * cols * 0.05)) {
-            tileData[r][c].type = 'energy';
-            energyCount++;
-        } else {
-            tileData[r][c].type = 'normal';
-        }
-    });
+    }
     
     console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
     
     // Ensure there is a traversable path from start to goal
-    if (!ensureTraversablePath(tileData, rows, cols)) {
-        console.warn("Could not create traversable path, clearing blocked tiles on a direct path");
-        createDirectPath(tileData, zoeRow, zoeCol, goalRow, goalCol);
-    }
+    ensureTraversablePath(tileData, rows, cols);
+    console.log("Ensured traversable path");
 }
 
 /**
  * Ensures there is a traversable path from start to goal
- * @param {Array} tileData - The 2D array of tile data
+ * @param {Array} tileData - 2D array of tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
- * @returns {boolean} Whether a path was ensured
  */
 function ensureTraversablePath(tileData, rows, cols) {
-    console.log(`Ensuring traversable path in ${rows}x${cols} grid`);
+    // Define a guaranteed path from start to goal
+    // This path will follow the top row and then the rightmost column
+    const guaranteedPath = [];
     
-    // Safety checks
-    if (!tileData) {
-        console.error('tileData is undefined in ensureTraversablePath');
-        return false;
+    // Add top row to path
+    for (let col = 0; col < cols; col++) {
+        guaranteedPath.push({ row: 0, col });
     }
     
-    // Find start and goal positions
-    const startRow = Math.floor(rows / 2);
-    const startCol = Math.floor(cols / 2);
-    const goalRow = rows - 1;
-    const goalCol = cols - 1;
-    
-    // Verify current path
-    if (verifyPath(tileData, startRow, startCol, goalRow, goalCol)) {
-        console.log('Path already exists, no changes needed');
-        return true;
+    // Add rightmost column to path (excluding the top-right corner which is already included)
+    for (let row = 1; row < rows; row++) {
+        guaranteedPath.push({ row, col: cols - 1 });
     }
     
-    console.log('No path exists, creating direct path');
+    // Clear any blocked tiles along the guaranteed path
+    guaranteedPath.forEach(pos => {
+        if (tileData[pos.row][pos.col].type === 'blocked' || tileData[pos.row][pos.col].type === 'water') {
+            tileData[pos.row][pos.col].type = 'normal';
+            
+            // Also adjust chaos/order levels to be more favorable
+            tileData[pos.row][pos.col].chaos = Math.min(tileData[pos.row][pos.col].chaos, 0.6);
+            tileData[pos.row][pos.col].order = 1 - tileData[pos.row][pos.col].chaos;
+        }
+    });
     
-    // Create a direct path
-    createDirectPath(tileData, startRow, startCol, goalRow, goalCol);
+    // Verify path using pathfinding
+    const pathExists = verifyPath(tileData, 0, 0, rows - 1, cols - 1);
     
-    // Verify the path again
-    if (verifyPath(tileData, startRow, startCol, goalRow, goalCol)) {
-        console.log('Successfully created a path');
-        return true;
-    } else {
-        console.warn('Failed to create a traversable path');
-        return false;
+    // If no path exists (which shouldn't happen with our guaranteed path, but just in case),
+    // create a direct path
+    if (!pathExists) {
+        console.warn("Path verification failed, creating direct path");
+        createDirectPath(tileData, 0, 0, rows - 1, cols - 1);
     }
 }
 
 /**
- * Verifies if there is a traversable path from start to goal
- * @param {Array} tileData - The 2D array of tile data
- * @param {number} startRow - The row of the start position
- * @param {number} startCol - The column of the start position
- * @param {number} goalRow - The row of the goal position
- * @param {number} goalCol - The column of the goal position
+ * Verifies if a path exists from start to goal using breadth-first search
+ * @param {Array} tileData - 2D array of tile data
+ * @param {number} startRow - Starting row
+ * @param {number} startCol - Starting column
+ * @param {number} goalRow - Goal row
+ * @param {number} goalCol - Goal column
  * @returns {boolean} Whether a path exists
  */
 function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
-    console.log(`Verifying path from [${startRow}, ${startCol}] to [${goalRow}, ${goalCol}]`);
-    
-    // Safety checks
-    if (!tileData) {
-        console.error('tileData is undefined in verifyPath');
-        return false;
-    }
-    
     const rows = tileData.length;
-    if (rows === 0) {
-        console.error('tileData has no rows in verifyPath');
-        return false;
-    }
-    
     const cols = tileData[0].length;
     
-    // Check if positions are within bounds
-    if (startRow < 0 || startRow >= rows || startCol < 0 || startCol >= cols ||
-        goalRow < 0 || goalRow >= rows || goalCol < 0 || goalCol >= cols) {
-        console.error('Start or goal position out of bounds in verifyPath');
-        return false;
-    }
+    // Create a visited array
+    const visited = Array(rows).fill().map(() => Array(cols).fill(false));
     
-    // Check start position tile data
-    if (!tileData[startRow] || !tileData[startRow][startCol]) {
-        console.error(`Start position [${startRow}, ${startCol}] has no tile data`);
-        return false;
-    }
-
-    // Check goal position tile data
-    if (!tileData[goalRow] || !tileData[goalRow][goalCol]) {
-        console.error(`Goal position [${goalRow}, ${goalCol}] has no tile data`);
-        return false;
-    }
-    
-    // Check if start position is blocked
-    if (tileData[startRow][startCol].type === 'blocked') {
-        console.error('Start position is blocked');
-        // Force the start position to be normal type
-        tileData[startRow][startCol].type = 'normal';
-        console.log('Unblocked the start position');
-    }
-    
-    // Check if goal position is blocked
-    if (tileData[goalRow][goalCol].type === 'blocked') {
-        console.error('Goal position is blocked');
-        // Force the goal position to be goal type
-        tileData[goalRow][goalCol].type = 'goal';
-        console.log('Set the goal position to goal type');
-    }
-    
-    // BFS to find path
-    const queue = [[startRow, startCol]];
-    const visited = {};
-    visited[`${startRow},${startCol}`] = true;
-    
-    // Define directions for hex grid (pointy-top)
-    // For odd columns, the neighbors have a different relative position
-    const getDirections = (row, col) => {
-        if (col % 2 === 0) { // Even column
-            return [
-                [-1, 0],  // Top
-                [-1, 1],  // Top right
-                [0, 1],   // Right
-                [1, 0],   // Bottom
-                [0, -1],  // Left
-                [-1, -1]  // Top left
-            ];
-        } else { // Odd column
-            return [
-                [-1, 0],  // Top
-                [0, 1],   // Top right
-                [1, 1],   // Bottom right
-                [1, 0],   // Bottom
-                [1, -1],  // Bottom left
-                [0, -1]   // Left
-            ];
-        }
-    };
+    // Queue for BFS
+    const queue = [{ row: startRow, col: startCol }];
+    visited[startRow][startCol] = true;
     
     while (queue.length > 0) {
-        const [currentRow, currentCol] = queue.shift();
+        const current = queue.shift();
         
-        // Check if we reached the goal
-        if (currentRow === goalRow && currentCol === goalCol) {
-            console.log('Path found!');
+        // Check if we've reached the goal
+        if (current.row === goalRow && current.col === goalCol) {
             return true;
         }
         
-        // Get appropriate directions based on column parity
-        const directions = getDirections(currentRow, currentCol);
+        // Get adjacent tiles
+        const adjacentTiles = getAdjacentTiles(current.row, current.col);
         
-        // Explore neighbors
-        for (const [dRow, dCol] of directions) {
-            const newRow = currentRow + dRow;
-            const newCol = currentCol + dCol;
-            const key = `${newRow},${newCol}`;
+        // Check each adjacent tile
+        for (const tile of adjacentTiles) {
+            // Skip if already visited
+            if (visited[tile.row][tile.col]) continue;
             
-            // Check if position is valid and unvisited
-            if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols &&
-                !visited[key] && tileData[newRow][newCol].type !== 'blocked') {
-                
-                visited[key] = true;
-                queue.push([newRow, newCol]);
-            }
+            // Skip if blocked or water
+            if (tileData[tile.row][tile.col].type === 'blocked' || 
+                tileData[tile.row][tile.col].type === 'water') continue;
+            
+            // Mark as visited and add to queue
+            visited[tile.row][tile.col] = true;
+            queue.push(tile);
         }
     }
     
-    console.log('No path found');
+    // If we've exhausted the queue without finding the goal, no path exists
     return false;
 }
 
@@ -2314,189 +1945,157 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
 }
 
 /**
- * Builds the hex grid based on the tile data
+ * Builds the visual hex grid based on tile data
  * @param {number} rows - Number of rows in the grid
  * @param {number} cols - Number of columns in the grid
- * @param {Array} tileData - The 2D array of tile data
+ * @param {Array} tileData - 2D array of tile data
  */
-function buildGrid(rows, cols, tileData) {
+    function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
     
-    // Get the grid element
-    const gridElement = document.getElementById('hex-grid');
-    if (!gridElement) {
-        console.error('Hex grid element not found!');
-        return;
-    }
+    // Access grid configuration from window or GameState
+    const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth;
+    const hexHeight = window.hexHeight || GameState.grid.hexHeight;
+    const rowOffset = window.rowOffset || GameState.grid.rowOffset;
+    const colOffset = window.colOffset || GameState.grid.colOffset;
     
-    // Clear the grid
-    gridElement.innerHTML = '';
+    console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
-    // Define hex dimensions for pointy-top orientation
-    const hexWidth = 100;  // Width of a single hex
-    const hexHeight = 115; // Height of a single hex
+        const grid = document.querySelector('.grid');
+        if (!grid) {
+            console.error('Grid element not found in HTML');
+            return;
+        }
     
-    // Calculate offsets for honeycomb pattern
-    const xOffset = hexWidth * 0.75; // Offset for columns (3/4 of width)
-    const yOffset = hexHeight * 0.5; // Offset for odd/even columns (1/2 of height)
+    // Clear existing grid
+        grid.innerHTML = '';
     
-    // Calculate total width and height of the grid
-    const totalWidth = cols * xOffset + (hexWidth / 4);
-    const totalHeight = rows * hexHeight + (hexHeight / 2);
+        const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
+        const totalHeight = (rows - 1) * rowOffset + hexHeight;
+        grid.style.width = `${totalWidth}px`;
+        grid.style.height = `${totalHeight}px`;
+        grid.style.position = 'relative';
     
     console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
-    
-    // Set grid dimensions
-    gridElement.style.width = `${totalWidth}px`;
-    gridElement.style.height = `${totalHeight}px`;
-    
-    // Create hex containers for each tile
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            // Create hex container
-            const hexContainer = document.createElement('div');
-            hexContainer.className = 'hex-container';
-            hexContainer.id = `hex-${row}-${col}`;
+
+        for (let row = 0; row < rows; row++) {
+            const hexRow = document.createElement('div');
+            hexRow.classList.add('hex-row');
+            hexRow.style.position = 'absolute';
+            hexRow.style.top = `${row * rowOffset}px`;
+            hexRow.style.left = '0';
+
+            for (let col = 0; col < cols; col++) {
+                const hexContainer = document.createElement('div');
+                hexContainer.classList.add('hex-container');
+                hexContainer.setAttribute('data-row', row);
+                hexContainer.setAttribute('data-col', col);
             
-            // Safety check for tileData
-            if (!tileData || !tileData[row] || !tileData[row][col]) {
-                console.error(`No tile data for position [${row}, ${col}]`);
-                continue;
+            // Add chaos/order data attributes
+            const chaos = tileData[row][col].chaos;
+            const order = tileData[row][col].order;
+            
+            // Set data attributes for styling
+            if (order > 0.7) {
+                hexContainer.setAttribute('data-order', 'high');
+            } else if (order > 0.5) {
+                hexContainer.setAttribute('data-order', 'medium');
+            } else if (order > 0.3) {
+                hexContainer.setAttribute('data-order', 'low');
+            } else if (chaos > 0.7) {
+                hexContainer.setAttribute('data-chaos', 'high');
+            } else if (chaos > 0.5) {
+                hexContainer.setAttribute('data-chaos', 'medium');
+            }
+
+                const isOddRow = row % 2 === 1;
+                const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
+                const hexLeft = col * colOffset + rowShift;
+
+                hexContainer.style.position = 'absolute';
+                hexContainer.style.left = `${hexLeft}px`;
+                hexContainer.style.top = '0';
+
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', hexVisualWidth);
+                svg.setAttribute('height', hexHeight);
+                svg.setAttribute('viewBox', '0 0 86.6 100');
+                svg.style.overflow = 'visible';
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
+            
+            // Adjust path color based on chaos/order
+            if (order > 0.7) {
+                path.style.fill = '#00ccff';
+                path.style.filter = 'brightness(1.2)';
+            } else if (order > 0.5) {
+                path.style.fill = '#00aa99';
+                path.style.filter = 'brightness(1.1)';
+            } else if (chaos > 0.7) {
+                path.style.fill = '#aa3300';
+                path.style.filter = 'brightness(0.9)';
+            } else if (chaos > 0.5) {
+                path.style.fill = '#884400';
+                path.style.filter = 'brightness(0.95)';
             }
             
-            const tile = tileData[row][col];
+                svg.appendChild(path);
+                hexContainer.appendChild(svg);
+
+                const character = document.createElement('div');
+                character.classList.add('character');
+                hexContainer.appendChild(character);
             
-            // Add tile type class
-            hexContainer.classList.add(`${tile.type}-tile`);
+            // Add a visual indicator of the tile's chaos/order state
+            const stateIndicator = document.createElement('div');
+            stateIndicator.classList.add('tile-state-indicator');
             
-            // Add explored/unexplored class
-            if (tile.explored) {
-                hexContainer.classList.add('explored');
+            if (order > 0.7) {
+                stateIndicator.classList.add('tile-state-order-high');
+            } else if (order > 0.5) {
+                stateIndicator.classList.add('tile-state-order-medium');
+            } else if (chaos > 0.7) {
+                stateIndicator.classList.add('tile-state-chaos-high');
+            } else if (chaos > 0.5) {
+                stateIndicator.classList.add('tile-state-chaos-medium');
             } else {
-                hexContainer.classList.add('unexplored');
+                stateIndicator.classList.add('tile-state-balanced');
             }
             
-            // Calculate position for honeycomb layout (pointy-top)
-            let xPos = col * xOffset;
-            let yPos = row * hexHeight;
-            
-            // Offset even/odd columns
-            if (col % 2 === 1) {
-                yPos += yOffset;
-            }
-            
-            // Position the hex container
-            hexContainer.style.left = `${xPos}px`;
-            hexContainer.style.top = `${yPos}px`;
-            
-            // Create hex shape
-            const hexShape = document.createElement('div');
-            hexShape.className = 'hex';
-            
-            // Adjust chaos/order visual indicator
-            const chaosLevel = tile.chaos || 0.5;
-            const hue = (1 - chaosLevel) * 200 + 200; // Blue (400) for order, Green (200) for balance
-            const saturation = 70 + (Math.abs(chaosLevel - 0.5) * 30); // More saturated at extremes
-            hexShape.style.backgroundColor = `hsl(${hue}, ${saturation}%, 50%)`;
-            
-            // Create indicators for special tiles
-            if (tile.hasZoe) {
-                const zoeIndicator = document.createElement('div');
-                zoeIndicator.className = 'zoe-indicator';
-                zoeIndicator.textContent = '👩‍🚀';
-                hexContainer.appendChild(zoeIndicator);
-            }
-            
-            if (tile.hasKey) {
-                const keyIndicator = document.createElement('div');
-                keyIndicator.className = 'key-indicator';
-                keyIndicator.textContent = '🔑';
-                hexContainer.appendChild(keyIndicator);
-            }
-            
-            if (tile.isGoal) {
-                const goalIndicator = document.createElement('div');
-                goalIndicator.className = 'goal-indicator';
-                goalIndicator.textContent = '🏁';
-                hexContainer.appendChild(goalIndicator);
-            }
-            
-            // Create small coordinate indicator for debugging
-            const hexIndicator = document.createElement('div');
-            hexIndicator.className = 'hex-indicator';
-            hexIndicator.textContent = `${row},${col}`;
-            
-            // Append elements
-            hexContainer.appendChild(hexShape);
-            hexContainer.appendChild(hexIndicator);
-            gridElement.appendChild(hexContainer);
-            
-            // Add click event listener for tile interaction
-            hexContainer.addEventListener('click', function() {
-                console.log(`Clicked on tile [${row}, ${col}], type: ${tile.type}, action: ${window.currentAction || 'none'}`);
-                
-                // If there's a current action, perform it
-                if (window.currentAction && window.currentAction !== '') {
-                    performAction(window.currentAction, row, col);
+            hexContainer.appendChild(stateIndicator);
+
+                const tileType = tileData[row][col].type;
+                hexContainer.classList.add(tileType);
+
+                if (!tileData[row][col].explored) {
+                    hexContainer.classList.add('unexplored');
                 }
-            });
+
+                hexRow.appendChild(hexContainer);
+            }
+            grid.appendChild(hexRow);
         }
-    }
-    
-    // Mark Zoe position as explored
-    const zoeRow = Math.floor(rows / 2);
-    const zoeCol = Math.floor(cols / 2);
-    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
-        tileData[zoeRow][zoeCol].explored = true;
-        tileData[zoeRow][zoeCol].type = 'normal'; // Ensure Zoe's position is not blocked
-    }
-    
-    // Set starting position (where Zoe is)
-    const startRow = Math.floor(rows / 2);
-    const startCol = Math.floor(cols / 2);
-    const startHex = document.getElementById(`hex-${startRow}-${startCol}`);
-    
-    if (startHex) {
-        startHex.classList.add('player-position');
-        startHex.classList.remove('unexplored');
-        startHex.classList.add('explored');
-        
-        // Set current position
-        window.currentRow = startRow;
-        window.currentCol = startCol;
-        GameState.player.currentRow = startRow;
-        GameState.player.currentCol = startCol;
-    } else {
-        console.error(`Start hex not found at [${startRow}, ${startCol}]`);
-    }
-    
-    // Save tile data to window for easy access
-    window.tileData = tileData;
-    
-    // Update vision based on current position
-    updateVision();
     
     console.log(`Grid built with ${rows * cols} tiles`);
-    return gridElement;
-}
+    }
 
 /**
  * Attaches event listeners to the victory screen elements
  */
-function attachVictoryScreenListeners() {
-    const statsWindow = document.getElementById('stats-window');
-    document.getElementById('view-stats-btn').addEventListener('click', () => {
-        restoreStatsWindow();
-        updateStatsWindow();
-        statsWindow.style.display = 'block';
-    });
-    document.getElementById('next-level-btn').addEventListener('click', () => {
-        statsWindow.style.display = 'none';
+    function attachVictoryScreenListeners() {
+        const statsWindow = document.getElementById('stats-window');
+        document.getElementById('view-stats-btn').addEventListener('click', () => {
+            restoreStatsWindow();
+            updateStatsWindow();
+            statsWindow.style.display = 'block';
+        });
+        document.getElementById('next-level-btn').addEventListener('click', () => {
+            statsWindow.style.display = 'none';
         GameState.isActive = true;
-        isGameActive = true;
-        startGame();
-    });
-    document.getElementById('upgrade-btn').addEventListener('click', () => {
+            isGameActive = true;
+            startGame();
+        });
+        document.getElementById('upgrade-btn').addEventListener('click', () => {
         const upgradeCost = 5;
         if (GameState.resources.essence >= upgradeCost) {
             // Consume essence
@@ -2511,7 +2110,7 @@ function attachVictoryScreenListeners() {
             GameState.saveProgress();
             
             // Update UI
-            updateUI();
+                updateUI();
             
             // Show feedback
             alert(`Movement range increased to ${GameState.progress.stats.movementRange}!`);
@@ -2521,9 +2120,9 @@ function attachVictoryScreenListeners() {
             if (upgradeBtn) {
                 upgradeBtn.textContent = `Spend ${Math.min(5, GameState.resources.essence)} Essence: +1 Movement`;
             }
-        } else {
-            alert('Not enough Essence!');
-        }
+            } else {
+                alert('Not enough Essence!');
+            }
     });
     
     // Evolution button
@@ -2542,16 +2141,16 @@ function attachVictoryScreenListeners() {
 /**
  * Ends the current turn and resets movement points
  */
-function endTurn() {
+    function endTurn() {
     if (!GameState.isActive) {
-        console.log("Level complete—cannot end turn!");
-        return;
-    }
+            console.log("Level complete—cannot end turn!");
+            return;
+        }
     
     if (GameState.player.movementPoints > 0) {
-        const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
-        if (!confirmEnd) return;
-    }
+            const confirmEnd = confirm("You still have resources left. Are you sure you want to end your turn?");
+            if (!confirmEnd) return;
+        }
     
     // Reset movement points
     GameState.player.movementPoints = GameState.progress.stats.movementRange;
@@ -2590,369 +2189,333 @@ function endTurn() {
     }
     
     // Update UI
-    updateUI();
-    highlightTiles(null);
+        updateUI();
+        highlightTiles(null);
     
     console.log(`Turn ${GameState.player.turnCount} ended. MP reset to ${GameState.player.movementPoints}.`);
-}
+    }
 
 /**
- * Handles the player resting to regain energy
+ * Allows player to rest to gain energy at the cost of ending turn
  */
-function rest() {
-    console.log('Player resting');
+    function rest() {
+    if (!GameState.isActive) {
+            console.log("Level complete—cannot rest!");
+            return;
+        }
     
-    // Check if game is active
-    if (!window.isGameActive) {
-        console.warn('Cannot rest, game is not active');
-        return;
+    const confirmRest = confirm("This ends the turn and lets you rest to gain energy. Are you sure?");
+        if (confirmRest) {
+        // Calculate energy gain based on stability
+        const stabilityFactor = GameState.resources.stability / 50; // 0.0 to 2.0
+        const baseEnergyGain = GameState.resourceRates.energyPerRest;
+        const energyGain = Math.round(baseEnergyGain * stabilityFactor);
+        
+        // Update resources
+        GameState.updateResource('energy', energyGain);
+        
+        // Stability naturally increases slightly when resting
+        GameState.updateResource('stability', 2);
+        
+        // Update local variables for compatibility
+        energy = GameState.resources.energy;
+        
+        // End movement for this turn
+        GameState.player.movementPoints = 0;
+            movementPoints = 0;
+        
+        // Track metrics
+        GameState.metrics.incrementRests();
+        GameState.recentMetrics.incrementRests();
+        
+        // Show feedback
+        const feedbackMessage = document.getElementById('feedback-message');
+        if (feedbackMessage) {
+            feedbackMessage.textContent = `Rested and gained ${energyGain} energy.`;
+            feedbackMessage.style.display = 'block';
+            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+        }
+        
+        // Update UI with animation
+        updateResourceDisplay('energy', GameState.resources.energy, GameState.resourceLimits.energy, true);
+        updateResourceDisplay('stability', GameState.resources.stability, GameState.resourceLimits.stability, true);
+        
+            endTurn();
+        }
     }
-    
-    // Track the rest action
-    GameState.metrics.incrementRests();
-    
-    // Calculate energy gain (base gain is 5)
-    let energyGain = 5;
-    
-    // Apply trait effects for resting
-    if (GameState.progress.traits.includes('efficient_rest')) {
-        energyGain += 2;
-    }
-    
-    // Update energy
-    GameState.updateResource('energy', energyGain);
-    console.log(`Energy increased by ${energyGain}`);
-    
-    // Clear any current action
-    window.currentAction = '';
-    
-    // Clear highlights
-    highlightTiles('');
-    
-    // End the turn
-    endTurn();
-    
-    // Update UI
-    updateUI();
-}
 
 /**
  * Updates the statistics window with current metrics
  */
-function updateStatsWindow() {
-    const safeUpdate = (id, text) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = text;
-        } else {
-            console.warn(`Element with id '${id}' not found.`);
-        }
-    };
+    function updateStatsWindow() {
+        const safeUpdate = (id, text) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = text;
+            } else {
+                console.warn(`Element with id '${id}' not found.`);
+            }
+        };
     safeUpdate('recent-turns', `Turns: ${GameState.recentMetrics.turnsTaken}`);
     safeUpdate('recent-senses', `Senses: ${GameState.recentMetrics.sensesMade}`);
     safeUpdate('recent-pokes', `Pokes: ${GameState.recentMetrics.pokesMade}`);
     const recentEnergyRatio = GameState.recentMetrics.getEnergyUsageRatio().toFixed(2);
-    safeUpdate('recent-energy-ratio', `Energy Ratio: ${recentEnergyRatio}`);
-    const safestPathLength = 2 * (Math.min(rows, cols) - 1);
+        safeUpdate('recent-energy-ratio', `Energy Ratio: ${recentEnergyRatio}`);
+        const safestPathLength = 2 * (Math.min(rows, cols) - 1);
     const recentEfficiency = GameState.recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
-    safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
+        safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
     safeUpdate('general-turns', `Total Turns: ${GameState.progress.totalTurns || 0}`);
     safeUpdate('general-senses', `Total Senses: ${GameState.progress.sensesMade || 0}`);
     safeUpdate('general-pokes', `Total Pokes: ${GameState.progress.pokesMade || 0}`);
-    safeUpdate('general-energy-ratio', `Energy Ratio: N/A`);
-    safeUpdate('general-efficiency', `Efficiency: N/A`);
-}
+        safeUpdate('general-energy-ratio', `Energy Ratio: N/A`);
+        safeUpdate('general-efficiency', `Efficiency: N/A`);
+    }
 
 /**
  * Displays the game over screen when player runs out of energy
  */
-function showLoseScreen() {
-    const statsWindow = document.getElementById('stats-window');
-    if (statsWindow) {
-        statsWindow.innerHTML = `
-            <h2>Energy Depleted!</h2>
-            <p>You ran out of energy before reaching the goal.</p>
-            <p>Turns: ${turnCount}</p>
+    function showLoseScreen() {
+        const statsWindow = document.getElementById('stats-window');
+        if (statsWindow) {
+            statsWindow.innerHTML = `
+                <h2>Energy Depleted!</h2>
+                <p>You ran out of energy before reaching the goal.</p>
+                <p>Turns: ${turnCount}</p>
             <p>Senses Made: ${GameState.progress.sensesMade}</p>
             <p>Pokes Made: ${GameState.progress.pokesMade}</p>
-            <button id="restart-btn">Restart Level</button>
-            <button id="view-stats-btn">View Stats</button>
-        `;
-        statsWindow.style.display = 'block';
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            statsWindow.style.display = 'none';
+                <button id="restart-btn">Restart Level</button>
+                <button id="view-stats-btn">View Stats</button>
+            `;
+            statsWindow.style.display = 'block';
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                statsWindow.style.display = 'none';
             GameState.isActive = true;
-            isGameActive = true;
-            startGame();
-        });
-        document.getElementById('view-stats-btn').addEventListener('click', () => {
-            restoreStatsWindow();
-            updateStatsWindow();
-            document.getElementById('stats-window').style.display = 'block';
-        });
-    }
+                isGameActive = true;
+                startGame();
+            });
+            document.getElementById('view-stats-btn').addEventListener('click', () => {
+                restoreStatsWindow();
+                updateStatsWindow();
+                document.getElementById('stats-window').style.display = 'block';
+            });
+        }
     GameState.isActive = false;
-    isGameActive = false;
-}
+        isGameActive = false;
+    }
 
 /**
  * Restores the stats window to its default state
  */
-function restoreStatsWindow() {
-    const statsWindow = document.getElementById('stats-window');
-    let buttonText = isGameActive ? "Close" : "Back to Victory Screen";
-    statsWindow.innerHTML = `
-        <div class="stats-columns">
-            <div class="column recent-knowledge">
-                <h2>Recent Knowledge</h2>
-                <p id="recent-turns">Turns: 0</p>
-                <p id="recent-senses">Senses: 0</p>
-                <p id="recent-pokes">Pokes: 0</p>
-                <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
-                <p id="recent-efficiency">Efficiency: 0.00</p>
+    function restoreStatsWindow() {
+        const statsWindow = document.getElementById('stats-window');
+        let buttonText = isGameActive ? "Close" : "Back to Victory Screen";
+        statsWindow.innerHTML = `
+            <div class="stats-columns">
+                <div class="column recent-knowledge">
+                    <h2>Recent Knowledge</h2>
+                    <p id="recent-turns">Turns: 0</p>
+                    <p id="recent-senses">Senses: 0</p>
+                    <p id="recent-pokes">Pokes: 0</p>
+                    <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+                    <p id="recent-efficiency">Efficiency: 0.00</p>
+                </div>
+                <div class="column general-stats">
+                    <h2>General Stats</h2>
+                    <p id="general-turns">Total Turns: 0</p>
+                    <p id="general-senses">Total Senses: 0</p>
+                    <p id="general-pokes">Total Pokes: 0</p>
+                    <p id="general-energy-ratio">Energy Ratio: N/A</p>
+                    <p id="general-efficiency">Efficiency: N/A</p>
+                </div>
             </div>
-            <div class="column general-stats">
-                <h2>General Stats</h2>
-                <p id="general-turns">Total Turns: 0</p>
-                <p id="general-senses">Total Senses: 0</p>
-                <p id="general-pokes">Total Pokes: 0</p>
-                <p id="general-energy-ratio">Energy Ratio: N/A</p>
-                <p id="general-efficiency">Efficiency: N/A</p>
-            </div>
-        </div>
-        <button id="close-stats-btn">${buttonText}</button>
-    `;
-    document.getElementById('close-stats-btn').addEventListener('click', () => {
-        if (isGameActive) {
-            statsWindow.style.display = 'none';
-        } else {
-            if (victoryScreenContent) {
-                statsWindow.innerHTML = victoryScreenContent;
-                statsWindow.style.display = 'block';
-                attachVictoryScreenListeners();
-            } else {
+            <button id="close-stats-btn">${buttonText}</button>
+        `;
+        document.getElementById('close-stats-btn').addEventListener('click', () => {
+            if (isGameActive) {
                 statsWindow.style.display = 'none';
+            } else {
+                if (victoryScreenContent) {
+                    statsWindow.innerHTML = victoryScreenContent;
+                    statsWindow.style.display = 'block';
+                    attachVictoryScreenListeners();
+                } else {
+                    statsWindow.style.display = 'none';
+                }
             }
-        }
-    });
-}
+        });
+    }
 
 /**
  * Initializes or restarts the game with current settings
  */
-function startGame() {
-    console.log('Starting game...');
-    
-    // Reset metrics, player state, and local variables
-    GameState.metrics.reset();
-    GameState.resetPlayerState();
-    
-    // Reset local variables for compatibility
-    window.turnCount = 0;
-    window.currentLevelSenses = 0;
-    window.moveCounter = 0;
-    window.hasUsedSenserBonus = false;
-    window.currentAction = '';
-    
-    // Get grid dimensions
-    const rows = GameState.grid.rows;
-    const cols = GameState.grid.cols;
-    
-    console.log(`Grid size: ${rows}x${cols}`);
-    
-    // Create and initialize tile data
-    const tileData = createTileData(rows, cols);
-    console.log('Tile data created');
-    
-    // Place tiles (blocked, water, energy, goal, key, etc.)
-    placeTiles(tileData, rows, cols);
-    console.log('Tiles placed');
-    
-    // Ensure the game container and grid elements exist
-    ensureGameContainer();
-    
-    // Build the hex grid
-    buildGrid(rows, cols, tileData);
-    console.log('Grid built');
-    
-    // Hide all character elements initially
-    document.querySelectorAll('.character').forEach(char => {
-        char.style.display = 'none';
-    });
-    
-    // Show starting character if found
-    const startingCharacter = document.getElementById('character-start');
-    if (startingCharacter) {
-        startingCharacter.style.display = 'block';
-    }
-    
-    // Make goal tile visible if player has progressed before
-    if (GameState.progress && GameState.progress.hasFoundZoe) {
-        const goalTile = document.querySelector('.goal-indicator');
-        if (goalTile) {
-            goalTile.style.visibility = 'visible';
-        }
-    }
-    
-    // Update evolution and events UI
-    try {
-        updateEvolutionUI();
-        console.log('Evolution UI updated');
-    } catch (error) {
-        console.error('Error updating evolution UI:', error);
-    }
-    
-    try {
-        updateEventsUI();
-        console.log('Events UI updated');
-    } catch (error) {
-        console.error('Error updating events UI:', error);
-    }
-    
-    // Apply trait effects
-    GameState.applyTraitEffects();
-    
-    // Check for world events that should trigger at start
-    const eventsTriggered = GameState.checkEvents('gameStart', {});
-    console.log('World events checked:', eventsTriggered);
-    
-    // Show notification if any events were triggered
-    if (eventsTriggered && eventsTriggered.length > 0) {
-        const event = eventsTriggered[0];
-        showEventNotification(event);
-    }
-    
-    // Update UI elements
-    highlightTiles('');
-    updateVision();
-    updateUI();
-    
-    // Set game state to active
-    window.isGameActive = true;
-    GameState.gameActive = true;
-    
-    // Hide all windows
-    document.querySelectorAll('.window').forEach(window => {
-        window.style.display = 'none';
-    });
-}
-
-/**
- * Ensures the game container and hex grid elements exist
- */
-function ensureGameContainer() {
-    // Get or create game container
-    let gameContainer = document.querySelector('.game-container');
-    if (!gameContainer) {
-        console.log('Creating game container');
-        gameContainer = document.createElement('div');
-        gameContainer.className = 'game-container';
-        document.body.appendChild(gameContainer);
-    } else {
-        console.log('Game container already exists');
-    }
-    
-    // Get or create hex grid
-    let hexGrid = document.getElementById('hex-grid');
-    if (!hexGrid) {
-        console.log('Creating hex grid');
-        hexGrid = document.createElement('div');
-        hexGrid.id = 'hex-grid';
-        hexGrid.className = 'hex-grid';
-        gameContainer.appendChild(hexGrid);
-    } else {
-        console.log('Hex grid already exists');
-        // Clear existing hex grid
-        hexGrid.innerHTML = '';
-    }
-    
-    // Ensure hex grid is visible
-    hexGrid.style.display = 'block';
-    
-    // Remove any existing action console (bottom)
-    const oldActionConsole = document.querySelector('.action-console');
-    if (oldActionConsole) {
-        oldActionConsole.remove();
-        console.log('Removed old action console');
-    }
-    
-    // Check if top action console already exists
-    let topActionConsole = document.querySelector('.top-action-console');
-    
-    // Only create the top action console if it doesn't exist
-    if (!topActionConsole) {
-        console.log('Creating top action console');
-        topActionConsole = document.createElement('div');
-        topActionConsole.className = 'top-action-console';
+    function startGame() {
+        console.log("Starting game...");
         
-        // Add action buttons
-        const actionButtons = [
-            { id: 'move-btn', text: 'Move', action: 'move' },
-            { id: 'sense-btn', text: 'Sense', action: 'sense' },
-            { id: 'poke-btn', text: 'Poke', action: 'poke' },
-            { id: 'stabilize-btn', text: 'Stabilize', action: 'stabilize' },
-            { id: 'end-turn-btn', text: 'End Turn', action: 'endTurn' },
-            { id: 'rest-btn', text: 'Rest', action: 'rest' }
-        ];
+        // Reset game metrics
+        GameState.metrics.reset();
+        GameState.resetPlayerState();
         
-        actionButtons.forEach(button => {
-            const btn = document.createElement('button');
-            btn.id = button.id;
-            btn.textContent = button.text;
-            topActionConsole.appendChild(btn);
-        });
+        // Update local variables for compatibility
+        window.turnCount = GameState.player.turnCount;
+        window.currentRow = GameState.player.currentRow;
+        window.currentCol = GameState.player.currentCol;
+        window.currentLevelSenses = GameState.player.currentLevelSenses;
+        window.moveCounter = GameState.player.moveCounter;
+        window.hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
+        window.currentAction = GameState.player.currentAction;
+        window.energy = GameState.resources.energy;
+        window.movementPoints = GameState.player.movementPoints;
+        window.temporaryInventory = GameState.level.temporaryInventory;
         
-        document.body.insertBefore(topActionConsole, document.body.firstChild);
+        console.log(`Grid size: ${GameState.grid.rows}x${GameState.grid.cols}`);
         
-        // Attach event listeners to the buttons
-        const moveBtn = topActionConsole.querySelector('#move-btn');
-        if (moveBtn) {
-            moveBtn.addEventListener('click', () => {
-                window.currentAction = 'move';
-                highlightTiles('move');
-            });
+        // Create the tile data
+        window.tileData = createTileData(GameState.grid.rows, GameState.grid.cols);
+        GameState.tileData = window.tileData;
+        console.log("Tile data created");
+        
+        // Place tiles on the grid
+        placeTiles(window.tileData, GameState.grid.rows, GameState.grid.cols);
+        console.log("Tiles placed");
+        
+        // Build the grid
+        buildGrid(GameState.grid.rows, GameState.grid.cols, window.tileData);
+        console.log("Grid built");
+        
+        // Hide all character elements initially
+        const playerElement = document.getElementById('player');
+        if (playerElement) {
+            playerElement.style.display = 'block';
+            
+            // Position player at starting position
+            const startHex = document.getElementById(`hex-${window.currentRow}-${window.currentCol}`);
+            if (startHex) {
+                const hexRect = startHex.getBoundingClientRect();
+                const gridRect = document.getElementById('grid').getBoundingClientRect();
+                
+                playerElement.style.left = `${hexRect.left - gridRect.left + hexRect.width / 2 - playerElement.offsetWidth / 2}px`;
+                playerElement.style.top = `${hexRect.top - gridRect.top + hexRect.height / 2 - playerElement.offsetHeight / 2}px`;
+            }
         }
         
-        const senseBtn = topActionConsole.querySelector('#sense-btn');
-        if (senseBtn) {
-            senseBtn.addEventListener('click', () => {
-                window.currentAction = 'sense';
-                highlightTiles('sense');
-            });
+        const zoeElement = document.getElementById('zoe-character');
+        if (zoeElement) {
+            // Only show Zoe if she's placed on the grid
+            let zoeFound = false;
+            for (let r = 0; r < GameState.grid.rows; r++) {
+                for (let c = 0; c < GameState.grid.cols; c++) {
+                    if (window.tileData[r][c].type === 'zoe') {
+                        zoeFound = true;
+                        const zoeHex = document.getElementById(`hex-${r}-${c}`);
+                        if (zoeHex) {
+                            const hexRect = zoeHex.getBoundingClientRect();
+                            const gridRect = document.getElementById('grid').getBoundingClientRect();
+                            
+                            zoeElement.style.left = `${hexRect.left - gridRect.left + hexRect.width / 2 - zoeElement.offsetWidth / 2}px`;
+                            zoeElement.style.top = `${hexRect.top - gridRect.top + hexRect.height / 2 - zoeElement.offsetHeight / 2}px`;
+                            zoeElement.style.display = 'block';
+                        }
+                    }
+                }
+            }
+            
+            if (!zoeFound) {
+                zoeElement.style.display = 'none';
+            }
         }
         
-        const pokeBtn = topActionConsole.querySelector('#poke-btn');
-        if (pokeBtn) {
-            pokeBtn.addEventListener('click', () => {
-                window.currentAction = 'poke';
-                highlightTiles('poke');
-            });
+        // Make goal visible if player has key
+        if (GameState.level.hasKey) {
+            // Find goal tile
+            for (let r = 0; r < GameState.grid.rows; r++) {
+                for (let c = 0; c < GameState.grid.cols; c++) {
+                    if (window.tileData[r][c].type === 'goal') {
+                        const goalHex = document.getElementById(`hex-${r}-${c}`);
+                        if (goalHex) {
+                            goalHex.classList.add('goal-visible');
+                        }
+                    }
+                }
+            }
         }
         
-        const stabilizeBtn = topActionConsole.querySelector('#stabilize-btn');
-        if (stabilizeBtn) {
-            stabilizeBtn.addEventListener('click', () => {
-                window.currentAction = 'stabilize';
-                highlightTiles('stabilize');
-            });
+        // Update evolution UI
+        try {
+            updateEvolutionUI();
+            console.log("Evolution UI updated");
+        } catch (error) {
+            console.error("Error updating evolution UI:", error);
         }
         
-        const endTurnBtn = topActionConsole.querySelector('#end-turn-btn');
-        if (endTurnBtn) {
-            endTurnBtn.addEventListener('click', endTurn);
+        // Update events UI
+        try {
+            updateEventsUI();
+            console.log("Events UI updated");
+        } catch (error) {
+            console.error("Error updating events UI:", error);
         }
         
-        const restBtn = topActionConsole.querySelector('#rest-btn');
-        if (restBtn) {
-            restBtn.addEventListener('click', rest);
+        // Apply trait effects
+        GameState.applyTraitEffects();
+        
+        // Check for world events
+        const triggeredEvents = GameState.checkEvents('gameStart');
+        console.log("World events checked:", triggeredEvents);
+        
+        // Show event notification for triggered events
+        if (triggeredEvents && triggeredEvents.length > 0) {
+            showEventNotification(triggeredEvents[0]);
         }
-    } else {
-        console.log('Top action console already exists');
+        
+        // Create notification element if it doesn't exist
+        if (!document.getElementById('notification')) {
+            const notification = document.createElement('div');
+            notification.id = 'notification';
+            notification.className = 'notification';
+            document.body.appendChild(notification);
+            
+            // Add CSS for notification
+            const style = document.createElement('style');
+            style.textContent = `
+                .notification {
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    pointer-events: none;
+                }
+                .notification.show {
+                    opacity: 1;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Update vision for the starting position
+        updateVision();
+        
+        // Update UI
+        updateUI();
+        
+        // Set game to active
+        GameState.isActive = true;
+        window.isGameActive = true;
+        
+        // Hide all windows
+        document.getElementById('stats-window').style.display = 'none';
+        document.getElementById('evolution-window').style.display = 'none';
+        document.getElementById('events-window').style.display = 'none';
+        document.getElementById('event-notification').style.display = 'none';
+        
+        console.log("Game started successfully");
     }
-    
-    // Make sure top action console is visible
-    topActionConsole.style.display = 'flex';
-}
 
 /**
  * Updates all UI elements with current game state
@@ -2966,9 +2529,6 @@ function updateUI() {
     const traitsDisplay = document.getElementById('traits-display');
     const tempInventoryDisplay = document.getElementById('temp-inventory-display');
     const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
-    
-    // Create action result displays if they don't exist
-    ensureActionResultElements();
     
     if (turnDisplay) {
         turnDisplay.textContent = `Turns: ${GameState.player.turnCount}`;
@@ -3035,47 +2595,12 @@ function updateUI() {
         console.warn("System balance element not found");
     }
     
-    // Update current action display
-    const actionText = document.getElementById('current-action');
-    if (actionText && window.currentAction) {
-        actionText.textContent = `Current Action: ${window.currentAction.charAt(0).toUpperCase() + window.currentAction.slice(1)}`;
-    } else if (actionText) {
-        actionText.textContent = 'Current Action: None';
-    }
-    
     // Update local variables for compatibility
     window.turnCount = GameState.player.turnCount;
     window.energy = GameState.resources.energy;
     window.movementPoints = GameState.player.movementPoints;
     
     console.log("UI updated");
-}
-
-/**
- * Ensures that action result elements exist in the DOM
- */
-function ensureActionResultElements() {
-    const gameContainer = document.querySelector('.game-container');
-    if (!gameContainer) return;
-    
-    // Create action result containers if they don't exist
-    const elements = ['current-action', 'sense-result', 'poke-result', 'stabilize-result'];
-    
-    elements.forEach(id => {
-        if (!document.getElementById(id)) {
-            const element = document.createElement('div');
-            element.id = id;
-            element.className = 'action-result';
-            
-            if (id === 'current-action') {
-                element.textContent = 'Current Action: None';
-            } else {
-                element.style.display = 'none';
-            }
-            
-            gameContainer.appendChild(element);
-        }
-    });
 }
 
 /**
@@ -3127,42 +2652,45 @@ function updateResourceDisplay(resourceType, value, max, animate = false) {
  * @returns {Array} Array of adjacent tile positions
  */
 function getAdjacentTiles(row, col) {
-    console.log(`Getting adjacent tiles for [${row}, ${col}]`);
-    
-    // Define different neighbor directions based on column parity (even/odd)
-    const directions = col % 2 === 0 
-        ? [ // Even column
-            [-1, 0], // Top left
-            [-1, 1], // Top right
-            [0, 1],  // Right
-            [1, 0],  // Bottom right
-            [0, -1], // Left
-            [-1, -1] // Top left
-        ]
-        : [ // Odd column
-            [-1, 0], // Top left
-            [0, 1],  // Top right
-            [1, 1],  // Bottom right
-            [1, 0],  // Bottom left
-            [1, -1], // Bottom left
-            [0, -1]  // Left
-        ];
-    
-    const adjacentPositions = [];
-    
-    for (const [dRow, dCol] of directions) {
-        const newRow = row + dRow;
-        const newCol = col + dCol;
-        
-        // Check if the new position is within the grid bounds
-        if (newRow >= 0 && newRow < window.rows && newCol >= 0 && newCol < window.cols) {
-            adjacentPositions.push([newRow, newCol]);
-        }
-    }
-    
-    console.log(`Found ${adjacentPositions.length} adjacent tiles:`, adjacentPositions);
-    return adjacentPositions;
+    const isOddRow = row % 2 === 1;
+    const adjacent = [
+        { row: row - 1, col: col },
+        { row: row + 1, col: col },
+        { row: row, col: col - 1 },
+        { row: row, col: col + 1 },
+        { row: row - 1, col: isOddRow ? col + 1 : col - 1 },
+        { row: row + 1, col: isOddRow ? col + 1 : col - 1 }
+    ];
+    return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
 }
+
+document.getElementById('move-btn').addEventListener('click', () => {
+    GameState.player.currentAction = 'move';
+    currentAction = 'move'; // Update local variable for compatibility
+    highlightTiles('move');
+});
+
+document.getElementById('sense-btn').addEventListener('click', () => {
+    GameState.player.currentAction = 'sense';
+    currentAction = 'sense'; // Update local variable for compatibility
+    highlightTiles('sense');
+});
+
+document.getElementById('stabilize-btn').addEventListener('click', () => {
+    GameState.player.currentAction = 'stabilize';
+    currentAction = 'stabilize'; // Update local variable for compatibility
+    highlightTiles('stabilize');
+});
+
+document.getElementById('poke-btn').addEventListener('click', () => {
+    GameState.player.currentAction = 'poke';
+    currentAction = 'poke'; // Update local variable for compatibility
+    highlightTiles('poke');
+});
+
+document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+
+document.getElementById('rest-btn').addEventListener('click', rest);
 
 /**
  * Updates the evolution UI
@@ -3171,8 +2699,8 @@ function updateEvolutionUI() {
     // Check if GameState.evolution is properly initialized
     if (!GameState.evolution || !GameState.evolution.paths) {
         console.error('Evolution system not properly initialized');
-        return;
-    }
+                        return;
+                    }
     
     // Update each evolution path
     for (const path of ['explorer', 'manipulator', 'stabilizer', 'survivor']) {
@@ -3301,17 +2829,17 @@ function createTraitElement(trait, path, unlocked, locked = false) {
                         const result = GameState.unlockTrait(path, trait.id);
                         if (result.success) {
                             // Show success message
-                            const feedbackMessage = document.getElementById('feedback-message');
-                            if (feedbackMessage) {
+                    const feedbackMessage = document.getElementById('feedback-message');
+                    if (feedbackMessage) {
                                 feedbackMessage.textContent = result.message;
-                                feedbackMessage.style.display = 'block';
+                        feedbackMessage.style.display = 'block';
                                 setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
-                            }
+                    }
                             
                             // Update UI
                             updateEvolutionUI();
-                            updateUI();
-                        } else {
+                    updateUI();
+                } else {
                             // Show error message
                             alert(result.message);
                         }
@@ -3701,7 +3229,7 @@ function hideEventNotification() {
     const notification = document.getElementById('event-notification');
     if (notification) {
         notification.style.display = 'none';
-    } else {
+            } else {
         console.error('Event notification element not found');
     }
 }
@@ -3753,75 +3281,21 @@ function attachEventsListeners() {
 }
 
 /**
- * Performs the selected action on the clicked tile
- * @param {string} action - The action type ('move', 'sense', 'poke', 'stabilize')
- * @param {number} row - The row of the clicked tile
- * @param {number} col - The column of the clicked tile
- */
-function performAction(action, row, col) {
-    console.log(`Performing ${action} action on tile [${row}, ${col}]`);
-    
-    // Clear highlights
-    const highlightedTiles = document.querySelectorAll('.hex-container.highlight');
-    highlightedTiles.forEach(tile => {
-        tile.classList.remove('highlight', 'move-highlight', 'sense-highlight', 'poke-highlight', 'stabilize-highlight');
-    });
-    
-    // Reset current action display
-    const actionText = document.getElementById('current-action');
-    if (actionText) {
-        actionText.textContent = 'Current Action: None';
-    }
-    
-    // Handle different actions
-    switch(action) {
-        case 'move':
-            performMove(row, col);
-            break;
-        case 'sense':
-            performSense(row, col);
-            break;
-        case 'poke':
-            performPoke(row, col);
-            break;
-        case 'stabilize':
-            performStabilize(row, col);
-            break;
-        default:
-            console.warn(`Unknown action: ${action}`);
-    }
-    
-    // Reset current action
-    window.currentAction = '';
-    GameState.player.currentAction = '';
-    
-    // Update UI
-    updateUI();
-    
-    // Check for events after action
-    GameState.checkEvents('action', { action, row, col });
-}
-
-/**
- * Handles moving the player to a new tile
+ * Moves the player to the specified tile
  * @param {number} row - The target row
  * @param {number} col - The target column
  */
-function performMove(row, col) {
-    console.log(`Moving to [${row}, ${col}]`);
+function moveToTile(row, col) {
+    console.log(`Moving to tile: [${row}, ${col}]`);
     
-    // Calculate energy cost (base cost is 1)
-    let energyCost = 1;
-    
-    // Apply trait effects for movement
-    if (GameState.progress.traits.includes('efficient_movement')) {
-        energyCost = Math.max(0, energyCost - 1);
-    }
+    // Calculate movement cost (1 energy per tile)
+    const movementCost = 1;
     
     // Check if player has enough energy
-    if (GameState.resources.energy < energyCost) {
-        console.warn('Not enough energy to move');
-        alert('Not enough energy to move!');
+    if (GameState.resources.energy < movementCost) {
+        console.log("Not enough energy to move");
+        // Show a message to the player
+        alert("Not enough energy to move");
         return;
     }
     
@@ -3833,312 +3307,442 @@ function performMove(row, col) {
     GameState.player.currentRow = row;
     GameState.player.currentCol = col;
     
-    // Update energy
-    GameState.updateResource('energy', -energyCost);
-    GameState.metrics.addEnergyForMovement(energyCost);
+    // Update player element position
+    const playerElement = document.getElementById('player');
+    if (playerElement) {
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            const hexRect = hexElement.getBoundingClientRect();
+            const gridRect = document.getElementById('grid').getBoundingClientRect();
+            
+            playerElement.style.left = `${hexRect.left - gridRect.left + hexRect.width / 2 - playerElement.offsetWidth / 2}px`;
+            playerElement.style.top = `${hexRect.top - gridRect.top + hexRect.height / 2 - playerElement.offsetHeight / 2}px`;
+        }
+    }
+    
+    // Deduct energy
+    GameState.updateResource('energy', -movementCost);
+    GameState.metrics.addEnergyForMovement(movementCost);
     GameState.metrics.incrementMoves();
     
-    // Mark tile as visited
+    // Update explored tiles
     if (!window.tileData[row][col].explored) {
         window.tileData[row][col].explored = true;
         GameState.metrics.incrementTilesExplored();
     }
     
-    // Update player position on the grid
-    const oldHex = document.getElementById(`hex-${oldRow}-${oldCol}`);
-    const newHex = document.getElementById(`hex-${row}-${col}`);
+    // Check for special interactions
+    checkTileInteraction(row, col);
     
-    if (oldHex) {
-        oldHex.classList.remove('player-position');
-    }
-    
-    if (newHex) {
-        newHex.classList.add('player-position');
-    }
-    
-    // Check for special tiles
-    checkSpecialTiles(row, col);
-    
-    // Update vision based on new position
+    // Update vision
     updateVision();
+    
+    // Update UI
+    updateUI();
+    
+    console.log(`Moved from [${oldRow}, ${oldCol}] to [${row}, ${col}]`);
 }
 
 /**
- * Handles sensing a tile
+ * Senses the specified tile, revealing information about it
  * @param {number} row - The target row
  * @param {number} col - The target column
  */
-function performSense(row, col) {
-    console.log(`Sensing tile at [${row}, ${col}]`);
+function senseTile(row, col) {
+    console.log(`Sensing tile: [${row}, ${col}]`);
     
-    // Calculate energy cost (base cost is 2)
-    let energyCost = 2;
-    
-    // Apply trait effects for sensing
-    if (GameState.progress.traits.includes('efficient_sensing')) {
-        energyCost = Math.max(0, energyCost - 1);
-    }
+    // Calculate sense cost (1 energy by default)
+    const senseCost = 1;
     
     // Check if player has enough energy
-    if (GameState.resources.energy < energyCost) {
-        console.warn('Not enough energy to sense');
-        alert('Not enough energy to sense!');
+    if (GameState.resources.energy < senseCost) {
+        console.log("Not enough energy to sense");
+        alert("Not enough energy to sense");
         return;
     }
     
-    // Update energy
-    GameState.updateResource('energy', -energyCost);
-    GameState.metrics.addEnergyForExploration(energyCost);
+    // Deduct energy
+    GameState.updateResource('energy', -senseCost);
+    GameState.metrics.addEnergyForExploration(senseCost);
     GameState.metrics.incrementSenses();
     
-    // Get tile data
-    const tileData = window.tileData[row][col];
-    
-    // Add sensed type to collection if not already sensed
-    if (!GameState.progress.sensedTypes.includes(tileData.type)) {
-        GameState.progress.sensedTypes.push(tileData.type);
-        GameState.progress.xp += 5; // Bonus XP for sensing new type
-        console.log(`Discovered new tile type: ${tileData.type}`);
+    // Record this tile type as sensed
+    const tileType = window.tileData[row][col].type;
+    if (!GameState.progress.sensedTypes.includes(tileType)) {
+        GameState.progress.sensedTypes.push(tileType);
+        
+        // Also add to uniqueSensedTypes if needed
+        if (!GameState.progress.uniqueSensedTypes.includes(tileType)) {
+            GameState.progress.uniqueSensedTypes.push(tileType);
+            
+            // Grant XP for discovering a new tile type
+            GameState.progress.xp += 5;
+            showNotification(`Discovered new tile type: ${tileType}! +5 XP`);
+        }
     }
     
-    // Mark tile as sensed
-    tileData.sensed = true;
+    // Mark the tile as sensed
+    window.tileData[row][col].sensed = true;
+    window.currentLevelSenses.push([row, col]);
+    GameState.player.currentLevelSenses.push([row, col]);
     
-    // Update tile appearance
+    // Add visual indicator for sensed tile
     const hexElement = document.getElementById(`hex-${row}-${col}`);
     if (hexElement) {
         hexElement.classList.add('sensed');
         
-        // Show sensed info
-        const senseResult = document.getElementById('sense-result');
-        if (senseResult) {
-            senseResult.textContent = `Sensed: ${tileData.type} (Chaos: ${tileData.chaos.toFixed(2)})`;
-            senseResult.style.display = 'block';
-            
-            // Hide after 3 seconds
-            setTimeout(() => {
-                senseResult.style.display = 'none';
-            }, 3000);
-        }
+        // Add sensing effect
+        const senseEffect = document.createElement('div');
+        senseEffect.className = 'sense-effect';
+        hexElement.appendChild(senseEffect);
+        
+        // Remove the effect after animation
+        setTimeout(() => {
+            hexElement.removeChild(senseEffect);
+        }, 1000);
     }
+    
+    // Check for chaos/order knowledge
+    const chaos = window.tileData[row][col].chaos;
+    let knowledge = 0;
+    
+    // More knowledge from high chaos or high order tiles
+    if (chaos > 0.8 || chaos < 0.2) {
+        knowledge = 2;
+    } else if (chaos > 0.7 || chaos < 0.3) {
+        knowledge = 1;
+    }
+    
+    if (knowledge > 0) {
+        GameState.updateResource('knowledge', knowledge);
+        showNotification(`Gained ${knowledge} knowledge from sensing`);
+    }
+    
+    // Check for event triggers
+    GameState.checkEvents('sense', { row, col, tileType, chaos });
+    
+    // Update UI
+    updateUI();
+    
+    console.log(`Sensed tile [${row}, ${col}] of type ${tileType} with chaos ${chaos}`);
 }
 
 /**
- * Handles poking a tile
+ * Pokes the specified tile, potentially changing its state
  * @param {number} row - The target row
  * @param {number} col - The target column
  */
-function performPoke(row, col) {
-    console.log(`Poking tile at [${row}, ${col}]`);
+function pokeTile(row, col) {
+    console.log(`Poking tile: [${row}, ${col}]`);
     
-    // Calculate energy cost (base cost is 3)
-    let energyCost = 3;
-    
-    // Apply trait effects for poking
-    if (GameState.progress.traits.includes('efficient_poking')) {
-        energyCost = Math.max(0, energyCost - 1);
-    }
+    // Calculate poke cost (2 energy by default)
+    const pokeCost = 2;
     
     // Check if player has enough energy
-    if (GameState.resources.energy < energyCost) {
-        console.warn('Not enough energy to poke');
-        alert('Not enough energy to poke!');
+    if (GameState.resources.energy < pokeCost) {
+        console.log("Not enough energy to poke");
+        alert("Not enough energy to poke");
         return;
     }
     
-    // Update energy
-    GameState.updateResource('energy', -energyCost);
-    GameState.metrics.addEnergyForExploration(energyCost);
+    // Deduct energy
+    GameState.updateResource('energy', -pokeCost);
+    GameState.metrics.addEnergyForExploration(pokeCost);
     GameState.metrics.incrementPokes();
     
-    // Get tile data
-    const tileData = window.tileData[row][col];
+    // Get the current tile's chaos value
+    let chaos = window.tileData[row][col].chaos;
     
-    // Calculate chance of success based on stability
-    const baseSuccessChance = 0.7;
-    const successChance = GameState.applyStabilityToChance('poke', baseSuccessChance);
+    // Base chance of changing the tile
+    let changeChance = 0.5;
     
-    if (Math.random() < successChance) {
-        // Success: Change the tile type
-        console.log('Poke successful');
+    // Apply stability modifier to chance
+    changeChance = GameState.applyStabilityToChance('poke', changeChance);
+    
+    // Apply trait effects if needed
+    if (GameState.progress.traits.includes('enhanced_poke')) {
+        changeChance += 0.2;
+    }
+    
+    console.log(`Poke change chance: ${changeChance}`);
+    
+    // Check if the poke succeeds
+    if (Math.random() < changeChance) {
+        // Determine new chaos value (random shift)
+        const chaosShift = (Math.random() * 0.4) - 0.2; // Between -0.2 and 0.2
+        const newChaos = Math.max(0, Math.min(1, chaos + chaosShift));
         
-        // Determine the new tile type based on current chaos value
-        const newChaos = Math.max(0, Math.min(1, tileData.chaos + (Math.random() * 0.4 - 0.2)));
-        tileData.chaos = newChaos;
-        const newType = GameState.determineTileType(newChaos);
+        // Update the tile's chaos value
+        window.tileData[row][col].chaos = newChaos;
         
-        if (newType !== tileData.type) {
-            console.log(`Tile changed from ${tileData.type} to ${newType}`);
-            tileData.type = newType;
+        // Determine if tile type changes
+        const oldType = window.tileData[row][col].type;
+        const newType = determineTileType(newChaos);
+        
+        if (oldType !== newType) {
+            window.tileData[row][col].type = newType;
             
-            // Update tile appearance
+            // Update tile visually
             const hexElement = document.getElementById(`hex-${row}-${col}`);
             if (hexElement) {
                 // Remove old type class
-                hexElement.classList.forEach(cls => {
-                    if (cls.endsWith('-tile')) {
-                        hexElement.classList.remove(cls);
-                    }
-                });
-                
+                hexElement.classList.remove(oldType);
                 // Add new type class
-                hexElement.classList.add(`${newType}-tile`);
-                
-                // Show poke result
-                const pokeResult = document.getElementById('poke-result');
-                if (pokeResult) {
-                    pokeResult.textContent = `Poke successful: Changed to ${newType}`;
-                    pokeResult.style.display = 'block';
-                    
-                    // Hide after 3 seconds
-                    setTimeout(() => {
-                        pokeResult.style.display = 'none';
-                    }, 3000);
-                }
+                hexElement.classList.add(newType);
             }
+            
+            console.log(`Tile type changed from ${oldType} to ${newType}`);
+            showNotification(`Poke successful! Tile changed from ${oldType} to ${newType}`);
         } else {
-            console.log('Tile type remained the same');
-            
-            // Show poke result
-            const pokeResult = document.getElementById('poke-result');
-            if (pokeResult) {
-                pokeResult.textContent = 'Poke successful, but tile type remained the same';
-                pokeResult.style.display = 'block';
-                
-                // Hide after 3 seconds
-                setTimeout(() => {
-                    pokeResult.style.display = 'none';
-                }, 3000);
-            }
+            console.log(`Tile chaos changed but type remained ${oldType}`);
+            showNotification(`Poke successful! Chaos level adjusted`);
         }
-    } else {
-        // Failure
-        console.log('Poke failed');
         
-        // Show poke result
-        const pokeResult = document.getElementById('poke-result');
-        if (pokeResult) {
-            pokeResult.textContent = 'Poke failed: No change occurred';
-            pokeResult.style.display = 'block';
+        // Add poke effect
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            const pokeEffect = document.createElement('div');
+            pokeEffect.className = 'poke-effect';
+            hexElement.appendChild(pokeEffect);
             
-            // Hide after 3 seconds
+            // Remove the effect after animation
             setTimeout(() => {
-                pokeResult.style.display = 'none';
-            }, 3000);
+                hexElement.removeChild(pokeEffect);
+            }, 1000);
         }
+        
+        // Get essence based on how much the chaos changed
+        const essenceGain = Math.ceil(Math.abs(chaos - newChaos) * 10);
+        if (essenceGain > 0) {
+            GameState.updateResource('essence', essenceGain);
+            showNotification(`Gained ${essenceGain} essence from poking`);
+        }
+        
+        // Update system balance
+        GameState.updateSystemBalance(window.tileData);
+    } else {
+        console.log("Poke failed");
+        showNotification("Poke failed. The tile resisted change.");
     }
+    
+    // Check for event triggers
+    GameState.checkEvents('poke', { row, col, success: (Math.random() < changeChance) });
+    
+    // Update UI
+    updateUI();
 }
 
 /**
- * Handles stabilizing a tile
- * @param {number} row - The target row
- * @param {number} col - The target column
+ * Stabilizes the current tile, reducing its chaos or increasing its order
+ * @param {number} row - The target row (should be current player position)
+ * @param {number} col - The target column (should be current player position)
  */
-function performStabilize(row, col) {
-    console.log(`Stabilizing tile at [${row}, ${col}]`);
+function stabilizeTile(row, col) {
+    console.log(`Stabilizing tile: [${row}, ${col}]`);
     
-    // Calculate energy cost (base cost is 4)
-    let energyCost = 4;
-    
-    // Apply trait effects for stabilizing
-    if (GameState.progress.traits.includes('efficient_stabilizing')) {
-        energyCost = Math.max(0, energyCost - 1);
-    }
+    // Calculate stabilize cost (3 energy by default)
+    const stabilizeCost = 3;
     
     // Check if player has enough energy
-    if (GameState.resources.energy < energyCost) {
-        console.warn('Not enough energy to stabilize');
-        alert('Not enough energy to stabilize!');
+    if (GameState.resources.energy < stabilizeCost) {
+        console.log("Not enough energy to stabilize");
+        alert("Not enough energy to stabilize");
         return;
     }
     
-    // Update energy
-    GameState.updateResource('energy', -energyCost);
-    GameState.metrics.addEnergyForExploration(energyCost);
+    // Deduct energy
+    GameState.updateResource('energy', -stabilizeCost);
+    GameState.metrics.addEnergyForExploration(stabilizeCost);
     
-    // Get tile data
-    const tileData = window.tileData[row][col];
+    // Get the current tile's stability and chaos
+    let stability = window.tileData[row][col].stability || 0;
+    let chaos = window.tileData[row][col].chaos;
     
-    // Calculate chance of success based on stability
-    const baseSuccessChance = 0.8;
-    const successChance = GameState.applyStabilityToChance('stabilize', baseSuccessChance);
+    // If tile is already fully stable, can't stabilize further
+    if (stability >= 1) {
+        console.log("Tile is already fully stable");
+        showNotification("This tile is already fully stable.");
+        return;
+    }
     
-    if (Math.random() < successChance) {
-        // Success: Stabilize the tile
-        console.log('Stabilize successful');
+    // Increase stability
+    const stabilityIncrease = 0.25; // 25% increase per action
+    stability = Math.min(1, stability + stabilityIncrease);
+    window.tileData[row][col].stability = stability;
+    
+    // Decrease chaos slightly
+    const chaosReduction = 0.1; // 10% decrease per action
+    const newChaos = Math.max(0, chaos - chaosReduction);
+    window.tileData[row][col].chaos = newChaos;
+    
+    // Update visuals
+    const hexElement = document.getElementById(`hex-${row}-${col}`);
+    if (hexElement) {
+        // Add stability indicator
+        if (!hexElement.querySelector('.stability-indicator')) {
+            const stabilityIndicator = document.createElement('div');
+            stabilityIndicator.className = 'stability-indicator';
+            hexElement.appendChild(stabilityIndicator);
+        }
         
-        // Update chaos/order value (move towards order)
-        const oldChaos = tileData.chaos;
-        const stabilizeAmount = 0.3; // Reduce chaos by 30%
-        tileData.chaos = Math.max(0, oldChaos - stabilizeAmount);
+        // Update stability level
+        const stabilityIndicator = hexElement.querySelector('.stability-indicator');
+        if (stabilityIndicator) {
+            stabilityIndicator.style.opacity = stability;
+        }
         
-        // Increase global order
-        GameState.worldEvolution.globalOrder += 0.01;
-        GameState.worldEvolution.globalChaos = Math.max(0, 1 - GameState.worldEvolution.globalOrder);
+        // Add stabilize effect
+        const stabilizeEffect = document.createElement('div');
+        stabilizeEffect.className = 'stabilize-effect';
+        hexElement.appendChild(stabilizeEffect);
         
-        // Update stability resource
-        GameState.updateResource('stability', 10);
+        // Remove the effect after animation
+        setTimeout(() => {
+            hexElement.removeChild(stabilizeEffect);
+        }, 1000);
+    }
+    
+    // Update game state
+    GameState.updateResource('stability', 1);
+    GameState.progress.orderContributions++;
+    
+    // Check if tile type changes due to reduced chaos
+    const oldType = window.tileData[row][col].type;
+    const newType = determineTileType(newChaos);
+    
+    if (oldType !== newType) {
+        window.tileData[row][col].type = newType;
         
-        // Update tile appearance
-        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        // Update tile visually
         if (hexElement) {
-            hexElement.classList.add('stabilized');
-            
-            // Show stabilize result
-            const stabilizeResult = document.getElementById('stabilize-result');
-            if (stabilizeResult) {
-                stabilizeResult.textContent = `Stabilize successful: Chaos reduced from ${oldChaos.toFixed(2)} to ${tileData.chaos.toFixed(2)}`;
-                stabilizeResult.style.display = 'block';
-                
-                // Hide after 3 seconds
-                setTimeout(() => {
-                    stabilizeResult.style.display = 'none';
-                }, 3000);
-            }
+            // Remove old type class
+            hexElement.classList.remove(oldType);
+            // Add new type class
+            hexElement.classList.add(newType);
         }
-    } else {
-        // Failure
-        console.log('Stabilize failed');
         
-        // Show stabilize result
-        const stabilizeResult = document.getElementById('stabilize-result');
-        if (stabilizeResult) {
-            stabilizeResult.textContent = 'Stabilize failed: No change occurred';
-            stabilizeResult.style.display = 'block';
-            
-            // Hide after 3 seconds
-            setTimeout(() => {
-                stabilizeResult.style.display = 'none';
-            }, 3000);
-        }
+        console.log(`Tile type changed from ${oldType} to ${newType} due to stabilization`);
+    }
+    
+    // Notification based on stability level
+    if (stability >= 1) {
+        showNotification("Tile fully stabilized! It will resist chaos changes.");
+    } else {
+        showNotification(`Tile stability increased to ${Math.round(stability * 100)}%`);
+    }
+    
+    // Check for event triggers
+    GameState.checkEvents('stabilize', { row, col, stability });
+    
+    // Update system balance
+    GameState.updateSystemBalance(window.tileData);
+    
+    // Update UI
+    updateUI();
+}
+
+/**
+ * Shows a notification to the player
+ * @param {string} message - The message to display
+ */
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    if (notification) {
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    } else {
+        console.log(`Notification: ${message}`);
     }
 }
 
 /**
- * Checks for special tiles at the player's current position
- * @param {number} row - The player's row
- * @param {number} col - The player's column
+ * Checks for interactions with special tiles
+ * @param {number} row - The row to check
+ * @param {number} col - The column to check
  */
-function checkSpecialTiles(row, col) {
-    const tileData = window.tileData[row][col];
+function checkTileInteraction(row, col) {
+    const tileType = window.tileData[row][col].type;
     
-    if (tileData.hasZoe && !GameState.progress.hasFoundZoe) {
-        console.log('Found Zoe!');
-        GameState.progress.hasFoundZoe = true;
-        GameState.progress.xp += 50; // Bonus XP for finding Zoe
-        alert('You found Zoe! +50 XP');
-    }
-    
-    if (tileData.hasKey && !GameState.level.hasKey) {
-        console.log('Found Key!');
+    // Special interactions based on tile type
+    if (tileType === 'energy') {
+        // Energy tiles provide energy
+        const energyGain = 5;
+        GameState.updateResource('energy', energyGain);
+        showNotification(`Found energy source! +${energyGain} energy`);
+        
+        // Change tile to normal after collecting
+        window.tileData[row][col].type = 'normal';
+        window.tileData[row][col].chaos = 0.5;
+        
+        // Update visual
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            hexElement.classList.remove('energy');
+            hexElement.classList.add('normal');
+        }
+        
+        GameState.metrics.incrementSpecialTiles();
+    } else if (tileType === 'water') {
+        // Water tiles restore some energy
+        const energyGain = 2;
+        GameState.updateResource('energy', energyGain);
+        showNotification(`Refreshed at water! +${energyGain} energy`);
+        
+        GameState.metrics.incrementSpecialTiles();
+    } else if (tileType === 'goal') {
+        // Goal tile completes the level
+        if (GameState.level.hasKey || !GameState.level.requiresKey) {
+            showNotification("Level complete!");
+            GameState.completeLevelProgress(10, GameState.level.foundZoe, GameState.level.hasKey);
+        } else {
+            showNotification("You need to find the key first!");
+        }
+    } else if (tileType === 'key') {
+        // Key tile gives the key
         GameState.level.hasKey = true;
-        GameState.level.temporaryInventory.push('Key');
-        alert('You found the Key!');
-    }
-    
-    if (tileData.isGoal && GameState.level.hasKey) {
-        console.log('Reached goal with key!');
-        GameState.completeLevelProgress(100, GameState.progress.hasFoundZoe, GameState.level.hasKey);
-        showVictoryScreen();
+        window.tileData[row][col].type = 'normal';
+        window.tileData[row][col].chaos = 0.5;
+        
+        // Update visual
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            hexElement.classList.remove('key');
+            hexElement.classList.add('normal');
+        }
+        
+        showNotification("You found the key! Now you can exit through the goal.");
+        GameState.metrics.incrementSpecialTiles();
+    } else if (tileType === 'zoe') {
+        // Zoe tile finds Zoe
+        GameState.level.foundZoe = true;
+        window.tileData[row][col].type = 'normal';
+        window.tileData[row][col].chaos = 0.5;
+        
+        // Update visual
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            hexElement.classList.remove('zoe');
+            hexElement.classList.add('normal');
+            
+            // Hide Zoe character
+            const zoeElement = document.getElementById('zoe-character');
+            if (zoeElement) {
+                zoeElement.style.display = 'none';
+            }
+        }
+        
+        showNotification("You found Zoe! She will help you on your journey.");
+        GameState.metrics.incrementSpecialTiles();
+        
+        // Update progress
+        if (!GameState.progress.hasFoundZoe) {
+            GameState.progress.hasFoundZoe = true;
+            GameState.progress.xp += 20;
+            showNotification("First time finding Zoe! +20 XP");
+        }
     }
 }
