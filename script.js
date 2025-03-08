@@ -95,6 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pokesMade: 0,
         hasFoundZoe: false,
         zoeLevelsCompleted: 0,
+		essence: 0,
+		systemChaos: 0.5, // Starting balanced state
+		systemOrder: 0.5
         uniquesensedTypes: []
     };
     let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, hasFoundZoe, zoeLevelsCompleted, uniquesensedTypes } = playerProgress;
@@ -638,7 +641,21 @@ function restoreStatsWindow() {
                         recentMetrics.incrementTilesExplored();
                         tile.explored = true;
                     }
-                } else {
+                } elif (currentAction === 'stabilize' && (isCurrentTile || isAdjacent)) {
+					const energyCost = 3; // Adjustable for balance
+					if (energy < energyCost) {
+						showLoseScreen();
+						return;
+					}
+					energy -= energyCost;
+					tile.chaos = Math.max(0, tile.chaos - 0.2); // Reduce chaos by 20%
+					tile.order = 1 - tile.chaos;
+					playerProgress.essence = (playerProgress.essence || 0) + 1; // Earn 1 Essence
+					feedbackMessage.textContent = `Stabilized tile! Chaos: ${(tile.chaos * 100).toFixed(0)}%, Order: ${(tile.order * 100).toFixed(0)}%. Gained 1 Essence.`;
+					feedbackMessage.style.display = 'block';
+					setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+					updateUI();
+				}else {
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
                         feedbackMessage.textContent = currentAction === 'move' ?
@@ -648,6 +665,8 @@ function restoreStatsWindow() {
                         setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
                     }
                 }
+
+playerProgress.orderContributions = playerProgress.orderContributions || 0; // is this correctly placed?
 
                 // Victory condition
                 if (currentRow === rows - 1 && currentCol === cols - 1) {
@@ -661,7 +680,16 @@ function restoreStatsWindow() {
                     } else if (energy > 0) {
                         const gridSize = Math.min(rows, cols);
                         const pathfinderTurnLimit = gridSize * 2;
-
+						const avgChaos = totalChaos / (rows * cols);
+						const orderContribution = playerProgress.systemOrder - 0.5; // Positive if Order > 50%
+						playerProgress.orderContributions += orderContribution;
+						
+						if (playerProgress.orderContributions >= 5 && !traits.includes('orderKeeper')) { 
+						// 5 net Order from 10 levels
+							traits.push('orderKeeper'); // Example trait
+							alert('Earned Order Keeper trait for stabilizing 10 levels!');
+						}
+						
                         if (currentLevelSenses >= 10 && !traits.includes('senser')) {
                             traits.push('senser');
                         }
@@ -671,7 +699,12 @@ function restoreStatsWindow() {
                         if (uniquesensedTypes.length >= 5 && !traits.includes('explorer')) {
                             traits.push('explorer');
                         }
-
+						let totalChaos = 0;
+						for (let r = 0; r < rows; r++) {
+							for (let c = 0; c < cols; c++) {
+								totalChaos += tileData[r][c].chaos;
+							}
+						}
                         let xpGain = 10 + energy;
                         if (!playerProgress.hasFoundZoe && temporaryInventory.includes('zoe')) {
                             playerProgress.hasFoundZoe = true;
@@ -697,6 +730,10 @@ function restoreStatsWindow() {
                         playerProgress.uniquesensedTypes = uniquesensedTypes;
                         localStorage.setItem('playerProgress', JSON.stringify(playerProgress));
 
+						playerProgress.systemChaos = Math.min(1, playerProgress.systemChaos + 0.1); // Decay to chaos
+						playerProgress.systemOrder = 1 - playerProgress.systemChaos;
+						playerProgress.systemChaos = avgChaos;
+						playerProgress.systemOrder = 1 - avgChaos;
                         playerProgress.sensesMade += metrics.sensesMade;
                         playerProgress.pokesMade += metrics.pokesMade;
                         playerProgress.totalTurns = (playerProgress.totalTurns || 0) + metrics.turnsTaken;
@@ -718,6 +755,7 @@ function restoreStatsWindow() {
                             const efficiency = metrics.getMovementEfficiency(safestPathLength).toFixed(2);
 victoryScreenContent = `
             <h2>Level Complete!</h2>
+			<p>Essence: ${playerProgress.essence}</p>
             <p>Turns: ${turnCount}</p>
             <p>Energy Remaining: ${energy}</p>
             <p>Senses Made: ${playerProgress.sensesMade}</p>
@@ -726,6 +764,7 @@ victoryScreenContent = `
             <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
             <p>Sensed Types: ${sensedTypesText || 'None'}</p>
             <button id="next-level-btn">Next Level</button>
+			 <button id="upgrade-btn">Spend 5 Essence: +1 Movement</button>
             <button id="view-stats-btn">View Stats</button>
         `;
         statsWindow.innerHTML = victoryScreenContent;
@@ -791,6 +830,10 @@ victoryScreenContent = `
         if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
         if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
         if (energyDisplay) energyDisplay.textContent = `Energy: ${energy} | MP: ${movementPoints}`;
+		const systemBalance = document.getElementById('system-balance');
+		if (systemBalance) {
+        systemBalance.textContent = `System: ${(playerProgress.systemChaos * 100).toFixed(0)}% Chaos / ${(playerProgress.systemOrder * 100).toFixed(0)}% Order`;
+		if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp} | Essence: ${playerProgress.essence}`;		 
     }
 
     function getAdjacentTiles(row, col) {
@@ -816,6 +859,11 @@ victoryScreenContent = `
         currentAction = 'sense';
         highlightTiles('sense');
     });
+	
+	document.getElementById('stabilize-btn').addEventListener('click', () => {
+		currentAction = 'stabilize';
+		highlightTiles('stabilize'); // Reuse poke/sense highlight logic
+	});
 
     document.getElementById('poke-btn').addEventListener('click', () => {
         currentAction = 'poke';

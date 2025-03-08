@@ -81,6 +81,17 @@ body::before {
     z-index: 1;
 }
 
+#action-console button {
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+#action-console button:hover {
+    background: #005577;
+}
+
 /* Admin Tools: Moved to top-left */
 .admin-tools {
     position: fixed;
