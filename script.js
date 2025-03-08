@@ -1249,45 +1249,48 @@ const GameState = {
      */
     determineTileType(chaos) {
         const worldAge = this.worldEvolution.age;
+        let tileType = 'normal';
         
         // Early game has more basic tile types
         if (worldAge < 3) {
             if (chaos > 0.7) {
-                return Math.random() < 0.7 ? 'blocked' : 'water';
+                tileType = Math.random() < 0.7 ? 'blocked' : 'water';
             } else if (chaos < 0.3) {
-                return Math.random() < 0.7 ? 'normal' : 'energy';
+                tileType = Math.random() < 0.7 ? 'normal' : 'energy';
             } else {
-                return 'normal';
+                tileType = 'normal';
             }
         }
         // Mid game introduces more variety
         else if (worldAge < 7) {
             if (chaos > 0.8) {
-                return 'blocked';
+                tileType = 'blocked';
             } else if (chaos > 0.6) {
-                return Math.random() < 0.6 ? 'water' : 'normal';
+                tileType = Math.random() < 0.6 ? 'water' : 'normal';
             } else if (chaos > 0.4) {
-                return 'normal';
+                tileType = 'normal';
             } else if (chaos > 0.2) {
-                return Math.random() < 0.7 ? 'normal' : 'energy';
+                tileType = Math.random() < 0.7 ? 'normal' : 'energy';
             } else {
-                return 'energy';
+                tileType = 'energy';
             }
         }
         // Late game has full variety
         else {
             if (chaos > 0.8) {
-                return 'blocked';
+                tileType = 'blocked';
             } else if (chaos > 0.6) {
-                return Math.random() < 0.5 ? 'water' : 'normal';
+                tileType = Math.random() < 0.5 ? 'water' : 'normal';
             } else if (chaos > 0.4) {
-                return 'normal';
+                tileType = 'normal';
             } else if (chaos > 0.2) {
-                return Math.random() < 0.5 ? 'normal' : 'energy';
+                tileType = Math.random() < 0.5 ? 'normal' : 'energy';
             } else {
-                return 'energy';
+                tileType = 'energy';
             }
         }
+        
+        return tileType;
     }
 };
 
@@ -1482,9 +1485,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {Array} 2D array of tile data
      */
     function createTileData(rows, cols) {
+        console.log(`Creating tile data: ${rows}x${cols}`);
+        
         const tileData = [];
         const globalChaos = GameState.worldEvolution.globalChaos;
         const variance = GameState.worldEvolution.tileVariance;
+        
+        console.log(`Global chaos: ${globalChaos}, Variance: ${variance}`);
         
         for (let row = 0; row < rows; row++) {
             tileData[row] = [];
@@ -1525,6 +1532,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         }
+        
+        console.log(`Tile data created with ${rows * cols} tiles`);
         return tileData;
     }
 
@@ -1559,11 +1568,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} cols - Number of columns in the grid
      */
     function placeTiles(tileData, rows, cols) {
+        console.log(`Placing tiles on ${rows}x${cols} grid`);
+        
         // Always set the goal tile
         tileData[rows - 1][cols - 1].type = 'goal';
+        console.log(`Goal tile set at [${rows - 1}, ${cols - 1}]`);
         
         // Get non-path positions
         let nonPathPositions = getNonPathPositions(rows, cols);
+        console.log(`Got ${nonPathPositions.length} non-path positions`);
         
         // Shuffle non-path positions
         for (let i = nonPathPositions.length - 1; i > 0; i--) {
@@ -1576,6 +1589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const zoeRow = 2;
             const zoeCol = 2;
             tileData[zoeRow][zoeCol].type = 'zoe';
+            console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
             nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
         }
         
@@ -1583,9 +1597,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nonPathPositions.length > 0) {
             const keyPos = nonPathPositions.shift();
             tileData[keyPos.row][keyPos.col].type = 'key';
+            console.log(`Key placed at [${keyPos.row}, ${keyPos.col}]`);
         }
         
         // Determine tile types based on chaos levels
+        let blockedCount = 0;
+        let waterCount = 0;
+        let energyCount = 0;
+        
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 // Skip already assigned tiles (goal, zoe, key)
@@ -1602,11 +1621,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const chaos = tileData[row][col].chaos;
                 const tileType = GameState.determineTileType(chaos);
                 tileData[row][col].type = tileType;
+                
+                // Count tile types
+                if (tileType === 'blocked') blockedCount++;
+                if (tileType === 'water') waterCount++;
+                if (tileType === 'energy') energyCount++;
             }
         }
         
-        // Ensure the path is traversable
+        console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
+        
+        // Ensure there is a traversable path from start to goal
         ensureTraversablePath(tileData, rows, cols);
+        console.log("Ensured traversable path");
     }
     
     /**
@@ -1746,17 +1773,24 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {Array} tileData - 2D array of tile data
      */
     function buildGrid(rows, cols, tileData) {
+        console.log(`Building grid: ${rows}x${cols}`);
+        
         const grid = document.querySelector('.grid');
         if (!grid) {
             console.error('Grid element not found in HTML');
             return;
         }
+        
+        // Clear existing grid
         grid.innerHTML = '';
+        
         const totalWidth = (cols - 1) * colOffset + hexVisualWidth;
         const totalHeight = (rows - 1) * rowOffset + hexHeight;
         grid.style.width = `${totalWidth}px`;
         grid.style.height = `${totalHeight}px`;
         grid.style.position = 'relative';
+        
+        console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
 
         for (let row = 0; row < rows; row++) {
             const hexRow = document.createElement('div');
@@ -1855,6 +1889,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             grid.appendChild(hexRow);
         }
+        
+        console.log(`Grid built with ${rows * cols} tiles`);
     }
 
     /**
@@ -2160,19 +2196,28 @@ document.addEventListener('DOMContentLoaded', () => {
         movementPoints = GameState.player.movementPoints;
         temporaryInventory = GameState.level.temporaryInventory;
         
+        console.log(`Grid size: ${rows}x${cols}`);
+        
         // Create and initialize tile data
         GameState.level.tileData = createTileData(rows, cols);
         tileData = GameState.level.tileData; // Update global reference
         
+        console.log("Tile data created");
+        
         // Place tiles and build grid
         placeTiles(tileData, rows, cols);
+        console.log("Tiles placed");
+        
         buildGrid(rows, cols, tileData);
+        console.log("Grid built");
 
         document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
         const startingHex = document.querySelector('.hex-container[data-row="0"][data-col="0"]');
         if (startingHex) {
             const character = startingHex.querySelector('.character');
             if (character) character.style.display = 'block';
+        } else {
+            console.error("Starting hex not found");
         }
 
         if (GameState.progress.hasFoundZoe) {
@@ -2181,19 +2226,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Initialize evolution UI
-        updateEvolutionUI();
+        try {
+            updateEvolutionUI();
+            console.log("Evolution UI updated");
+        } catch (error) {
+            console.error("Error updating evolution UI:", error);
+        }
         
         // Initialize events UI
-        updateEventsUI();
+        try {
+            updateEventsUI();
+            console.log("Events UI updated");
+        } catch (error) {
+            console.error("Error updating events UI:", error);
+        }
         
         // Apply trait effects
         GameState.applyTraitEffects();
         
         // Check for world events
-        const worldEvents = GameState.checkEvents('world');
-        if (worldEvents.length > 0) {
-            // Show the first triggered event
-            showEventNotification(worldEvents[0]);
+        try {
+            const worldEvents = GameState.checkEvents('world');
+            console.log("World events checked:", worldEvents);
+            if (worldEvents.length > 0) {
+                // Show the first triggered event
+                showEventNotification(worldEvents[0]);
+            }
+        } catch (error) {
+            console.error("Error checking world events:", error);
         }
         
         highlightTiles(null);
@@ -2204,10 +2264,19 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameActive = true;
         
         // Hide all windows
-        document.getElementById('stats-window').style.display = 'none';
-        document.getElementById('evolution-window').style.display = 'none';
-        document.getElementById('events-window').style.display = 'none';
-        document.getElementById('event-notification').style.display = 'none';
+        const statsWindow = document.getElementById('stats-window');
+        if (statsWindow) statsWindow.style.display = 'none';
+        
+        const evolutionWindow = document.getElementById('evolution-window');
+        if (evolutionWindow) evolutionWindow.style.display = 'none';
+        
+        const eventsWindow = document.getElementById('events-window');
+        if (eventsWindow) eventsWindow.style.display = 'none';
+        
+        const eventNotification = document.getElementById('event-notification');
+        if (eventNotification) eventNotification.style.display = 'none';
+        
+        console.log("Game started successfully");
     }
 
     /**
@@ -2976,6 +3045,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * Attaches event listeners to the events window elements
      */
     function attachEventsListeners() {
+        console.log('Attaching events listeners');
+        
         // Tab buttons
         const tabButtons = document.querySelectorAll('.events-tab-btn');
         tabButtons.forEach(button => {
@@ -2995,12 +3066,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeButton = document.getElementById('close-events-btn');
         if (closeButton) {
             closeButton.addEventListener('click', hideEventsWindow);
+        } else {
+            console.error('Events window close button not found');
         }
         
         // Events button in action console
         const eventsButton = document.getElementById('events-btn');
         if (eventsButton) {
             eventsButton.addEventListener('click', showEventsWindow);
+        } else {
+            console.error('Events button not found');
         }
         
         // Event notification close button
