@@ -1355,11 +1355,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add CSS styles for action results and hex grid
     const style = document.createElement('style');
     style.textContent = `
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #eee;
+        }
+        
         .game-container {
             position: relative;
             width: 100%;
-            height: 80vh;
-            margin: 20px auto;
+            height: 85vh;
+            margin: 0 auto;
+            padding-top: 20px;
             overflow: hidden;
         }
         
@@ -1368,21 +1377,26 @@ document.addEventListener('DOMContentLoaded', () => {
             width: 100%;
             height: 100%;
             margin: 0 auto;
+            transform-origin: center center;
         }
         
         .hex-container {
             position: absolute;
             width: 100px;
-            height: 100px;
+            height: 115px;
+            margin: 0;
+            transform-origin: center center;
             transition: transform 0.2s ease;
+            z-index: 1;
         }
         
         .hex {
-            width: 86.6px;  /* 100 * cos(30 degrees) */
-            height: 100px;
+            position: absolute;
+            width: 100px;
+            height: 115px;
             background-color: #ccc;
-            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-            position: relative;
+            /* Pointy-top hexagon */
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             transition: background-color 0.3s ease;
         }
         
@@ -1426,11 +1440,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         .sensed {
-            box-shadow: 0 0 10px rgba(30, 144, 255, 0.7);
+            opacity: 1;
         }
         
-        .stabilized {
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        .stabilized .hex {
+            box-shadow: 0 0 10px 5px rgba(255, 215, 0, 0.7);
         }
         
         .player-position::after {
@@ -1446,7 +1460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .zoe-indicator, .key-indicator, .goal-indicator {
             position: absolute;
             font-size: 20px;
-            top: 20%;
+            top: 40%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 2;
@@ -1479,6 +1493,34 @@ document.addEventListener('DOMContentLoaded', () => {
             background-color: #2980b9;
         }
         
+        .highlight {
+            animation: pulse 1.5s infinite;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .move-highlight .hex {
+            box-shadow: 0 0 10px 5px rgba(60, 60, 200, 0.7);
+        }
+        
+        .sense-highlight .hex {
+            box-shadow: 0 0 10px 5px rgba(60, 200, 60, 0.7);
+        }
+        
+        .poke-highlight .hex {
+            box-shadow: 0 0 10px 5px rgba(200, 60, 60, 0.7);
+        }
+        
+        .stabilize-highlight .hex {
+            box-shadow: 0 0 10px 5px rgba(200, 200, 60, 0.7);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
         .action-result {
             position: fixed;
             bottom: 80px;
@@ -1509,33 +1551,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         #stabilize-result {
             background-color: rgba(200, 200, 60, 0.8);
-        }
-        
-        .highlight {
-            animation: pulse 1.5s infinite;
-            cursor: pointer;
-        }
-        
-        .move-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(60, 60, 200, 0.7);
-        }
-        
-        .sense-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(60, 200, 60, 0.7);
-        }
-        
-        .poke-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(200, 60, 60, 0.7);
-        }
-        
-        .stabilize-highlight .hex {
-            box-shadow: 0 0 10px 5px rgba(200, 200, 60, 0.7);
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
         }
         
         .window {
@@ -1992,6 +2007,19 @@ function placeTiles(tileData, rows, cols) {
         console.error(`Cannot set goal tile at [${goalRow}, ${goalCol}], position is invalid`);
     }
     
+    // Set the start position (Zoe's position) to normal type, always traversable
+    const zoeRow = Math.floor(rows / 2);
+    const zoeCol = Math.floor(cols / 2);
+    
+    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
+        tileData[zoeRow][zoeCol].type = 'normal'; // Ensure it's not blocked
+        tileData[zoeRow][zoeCol].hasZoe = true;
+        tileData[zoeRow][zoeCol].explored = true; // It's already explored
+        console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
+    } else {
+        console.error(`Cannot place Zoe at [${zoeRow}, ${zoeCol}], position is invalid`);
+    }
+    
     // Get positions for special tiles (excluding start and goal positions)
     const nonPathPositions = getNonPathPositions(rows, cols);
     console.log(`Got ${nonPathPositions.length} non-path positions`);
@@ -1999,17 +2027,6 @@ function placeTiles(tileData, rows, cols) {
     if (nonPathPositions.length === 0) {
         console.warn('No positions available for special tiles');
         return;
-    }
-    
-    // Place Zoe in the middle of the grid
-    const zoeRow = Math.floor(rows / 2);
-    const zoeCol = Math.floor(cols / 2);
-    
-    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
-        tileData[zoeRow][zoeCol].hasZoe = true;
-        console.log(`Zoe placed at [${zoeRow}, ${zoeCol}]`);
-    } else {
-        console.error(`Cannot place Zoe at [${zoeRow}, ${zoeCol}], position is invalid`);
     }
     
     // Shuffle the remaining positions
@@ -2020,6 +2037,10 @@ function placeTiles(tileData, rows, cols) {
         const [keyRow, keyCol] = shuffledPositions.pop();
         if (tileData[keyRow] && tileData[keyRow][keyCol]) {
             tileData[keyRow][keyCol].hasKey = true;
+            // Ensure the key position is not blocked
+            if (tileData[keyRow][keyCol].type === 'blocked') {
+                tileData[keyRow][keyCol].type = 'normal';
+            }
             console.log(`Key placed at [${keyRow}, ${keyCol}]`);
         } else {
             console.error(`Cannot place key at [${keyRow}, ${keyCol}], position is invalid`);
@@ -2037,24 +2058,34 @@ function placeTiles(tileData, rows, cols) {
             return;
         }
         
+        // Skip positions already assigned (Zoe, key, goal)
+        if (tileData[r][c].hasZoe || tileData[r][c].hasKey || tileData[r][c].isGoal) {
+            return;
+        }
+        
         const chance = Math.random();
         
-        if (chance < 0.7 && blockedCount < Math.floor(rows * cols * 0.3)) {
+        if (chance < 0.5 && blockedCount < Math.floor(rows * cols * 0.2)) {
             tileData[r][c].type = 'blocked';
             blockedCount++;
-        } else if (chance < 0.9 && waterCount < Math.floor(rows * cols * 0.1)) {
+        } else if (chance < 0.7 && waterCount < Math.floor(rows * cols * 0.1)) {
             tileData[r][c].type = 'water';
             waterCount++;
-        } else if (energyCount < Math.floor(rows * cols * 0.05)) {
+        } else if (chance < 0.8 && energyCount < Math.floor(rows * cols * 0.05)) {
             tileData[r][c].type = 'energy';
             energyCount++;
+        } else {
+            tileData[r][c].type = 'normal';
         }
     });
     
     console.log(`Placed ${blockedCount} blocked tiles, ${waterCount} water tiles, ${energyCount} energy tiles`);
     
     // Ensure there is a traversable path from start to goal
-    ensureTraversablePath(tileData, rows, cols);
+    if (!ensureTraversablePath(tileData, rows, cols)) {
+        console.warn("Could not create traversable path, clearing blocked tiles on a direct path");
+        createDirectPath(tileData, zoeRow, zoeCol, goalRow, goalCol);
+    }
 }
 
 /**
@@ -2133,15 +2164,32 @@ function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
         return false;
     }
     
-    // Check if start or goal is blocked
-    if (tileData[startRow][startCol].type === 'blocked') {
-        console.error('Start position is blocked');
+    // Check start position tile data
+    if (!tileData[startRow] || !tileData[startRow][startCol]) {
+        console.error(`Start position [${startRow}, ${startCol}] has no tile data`);
+        return false;
+    }
+
+    // Check goal position tile data
+    if (!tileData[goalRow] || !tileData[goalRow][goalCol]) {
+        console.error(`Goal position [${goalRow}, ${goalCol}] has no tile data`);
         return false;
     }
     
+    // Check if start position is blocked
+    if (tileData[startRow][startCol].type === 'blocked') {
+        console.error('Start position is blocked');
+        // Force the start position to be normal type
+        tileData[startRow][startCol].type = 'normal';
+        console.log('Unblocked the start position');
+    }
+    
+    // Check if goal position is blocked
     if (tileData[goalRow][goalCol].type === 'blocked') {
         console.error('Goal position is blocked');
-        return false;
+        // Force the goal position to be goal type
+        tileData[goalRow][goalCol].type = 'goal';
+        console.log('Set the goal position to goal type');
     }
     
     // BFS to find path
@@ -2149,15 +2197,29 @@ function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
     const visited = {};
     visited[`${startRow},${startCol}`] = true;
     
-    // Define directions for hex grid
-    const directions = [
-        [-1, 0],  // North
-        [-1, 1],  // Northeast
-        [0, 1],   // East
-        [1, 0],   // South
-        [1, -1],  // Southwest
-        [0, -1]   // West
-    ];
+    // Define directions for hex grid (pointy-top)
+    // For odd columns, the neighbors have a different relative position
+    const getDirections = (row, col) => {
+        if (col % 2 === 0) { // Even column
+            return [
+                [-1, 0],  // Top
+                [-1, 1],  // Top right
+                [0, 1],   // Right
+                [1, 0],   // Bottom
+                [0, -1],  // Left
+                [-1, -1]  // Top left
+            ];
+        } else { // Odd column
+            return [
+                [-1, 0],  // Top
+                [0, 1],   // Top right
+                [1, 1],   // Bottom right
+                [1, 0],   // Bottom
+                [1, -1],  // Bottom left
+                [0, -1]   // Left
+            ];
+        }
+    };
     
     while (queue.length > 0) {
         const [currentRow, currentCol] = queue.shift();
@@ -2167,6 +2229,9 @@ function verifyPath(tileData, startRow, startCol, goalRow, goalCol) {
             console.log('Path found!');
             return true;
         }
+        
+        // Get appropriate directions based on column parity
+        const directions = getDirections(currentRow, currentCol);
         
         // Explore neighbors
         for (const [dRow, dCol] of directions) {
@@ -2235,12 +2300,15 @@ function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
     
     // Get grid configuration from window or GameState
-    const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth || 86.6;
-    const hexHeight = window.hexHeight || GameState.grid.hexHeight || 100;
-    const rowOffset = window.rowOffset || GameState.grid.rowOffset || 75;
-    const colOffset = window.colOffset || GameState.grid.colOffset || 86.6;
+    // Using pointy-top hex grid measurements
+    const hexWidth = 100; // Width of a single hex
+    const hexHeight = 115; // Height of a single hex (height > width for pointy-top)
     
-    console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
+    // Offset values for pointy-top hex grid
+    const rowOffset = hexHeight * 0.75; // 3/4 of the hex height
+    const colOffset = hexWidth;
+    
+    console.log(`Grid config: hexWidth=${hexWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
     // Get the grid element
     const gridElement = document.getElementById('hex-grid');
@@ -2253,8 +2321,8 @@ function buildGrid(rows, cols, tileData) {
     gridElement.innerHTML = '';
     
     // Calculate total width and height of the grid
-    const totalWidth = cols * colOffset + hexVisualWidth;
-    const totalHeight = rows * rowOffset + hexHeight;
+    const totalWidth = (cols + 0.5) * colOffset;
+    const totalHeight = (rows * rowOffset) + (hexHeight * 0.25);
     
     console.log(`Grid dimensions: ${totalWidth}x${totalHeight}`);
     
@@ -2310,14 +2378,17 @@ function buildGrid(rows, cols, tileData) {
                 hexContainer.appendChild(goalIndicator);
             }
             
-            // Calculate hex position
+            // Calculate hex position for pointy-top orientation
             let xPosition = col * colOffset;
             let yPosition = row * rowOffset;
             
-            // Offset even rows
-            if (row % 2 === 1) {
-                xPosition += colOffset / 2;
+            // Offset odd columns (for pointy-top)
+            if (col % 2 === 1) {
+                yPosition += rowOffset / 2;
             }
+            
+            // Center the grid
+            xPosition += colOffset / 2;
             
             hexContainer.style.left = `${xPosition}px`;
             hexContainer.style.top = `${yPosition}px`;
@@ -2346,20 +2417,30 @@ function buildGrid(rows, cols, tileData) {
                 console.log(`Clicked on tile [${row}, ${col}], type: ${tile.type}, action: ${window.currentAction || 'none'}`);
                 
                 // If there's a current action, perform it
-                if (window.currentAction) {
+                if (window.currentAction && window.currentAction !== '') {
                     performAction(window.currentAction, row, col);
                 }
             });
         }
     }
     
-    // Set starting position
+    // Mark Zoe position as explored
+    const zoeRow = Math.floor(rows / 2);
+    const zoeCol = Math.floor(cols / 2);
+    if (tileData[zoeRow] && tileData[zoeRow][zoeCol]) {
+        tileData[zoeRow][zoeCol].explored = true;
+        tileData[zoeRow][zoeCol].type = 'normal'; // Ensure Zoe's position is not blocked
+    }
+    
+    // Set starting position (where Zoe is)
     const startRow = Math.floor(rows / 2);
     const startCol = Math.floor(cols / 2);
     const startHex = document.getElementById(`hex-${startRow}-${startCol}`);
     
     if (startHex) {
         startHex.classList.add('player-position');
+        startHex.classList.remove('unexplored');
+        startHex.classList.add('explored');
         
         // Set current position
         window.currentRow = startRow;
@@ -2757,6 +2838,8 @@ function ensureGameContainer() {
         gameContainer = document.createElement('div');
         gameContainer.className = 'game-container';
         document.body.appendChild(gameContainer);
+    } else {
+        console.log('Game container already exists');
     }
     
     // Get or create hex grid
@@ -2767,13 +2850,19 @@ function ensureGameContainer() {
         hexGrid.id = 'hex-grid';
         hexGrid.className = 'hex-grid';
         gameContainer.appendChild(hexGrid);
+    } else {
+        console.log('Hex grid already exists');
+        // Clear existing hex grid
+        hexGrid.innerHTML = '';
     }
     
     // Ensure hex grid is visible
     hexGrid.style.display = 'block';
     
-    // Get or create action console
+    // Check if action console already exists
     let actionConsole = document.querySelector('.action-console');
+    
+    // Only create the action console if it doesn't exist
     if (!actionConsole) {
         console.log('Creating action console');
         actionConsole = document.createElement('div');
@@ -2796,7 +2885,52 @@ function ensureGameContainer() {
             actionConsole.appendChild(btn);
         });
         
+        // Attach event listeners to the buttons
+        const moveBtn = actionConsole.querySelector('#move-btn');
+        if (moveBtn) {
+            moveBtn.addEventListener('click', () => {
+                window.currentAction = 'move';
+                highlightTiles('move');
+            });
+        }
+        
+        const senseBtn = actionConsole.querySelector('#sense-btn');
+        if (senseBtn) {
+            senseBtn.addEventListener('click', () => {
+                window.currentAction = 'sense';
+                highlightTiles('sense');
+            });
+        }
+        
+        const pokeBtn = actionConsole.querySelector('#poke-btn');
+        if (pokeBtn) {
+            pokeBtn.addEventListener('click', () => {
+                window.currentAction = 'poke';
+                highlightTiles('poke');
+            });
+        }
+        
+        const stabilizeBtn = actionConsole.querySelector('#stabilize-btn');
+        if (stabilizeBtn) {
+            stabilizeBtn.addEventListener('click', () => {
+                window.currentAction = 'stabilize';
+                highlightTiles('stabilize');
+            });
+        }
+        
+        const endTurnBtn = actionConsole.querySelector('#end-turn-btn');
+        if (endTurnBtn) {
+            endTurnBtn.addEventListener('click', endTurn);
+        }
+        
+        const restBtn = actionConsole.querySelector('#rest-btn');
+        if (restBtn) {
+            restBtn.addEventListener('click', rest);
+        }
+        
         gameContainer.appendChild(actionConsole);
+    } else {
+        console.log('Action console already exists');
     }
     
     // Make sure action console is visible
@@ -3002,34 +3136,6 @@ function getAdjacentTiles(row, col) {
     console.log(`Found ${adjacentPositions.length} adjacent tiles:`, adjacentPositions);
     return adjacentPositions;
 }
-
-document.getElementById('move-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'move';
-    currentAction = 'move'; // Update local variable for compatibility
-    highlightTiles('move');
-});
-
-document.getElementById('sense-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'sense';
-    currentAction = 'sense'; // Update local variable for compatibility
-    highlightTiles('sense');
-});
-
-document.getElementById('stabilize-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'stabilize';
-    currentAction = 'stabilize'; // Update local variable for compatibility
-    highlightTiles('stabilize');
-});
-
-document.getElementById('poke-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'poke';
-    currentAction = 'poke'; // Update local variable for compatibility
-    highlightTiles('poke');
-});
-
-document.getElementById('end-turn-btn').addEventListener('click', endTurn);
-
-document.getElementById('rest-btn').addEventListener('click', rest);
 
 /**
  * Updates the evolution UI
