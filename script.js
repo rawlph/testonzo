@@ -277,270 +277,360 @@ const GameState = {
      * Initializes the game state
      */
     init() {
-        // Set default evolution structure if it doesn't exist
-        if (!this.evolution) {
-            this.evolution = {
-                paths: {
-                    explorer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                    manipulator: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                    stabilizer: { level: 0, xp: 0, xpToNext: 100, traits: [] },
-                    survivor: { level: 0, xp: 0, xpToNext: 100, traits: [] }
-                },
-                availableTraits: {
-                    explorer: [
-                        { id: 'enhanced_vision', name: 'Enhanced Vision', description: 'Increases vision range by 1', effect: 'vision_range_+1', cost: { knowledge: 50 }, level: 1 },
-                        { id: 'pattern_recognition', name: 'Pattern Recognition', description: 'Sense actions reveal more information', effect: 'sense_efficiency_+20%', cost: { knowledge: 100 }, level: 2 },
-                        { id: 'intuition', name: 'Intuition', description: 'Chance to automatically sense adjacent tiles', effect: 'auto_sense_chance_20%', cost: { knowledge: 150 }, level: 3 }
-                    ],
-                    manipulator: [
-                        { id: 'dexterous', name: 'Dexterous', description: 'Poke actions cost 1 less energy', effect: 'poke_energy_-1', cost: { essence: 50 }, level: 1 },
-                        { id: 'reactive', name: 'Reactive', description: 'Poke actions have 20% better success rate', effect: 'poke_success_+20%', cost: { essence: 100 }, level: 2 },
-                        { id: 'adaptive', name: 'Adaptive', description: 'Poke effects are 50% stronger', effect: 'poke_effect_+50%', cost: { essence: 150 }, level: 3 }
-                    ],
-                    stabilizer: [
-                        { id: 'harmonizer', name: 'Harmonizer', description: 'Stabilize actions are 20% more effective', effect: 'stabilize_effect_+20%', cost: { essence: 50 }, level: 1 },
-                        { id: 'balancer', name: 'Balancer', description: 'Gain 2 stability each turn', effect: 'stability_per_turn_+2', cost: { essence: 100 }, level: 2 },
-                        { id: 'architect', name: 'Architect', description: 'Stabilize actions affect adjacent tiles slightly', effect: 'stabilize_adjacent', cost: { essence: 150 }, level: 3 }
-                    ],
-                    survivor: [
-                        { id: 'efficient_movement', name: 'Efficient Movement', description: 'Movement costs no energy every 3rd step', effect: 'free_move_every_3', cost: { energy: 50 }, level: 1 },
-                        { id: 'energy_storage', name: 'Energy Storage', description: 'Increases maximum energy by 25', effect: 'max_energy_+25', cost: { energy: 100 }, level: 2 },
-                        { id: 'resilience', name: 'Resilience', description: 'Reduces stability loss in chaotic areas by 50%', effect: 'stability_loss_-50%', cost: { energy: 150 }, level: 3 }
-                    ]
-                },
-                activeTraits: []
-            };
+        console.log("Initializing game state...");
+        
+        // Load saved progress or create default state
+        const savedState = localStorage.getItem('gameState');
+        if (savedState) {
+            try {
+                const parsedState = JSON.parse(savedState);
+                
+                // Restore saved properties
+                this.grid = parsedState.grid || this.grid;
+                this.progress = parsedState.progress || this.progress;
+                this.worldEvolution = parsedState.worldEvolution || this.worldEvolution;
+                
+                console.log("Loaded saved game state");
+            } catch (error) {
+                console.error("Error loading saved state:", error);
+                this.resetAllProgress();
+            }
+        } else {
+            console.log("No saved state found, using defaults");
+            this.resetAllProgress();
         }
         
-        // Set default events structure if it doesn't exist
-        if (!this.events) {
-            this.events = {
-                activeEvents: [],
-                completedEvents: [],
-                eventChains: {},
-                availableEvents: {
-                    early: [
-                        {
-                            id: 'primordial_spark',
-                            name: 'Primordial Spark',
-                            type: 'world',
-                            trigger: { condition: 'chaos_below', value: 0.7 },
-                            description: 'The chaos begins to form patterns...',
-                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 20 },
-                            flavor: 'As the primordial chaos settles, you sense the first glimmers of order emerging from the void.'
-                        },
-                        {
-                            id: 'energy_surge',
-                            name: 'Energy Surge',
-                            type: 'tile',
-                            trigger: { condition: 'poke_chaos_tile', value: 0.8 },
-                            description: 'A surge of raw energy erupts from the chaotic tile!',
-                            effect: { type: 'resource_gain', resource: 'energy', amount: 15 },
-                            flavor: 'The chaotic energies coalesce and flow into your being, invigorating you.'
-                        },
-                        {
-                            id: 'stability_fluctuation',
-                            name: 'Stability Fluctuation',
-                            type: 'tile',
-                            trigger: { condition: 'stabilize_tile', value: 0.5 },
-                            description: 'Your stabilization efforts create unexpected patterns.',
-                            effect: { type: 'resource_gain', resource: 'stability', amount: 10 },
-                            flavor: 'The patterns you create seem to resonate with the surrounding environment.'
-                        }
-                    ],
-                    mid: [
-                        {
-                            id: 'first_life',
-                            name: 'First Life',
-                            type: 'evolution',
-                            trigger: { condition: 'any_path_level', value: 3 },
-                            description: 'Simple life forms begin to emerge in the ordered regions.',
-                            effect: { type: 'resource_gain', resource: 'essence', amount: 30 },
-                            flavor: 'Tiny, primitive organisms appear in the areas you\'ve stabilized, drawn to the order you\'ve created.'
-                        },
-                        {
-                            id: 'knowledge_repository',
-                            name: 'Knowledge Repository',
-                            type: 'tile',
-                            trigger: { condition: 'sense_order_tile', value: 0.7 },
-                            description: 'You discover a concentrated pocket of organized information.',
-                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 25 },
-                            flavor: 'The ordered patterns contain complex information structures that you can absorb and understand.'
-                        },
-                        {
-                            id: 'chaotic_resonance',
-                            name: 'Chaotic Resonance',
-                            type: 'world',
-                            trigger: { condition: 'chaos_above', value: 0.6 },
-                            description: 'The remaining chaos begins to resonate with your actions.',
-                            effect: { type: 'resource_gain', resource: 'energy', amount: -10, stability: -15 },
-                            flavor: 'The chaotic forces resist your ordering influence, creating turbulence in your path.'
-                        }
-                    ],
-                    late: [
-                        {
-                            id: 'consciousness',
-                            name: 'Consciousness',
-                            type: 'chain',
-                            trigger: { condition: 'stability_above', value: 70 },
-                            description: 'Something new is awakening in the ordered regions...',
-                            chainId: 'consciousness_emergence',
-                            step: 1,
-                            effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
-                            flavor: 'You sense a new pattern forming—one that seems to observe and respond to its surroundings.'
-                        },
-                        {
-                            id: 'ecosystem_formation',
-                            name: 'Ecosystem Formation',
-                            type: 'world',
-                            trigger: { condition: 'order_above', value: 0.7 },
-                            description: 'The ordered regions begin to form complex, interconnected systems.',
-                            effect: { type: 'resource_gain', resource: 'essence', amount: 40 },
-                            flavor: 'Life forms begin to interact with each other, creating a web of relationships and dependencies.'
-                        },
-                        {
-                            id: 'reality_stabilization',
-                            name: 'Reality Stabilization',
-                            type: 'tile',
-                            trigger: { condition: 'stabilize_order_tile', value: 0.8 },
-                            description: 'Your stabilization creates a permanent anchor point in reality.',
-                            effect: { type: 'special', special: 'reality_anchor' },
-                            flavor: 'This region now exists as a fixed point in the cosmos, immune to the forces of chaos.'
-                        }
-                    ]
-                },
-                chains: {
-                    consciousness_emergence: {
-                        name: 'The Emergence of Consciousness',
-                        steps: 3,
-                        currentStep: 0,
-                        description: 'A new form of awareness is developing in the ordered regions of the world.',
-                        stepDetails: [
+        // Initialize evolution paths if they don't exist
+        if (!this.evolution || !this.evolution.paths) {
+            console.log("Initializing evolution system...");
+            this.evolution = {
+                paths: {
+                    chaos: {
+                        name: "Path of Chaos",
+                        description: "Embrace the unpredictable nature of chaos to gain powers of transformation and creation.",
+                        xp: 0,
+                        unlocked: false,
+                        traits: [
                             {
-                                description: 'The first glimmers of self-awareness appear in the ordered patterns.',
-                                effect: { type: 'resource_gain', resource: 'knowledge', amount: 50 },
-                                flavor: 'Something is watching you from within the patterns you\'ve created.'
+                                id: "chaos_affinity",
+                                name: "Chaos Affinity",
+                                description: "Gain 1 essence for each chaotic tile you interact with.",
+                                cost: 10,
+                                unlocked: false,
+                                effect: "gain_essence_from_chaos"
                             },
                             {
-                                description: 'The consciousness begins to communicate through pattern manipulation.',
-                                effect: { type: 'resource_gain', resource: 'essence', amount: 50 },
-                                flavor: 'Subtle changes in the environment suggest an attempt at communication.'
+                                id: "enhanced_poke",
+                                name: "Enhanced Poke",
+                                description: "Increases chance of successfully changing a tile when poking by 20%.",
+                                cost: 20,
+                                unlocked: false,
+                                effect: "poke_success_+20%"
                             },
                             {
-                                description: 'The consciousness fully emerges and recognizes you as its creator.',
-                                effect: { type: 'special', special: 'consciousness_ally' },
-                                flavor: 'A new entity has been born from your efforts to create order from chaos.'
+                                id: "chaos_vision",
+                                name: "Chaos Vision",
+                                description: "Can see the chaos level of tiles within vision range.",
+                                cost: 30,
+                                unlocked: false,
+                                effect: "see_chaos_levels"
+                            }
+                        ]
+                    },
+                    order: {
+                        name: "Path of Order",
+                        description: "Master the principles of order to stabilize the world and enhance your resilience.",
+                        xp: 0,
+                        unlocked: false,
+                        traits: [
+                            {
+                                id: "order_affinity",
+                                name: "Order Affinity",
+                                description: "Gain 1 stability for each ordered tile you interact with.",
+                                cost: 10,
+                                unlocked: false,
+                                effect: "gain_stability_from_order"
+                            },
+                            {
+                                id: "efficient_movement",
+                                name: "Efficient Movement",
+                                description: "Reduce energy cost of movement by 1.",
+                                cost: 20,
+                                unlocked: false,
+                                effect: "movement_cost_-1"
+                            },
+                            {
+                                id: "order_shield",
+                                name: "Order Shield",
+                                description: "Gain resistance to chaotic effects.",
+                                cost: 30,
+                                unlocked: false,
+                                effect: "chaos_resistance"
+                            }
+                        ]
+                    },
+                    balance: {
+                        name: "Path of Balance",
+                        description: "Walk the line between chaos and order to gain versatile abilities.",
+                        xp: 0,
+                        unlocked: false,
+                        traits: [
+                            {
+                                id: "balanced_insight",
+                                name: "Balanced Insight",
+                                description: "Gain 1 knowledge when interacting with balanced tiles.",
+                                cost: 10,
+                                unlocked: false,
+                                effect: "gain_knowledge_from_balance"
+                            },
+                            {
+                                id: "enhanced_vision",
+                                name: "Enhanced Vision",
+                                description: "Increase vision range by 1.",
+                                cost: 20,
+                                unlocked: false,
+                                effect: "vision_range_+1"
+                            },
+                            {
+                                id: "harmony",
+                                name: "Harmony",
+                                description: "All resources regenerate 1 per turn.",
+                                cost: 30,
+                                unlocked: false,
+                                effect: "all_resources_regen_1"
                             }
                         ]
                     }
+                },
+                activeTraits: []
+            };
+            console.log("Evolution system initialized");
+        }
+        
+        // Initialize events system if it doesn't exist
+        if (!this.events || !this.events.available || !this.events.triggered || !this.events.chains) {
+            console.log("Initializing events system...");
+            this.events = {
+                available: [
+                    {
+                        id: "chaos_spike",
+                        name: "Chaos Spike",
+                        description: "A sudden surge of chaos energy has been detected in the area.",
+                        trigger: { type: "gameStart", chance: 0.3 },
+                        effect: { type: "increaseChaos", value: 0.2 },
+                        requirement: { globalChaos: 0.4 },
+                        oneTime: false,
+                        completed: false
+                    },
+                    {
+                        id: "order_stabilization",
+                        name: "Order Stabilization",
+                        description: "A wave of order energy is stabilizing the surrounding area.",
+                        trigger: { type: "gameStart", chance: 0.3 },
+                        effect: { type: "increaseOrder", value: 0.2 },
+                        requirement: { globalOrder: 0.4 },
+                        oneTime: false,
+                        completed: false
+                    },
+                    {
+                        id: "energy_bloom",
+                        name: "Energy Bloom",
+                        description: "A bloom of energy has appeared nearby.",
+                        trigger: { type: "turn", chance: 0.2, minTurn: 5 },
+                        effect: { type: "spawnEnergyTile" },
+                        oneTime: false,
+                        completed: false
+                    },
+                    {
+                        id: "ancient_knowledge",
+                        name: "Ancient Knowledge",
+                        description: "You've discovered ancient knowledge about the world's creation.",
+                        trigger: { type: "sense", targetType: "special", chance: 1.0 },
+                        effect: { type: "grantResource", resource: "knowledge", value: 5 },
+                        oneTime: true,
+                        completed: false
+                    },
+                    {
+                        id: "zoe_insight",
+                        name: "Zoe's Insight",
+                        description: "Zoe shares wisdom about the balance of chaos and order.",
+                        trigger: { type: "findZoe", chance: 1.0 },
+                        effect: { type: "unlockEvolutionPath", path: "balance" },
+                        oneTime: true,
+                        completed: false,
+                        chain: "zoe_story"
+                    }
+                ],
+                triggered: [],
+                chains: {
+                    "zoe_story": {
+                        name: "Zoe's Journey",
+                        description: "Follow Zoe's story as she navigates the balance between chaos and order.",
+                        events: ["zoe_insight", "zoe_quest", "zoe_revelation"],
+                        currentStep: 0,
+                        completed: false
+                    }
+                },
+                early: [], // Early game events
+                mid: [],   // Mid game events
+                late: []   // Late game events
+            };
+            console.log("Events system initialized");
+        }
+        
+        // Set starting resources if not set
+        if (!this.resources) {
+            this.resources = {
+                energy: 10,
+                essence: 0,
+                knowledge: 0,
+                stability: 0
+            };
+        }
+        
+        // Set resource limits if not set
+        if (!this.resourceLimits) {
+            this.resourceLimits = {
+                energy: 20,
+                essence: 50,
+                knowledge: 50,
+                stability: 50
+            };
+        }
+        
+        // Initialize metrics tracking system
+        if (!this.metrics) {
+            this.metrics = {
+                turnsTaken: 0,
+                sensesMade: 0,
+                pokesMade: 0,
+                energyUsedForMovement: 0,
+                energyUsedForExploration: 0,
+                movesMade: 0,
+                restsTaken: 0,
+                tilesExplored: 0,
+                specialTilesInteracted: 0,
+                
+                incrementTurns() { this.turnsTaken++; },
+                incrementSenses() { this.sensesMade++; },
+                incrementPokes() { this.pokesMade++; },
+                addEnergyForMovement(cost) { this.energyUsedForMovement += cost; },
+                addEnergyForExploration(cost) { this.energyUsedForExploration += cost; },
+                incrementMoves() { this.movesMade++; },
+                incrementRests() { this.restsTaken++; },
+                incrementTilesExplored() { this.tilesExplored++; },
+                incrementSpecialTiles() { this.specialTilesInteracted++; },
+                
+                reset() {
+                    this.turnsTaken = 0;
+                    this.sensesMade = 0;
+                    this.pokesMade = 0;
+                    this.energyUsedForMovement = 0;
+                    this.energyUsedForExploration = 0;
+                    this.movesMade = 0;
+                    this.restsTaken = 0;
+                    this.tilesExplored = 0;
+                    this.specialTilesInteracted = 0;
+                },
+                
+                getEnergyUsageRatio() {
+                    const total = this.energyUsedForMovement + this.energyUsedForExploration;
+                    return total === 0 ? 0 : this.energyUsedForMovement / total;
+                },
+                
+                getMovementEfficiency(safestPathLength) {
+                    return safestPathLength === 0 ? 0 : safestPathLength / this.movesMade;
                 }
             };
         }
         
-        // Load saved progress if available
-        const savedProgress = JSON.parse(localStorage.getItem('playerProgress'));
-        if (savedProgress) {
-            this.progress = savedProgress;
-            
-            // If we have saved world evolution data, load it
-            if (savedProgress.worldEvolution) {
-                this.worldEvolution = savedProgress.worldEvolution;
-            }
-            
-            // Initialize resources from saved progress if available
-            if (savedProgress.resources) {
-                this.resources = savedProgress.resources;
-            }
-            
-            // Initialize evolution data from saved progress if available
-            if (savedProgress.evolution) {
-                // Make sure we preserve the availableTraits definition
-                const availableTraits = this.evolution.availableTraits;
-                this.evolution = savedProgress.evolution;
-                
-                // Ensure availableTraits is always defined with the correct structure
-                if (!this.evolution.availableTraits) {
-                    this.evolution.availableTraits = availableTraits;
-                }
-            }
-            
-            // Initialize events data from saved progress if available
-            if (savedProgress.events) {
-                // Make sure we preserve the event definitions
-                const availableEvents = this.events.availableEvents;
-                const chains = this.events.chains;
-                this.events = savedProgress.events;
-                
-                // Ensure event definitions are always preserved
-                if (!this.events.availableEvents) {
-                    this.events.availableEvents = availableEvents;
-                }
-                if (!this.events.chains) {
-                    this.events.chains = chains;
-                }
-            }
-        }
+        // Initialize level-specific state
+        this.level = {
+            temporaryInventory: [],
+            hasKey: false,
+            foundZoe: false,
+            requiresKey: true
+        };
         
-        // Initialize metrics trackers
-        this.metrics = Object.create(MetricsTracker);
-        this.recentMetrics = Object.create(MetricsTracker);
+        // Recent metrics for rate-of-change calculations
+        this.recentMetrics = {
+            previousChaos: this.worldEvolution.globalChaos,
+            previousOrder: this.worldEvolution.globalOrder
+        };
         
-        // Calculate initial energy based on grid size
-        this.resetPlayerState();
-        
-        // Apply active trait effects
-        this.applyTraitEffects();
+        console.log("Game state initialized successfully");
     },
     
     /**
-     * Checks for events that should be triggered
-     * @param {string} triggerType - Type of trigger ('world', 'tile', 'evolution')
-     * @param {Object} context - Context information for the trigger
-     * @returns {Array} Triggered events
+     * Check which events are triggered based on the trigger type
+     * @param {string} triggerType - The trigger type to check (e.g., 'gameStart', 'turn', 'sense')
+     * @param {Object} context - Additional context for the trigger check
+     * @returns {Array} - List of triggered events
      */
     checkEvents(triggerType, context = {}) {
-        if (!this.events) {
+        console.log(`Checking for events of type: ${triggerType}`);
+        
+        if (!this.events || !this.events.available) {
+            console.warn("Events system not properly initialized");
             return [];
         }
         
-        const triggeredEvents = [];
-        const worldAge = this.worldEvolution.age;
+        // Ensure event categories exist
+        if (!this.events.early) this.events.early = [];
+        if (!this.events.mid) this.events.mid = [];
+        if (!this.events.late) this.events.late = [];
         
         // Determine which event pool to use based on world age
-        let eventPool = 'early';
-        if (worldAge >= 10) {
-            eventPool = 'late';
-        } else if (worldAge >= 5) {
-            eventPool = 'mid';
+        let eventPool = this.events.available;
+        if (this.worldEvolution && this.worldEvolution.age) {
+            if (this.worldEvolution.age < 5) {
+                // Add early game events to the pool
+                eventPool = [...eventPool, ...this.events.early];
+            } else if (this.worldEvolution.age < 15) {
+                // Add mid game events to the pool
+                eventPool = [...eventPool, ...this.events.mid];
+            } else {
+                // Add late game events to the pool
+                eventPool = [...eventPool, ...this.events.late];
+            }
         }
         
-        // Check each event in the pool
-        const eventsToCheck = this.events.availableEvents[eventPool] || [];
+        // Filter events that could be triggered by this trigger type
+        const triggeredEvents = [];
         
-        for (const event of eventsToCheck) {
-            // Skip events that have already been completed
-            if (this.events.completedEvents.includes(event.id)) {
-                continue;
+        eventPool.forEach(event => {
+            // Skip events that have been completed if they're one-time events
+            if (event.oneTime && event.completed) {
+                return;
             }
             
-            // Skip events that don't match the trigger type
-            if (event.type !== triggerType && event.type !== 'chain') {
-                continue;
-            }
-            
-            // Check if the event is triggered
+            // Check if this event is triggered
             if (this.isEventTriggered(event, triggerType, context)) {
+                console.log(`Event triggered: ${event.name}`);
+                
+                // Apply event effect
+                this.applyEventEffect(event);
+                
+                // Mark as completed for one-time events
+                if (event.oneTime) {
+                    event.completed = true;
+                }
+                
+                // Add to triggered events list
+                this.events.triggered.push({
+                    ...event,
+                    triggeredAt: this.worldEvolution.age,
+                    triggerContext: { ...context }
+                });
+                
                 triggeredEvents.push(event);
                 
-                // For non-chain events, mark as completed
-                if (event.type !== 'chain') {
-                    this.events.completedEvents.push(event.id);
-                } else {
-                    // For chain events, update the chain progress
-                    this.advanceEventChain(event.chainId, event.step);
+                // Update event chain if applicable
+                if (event.chain) {
+                    this.advanceEventChain(event.chain, event.id);
                 }
             }
-        }
+        });
         
         return triggeredEvents;
     },
@@ -1538,7 +1628,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Highlight each tile based on action type
         tilesInRange.forEach(pos => {
-            const [row, col] = pos;
+            // Extract row and col from the position object
+            const row = pos.row;
+            const col = pos.col;
             const tileId = `hex-${row}-${col}`;
             const tileElement = document.getElementById(tileId);
             
