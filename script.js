@@ -1352,6 +1352,70 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
+    // Add CSS styles for action results
+    const style = document.createElement('style');
+    style.textContent = `
+        .action-result {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            text-align: center;
+            font-size: 16px;
+            max-width: 80%;
+        }
+        
+        #current-action {
+            bottom: 120px;
+            background-color: rgba(60, 60, 200, 0.8);
+        }
+        
+        #sense-result {
+            background-color: rgba(60, 200, 60, 0.8);
+        }
+        
+        #poke-result {
+            background-color: rgba(200, 60, 60, 0.8);
+        }
+        
+        #stabilize-result {
+            background-color: rgba(200, 200, 60, 0.8);
+        }
+        
+        .highlight {
+            animation: pulse 1.5s infinite;
+            cursor: pointer;
+        }
+        
+        .move-highlight {
+            box-shadow: 0 0 10px 5px rgba(60, 60, 200, 0.7);
+        }
+        
+        .sense-highlight {
+            box-shadow: 0 0 10px 5px rgba(60, 200, 60, 0.7);
+        }
+        
+        .poke-highlight {
+            box-shadow: 0 0 10px 5px rgba(200, 60, 60, 0.7);
+        }
+        
+        .stabilize-highlight {
+            box-shadow: 0 0 10px 5px rgba(200, 200, 60, 0.7);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    `;
+    document.head.appendChild(style);
+    
     // Attach event listeners for UI elements
     const statsBtn = document.getElementById('stats-btn');
     if (statsBtn) {
@@ -1499,21 +1563,66 @@ function createParticles(count) {
 }
 
 /**
- * Highlights tiles based on the current action
- * @param {string} action - Current action ('move', 'sense', 'poke', or 'stabilize')
+ * Highlights tiles based on the selected action
+ * @param {string} action - The action type ('move', 'sense', 'poke', 'stabilize')
  */
 function highlightTiles(action) {
-    const adjacentTiles = getAdjacentTiles(currentRow, currentCol);
-    document.querySelectorAll('.hex-container').forEach(container => {
-        const row = parseInt(container.getAttribute('data-row'));
-        const col = parseInt(container.getAttribute('data-col'));
-        container.classList.remove('highlight-move', 'highlight-sense', 'highlight-poke', 'highlight-stabilize');
-        if (action === 'move' && adjacentTiles.some(t => t.row === row && t.col === col)) {
-            container.classList.add('highlight-move');
-        } else if (action === 'sense' || action === 'poke' || action === 'stabilize') {
-            if ((row === currentRow && col === currentCol) || adjacentTiles.some(t => t.row === row && t.col === col)) {
-                container.classList.add(action === 'sense' ? 'highlight-sense' : action === 'poke' ? 'highlight-poke' : 'highlight-stabilize');
+    console.log(`Highlighting tiles for action: ${action}`);
+    
+    // Clear any existing highlights
+    const highlightedTiles = document.querySelectorAll('.hex-container.highlight');
+    highlightedTiles.forEach(tile => {
+        tile.classList.remove('highlight', 'move-highlight', 'sense-highlight', 'poke-highlight', 'stabilize-highlight');
+        
+        // Remove previous click event listeners
+        const newTile = tile.cloneNode(true);
+        tile.parentNode.replaceChild(newTile, tile);
+    });
+    
+    // Update UI to show current action
+    const actionText = document.getElementById('current-action');
+    if (actionText) {
+        actionText.textContent = `Current Action: ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+    }
+    
+    // Store the current action in the window and GameState
+    window.currentAction = action;
+    GameState.player.currentAction = action;
+    
+    // Get tiles that can be interacted with based on the action
+    let tilesInRange = [];
+    
+    if (action === 'move') {
+        // For move, highlight adjacent tiles
+        tilesInRange = getAdjacentTiles(window.currentRow, window.currentCol);
+    } else if (action === 'sense' || action === 'poke' || action === 'stabilize') {
+        // For sense/poke/stabilize, use a range of 1
+        tilesInRange = getTilesInRange(window.currentRow, window.currentCol, 1);
+    }
+    
+    console.log(`Found ${tilesInRange.length} tiles in range for ${action}`);
+    
+    // Highlight the tiles and add click event listeners
+    tilesInRange.forEach(pos => {
+        const [row, col] = pos;
+        const hexId = `hex-${row}-${col}`;
+        const hexElement = document.getElementById(hexId);
+        
+        if (hexElement) {
+            const tileData = window.tileData[row][col];
+            
+            // For move action, only highlight if the tile is not blocked
+            if (action === 'move' && tileData.type === 'blocked') {
+                return;
             }
+            
+            // Add appropriate highlight class
+            hexElement.classList.add('highlight', `${action}-highlight`);
+            
+            // Add click event listener for the action
+            hexElement.addEventListener('click', function() {
+                performAction(action, row, col);
+            });
         }
     });
 }
@@ -2385,6 +2494,9 @@ function updateUI() {
     const tempInventoryDisplay = document.getElementById('temp-inventory-display');
     const persistentInventoryDisplay = document.getElementById('persistent-inventory-display');
     
+    // Create action result displays if they don't exist
+    ensureActionResultElements();
+    
     if (turnDisplay) {
         turnDisplay.textContent = `Turns: ${GameState.player.turnCount}`;
     } else {
@@ -2450,12 +2562,47 @@ function updateUI() {
         console.warn("System balance element not found");
     }
     
+    // Update current action display
+    const actionText = document.getElementById('current-action');
+    if (actionText && window.currentAction) {
+        actionText.textContent = `Current Action: ${window.currentAction.charAt(0).toUpperCase() + window.currentAction.slice(1)}`;
+    } else if (actionText) {
+        actionText.textContent = 'Current Action: None';
+    }
+    
     // Update local variables for compatibility
     window.turnCount = GameState.player.turnCount;
     window.energy = GameState.resources.energy;
     window.movementPoints = GameState.player.movementPoints;
     
     console.log("UI updated");
+}
+
+/**
+ * Ensures that action result elements exist in the DOM
+ */
+function ensureActionResultElements() {
+    const gameContainer = document.querySelector('.game-container');
+    if (!gameContainer) return;
+    
+    // Create action result containers if they don't exist
+    const elements = ['current-action', 'sense-result', 'poke-result', 'stabilize-result'];
+    
+    elements.forEach(id => {
+        if (!document.getElementById(id)) {
+            const element = document.createElement('div');
+            element.id = id;
+            element.className = 'action-result';
+            
+            if (id === 'current-action') {
+                element.textContent = 'Current Action: None';
+            } else {
+                element.style.display = 'none';
+            }
+            
+            gameContainer.appendChild(element);
+        }
+    });
 }
 
 /**
@@ -3132,5 +3279,396 @@ function attachEventsListeners() {
         notificationCloseBtn.addEventListener('click', hideEventNotification);
     } else {
         console.error('Event notification close button not found');
+    }
+}
+
+/**
+ * Performs the selected action on the clicked tile
+ * @param {string} action - The action type ('move', 'sense', 'poke', 'stabilize')
+ * @param {number} row - The row of the clicked tile
+ * @param {number} col - The column of the clicked tile
+ */
+function performAction(action, row, col) {
+    console.log(`Performing ${action} action on tile [${row}, ${col}]`);
+    
+    // Clear highlights
+    const highlightedTiles = document.querySelectorAll('.hex-container.highlight');
+    highlightedTiles.forEach(tile => {
+        tile.classList.remove('highlight', 'move-highlight', 'sense-highlight', 'poke-highlight', 'stabilize-highlight');
+    });
+    
+    // Reset current action display
+    const actionText = document.getElementById('current-action');
+    if (actionText) {
+        actionText.textContent = 'Current Action: None';
+    }
+    
+    // Handle different actions
+    switch(action) {
+        case 'move':
+            performMove(row, col);
+            break;
+        case 'sense':
+            performSense(row, col);
+            break;
+        case 'poke':
+            performPoke(row, col);
+            break;
+        case 'stabilize':
+            performStabilize(row, col);
+            break;
+        default:
+            console.warn(`Unknown action: ${action}`);
+    }
+    
+    // Reset current action
+    window.currentAction = '';
+    GameState.player.currentAction = '';
+    
+    // Update UI
+    updateUI();
+    
+    // Check for events after action
+    GameState.checkEvents('action', { action, row, col });
+}
+
+/**
+ * Handles moving the player to a new tile
+ * @param {number} row - The target row
+ * @param {number} col - The target column
+ */
+function performMove(row, col) {
+    console.log(`Moving to [${row}, ${col}]`);
+    
+    // Calculate energy cost (base cost is 1)
+    let energyCost = 1;
+    
+    // Apply trait effects for movement
+    if (GameState.progress.traits.includes('efficient_movement')) {
+        energyCost = Math.max(0, energyCost - 1);
+    }
+    
+    // Check if player has enough energy
+    if (GameState.resources.energy < energyCost) {
+        console.warn('Not enough energy to move');
+        alert('Not enough energy to move!');
+        return;
+    }
+    
+    // Update player position
+    const oldRow = window.currentRow;
+    const oldCol = window.currentCol;
+    window.currentRow = row;
+    window.currentCol = col;
+    GameState.player.currentRow = row;
+    GameState.player.currentCol = col;
+    
+    // Update energy
+    GameState.updateResource('energy', -energyCost);
+    GameState.metrics.addEnergyForMovement(energyCost);
+    GameState.metrics.incrementMoves();
+    
+    // Mark tile as visited
+    if (!window.tileData[row][col].explored) {
+        window.tileData[row][col].explored = true;
+        GameState.metrics.incrementTilesExplored();
+    }
+    
+    // Update player position on the grid
+    const oldHex = document.getElementById(`hex-${oldRow}-${oldCol}`);
+    const newHex = document.getElementById(`hex-${row}-${col}`);
+    
+    if (oldHex) {
+        oldHex.classList.remove('player-position');
+    }
+    
+    if (newHex) {
+        newHex.classList.add('player-position');
+    }
+    
+    // Check for special tiles
+    checkSpecialTiles(row, col);
+    
+    // Update vision based on new position
+    updateVision();
+}
+
+/**
+ * Handles sensing a tile
+ * @param {number} row - The target row
+ * @param {number} col - The target column
+ */
+function performSense(row, col) {
+    console.log(`Sensing tile at [${row}, ${col}]`);
+    
+    // Calculate energy cost (base cost is 2)
+    let energyCost = 2;
+    
+    // Apply trait effects for sensing
+    if (GameState.progress.traits.includes('efficient_sensing')) {
+        energyCost = Math.max(0, energyCost - 1);
+    }
+    
+    // Check if player has enough energy
+    if (GameState.resources.energy < energyCost) {
+        console.warn('Not enough energy to sense');
+        alert('Not enough energy to sense!');
+        return;
+    }
+    
+    // Update energy
+    GameState.updateResource('energy', -energyCost);
+    GameState.metrics.addEnergyForExploration(energyCost);
+    GameState.metrics.incrementSenses();
+    
+    // Get tile data
+    const tileData = window.tileData[row][col];
+    
+    // Add sensed type to collection if not already sensed
+    if (!GameState.progress.sensedTypes.includes(tileData.type)) {
+        GameState.progress.sensedTypes.push(tileData.type);
+        GameState.progress.xp += 5; // Bonus XP for sensing new type
+        console.log(`Discovered new tile type: ${tileData.type}`);
+    }
+    
+    // Mark tile as sensed
+    tileData.sensed = true;
+    
+    // Update tile appearance
+    const hexElement = document.getElementById(`hex-${row}-${col}`);
+    if (hexElement) {
+        hexElement.classList.add('sensed');
+        
+        // Show sensed info
+        const senseResult = document.getElementById('sense-result');
+        if (senseResult) {
+            senseResult.textContent = `Sensed: ${tileData.type} (Chaos: ${tileData.chaos.toFixed(2)})`;
+            senseResult.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                senseResult.style.display = 'none';
+            }, 3000);
+        }
+    }
+}
+
+/**
+ * Handles poking a tile
+ * @param {number} row - The target row
+ * @param {number} col - The target column
+ */
+function performPoke(row, col) {
+    console.log(`Poking tile at [${row}, ${col}]`);
+    
+    // Calculate energy cost (base cost is 3)
+    let energyCost = 3;
+    
+    // Apply trait effects for poking
+    if (GameState.progress.traits.includes('efficient_poking')) {
+        energyCost = Math.max(0, energyCost - 1);
+    }
+    
+    // Check if player has enough energy
+    if (GameState.resources.energy < energyCost) {
+        console.warn('Not enough energy to poke');
+        alert('Not enough energy to poke!');
+        return;
+    }
+    
+    // Update energy
+    GameState.updateResource('energy', -energyCost);
+    GameState.metrics.addEnergyForExploration(energyCost);
+    GameState.metrics.incrementPokes();
+    
+    // Get tile data
+    const tileData = window.tileData[row][col];
+    
+    // Calculate chance of success based on stability
+    const baseSuccessChance = 0.7;
+    const successChance = GameState.applyStabilityToChance('poke', baseSuccessChance);
+    
+    if (Math.random() < successChance) {
+        // Success: Change the tile type
+        console.log('Poke successful');
+        
+        // Determine the new tile type based on current chaos value
+        const newChaos = Math.max(0, Math.min(1, tileData.chaos + (Math.random() * 0.4 - 0.2)));
+        tileData.chaos = newChaos;
+        const newType = GameState.determineTileType(newChaos);
+        
+        if (newType !== tileData.type) {
+            console.log(`Tile changed from ${tileData.type} to ${newType}`);
+            tileData.type = newType;
+            
+            // Update tile appearance
+            const hexElement = document.getElementById(`hex-${row}-${col}`);
+            if (hexElement) {
+                // Remove old type class
+                hexElement.classList.forEach(cls => {
+                    if (cls.endsWith('-tile')) {
+                        hexElement.classList.remove(cls);
+                    }
+                });
+                
+                // Add new type class
+                hexElement.classList.add(`${newType}-tile`);
+                
+                // Show poke result
+                const pokeResult = document.getElementById('poke-result');
+                if (pokeResult) {
+                    pokeResult.textContent = `Poke successful: Changed to ${newType}`;
+                    pokeResult.style.display = 'block';
+                    
+                    // Hide after 3 seconds
+                    setTimeout(() => {
+                        pokeResult.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        } else {
+            console.log('Tile type remained the same');
+            
+            // Show poke result
+            const pokeResult = document.getElementById('poke-result');
+            if (pokeResult) {
+                pokeResult.textContent = 'Poke successful, but tile type remained the same';
+                pokeResult.style.display = 'block';
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    pokeResult.style.display = 'none';
+                }, 3000);
+            }
+        }
+    } else {
+        // Failure
+        console.log('Poke failed');
+        
+        // Show poke result
+        const pokeResult = document.getElementById('poke-result');
+        if (pokeResult) {
+            pokeResult.textContent = 'Poke failed: No change occurred';
+            pokeResult.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                pokeResult.style.display = 'none';
+            }, 3000);
+        }
+    }
+}
+
+/**
+ * Handles stabilizing a tile
+ * @param {number} row - The target row
+ * @param {number} col - The target column
+ */
+function performStabilize(row, col) {
+    console.log(`Stabilizing tile at [${row}, ${col}]`);
+    
+    // Calculate energy cost (base cost is 4)
+    let energyCost = 4;
+    
+    // Apply trait effects for stabilizing
+    if (GameState.progress.traits.includes('efficient_stabilizing')) {
+        energyCost = Math.max(0, energyCost - 1);
+    }
+    
+    // Check if player has enough energy
+    if (GameState.resources.energy < energyCost) {
+        console.warn('Not enough energy to stabilize');
+        alert('Not enough energy to stabilize!');
+        return;
+    }
+    
+    // Update energy
+    GameState.updateResource('energy', -energyCost);
+    GameState.metrics.addEnergyForExploration(energyCost);
+    
+    // Get tile data
+    const tileData = window.tileData[row][col];
+    
+    // Calculate chance of success based on stability
+    const baseSuccessChance = 0.8;
+    const successChance = GameState.applyStabilityToChance('stabilize', baseSuccessChance);
+    
+    if (Math.random() < successChance) {
+        // Success: Stabilize the tile
+        console.log('Stabilize successful');
+        
+        // Update chaos/order value (move towards order)
+        const oldChaos = tileData.chaos;
+        const stabilizeAmount = 0.3; // Reduce chaos by 30%
+        tileData.chaos = Math.max(0, oldChaos - stabilizeAmount);
+        
+        // Increase global order
+        GameState.worldEvolution.globalOrder += 0.01;
+        GameState.worldEvolution.globalChaos = Math.max(0, 1 - GameState.worldEvolution.globalOrder);
+        
+        // Update stability resource
+        GameState.updateResource('stability', 10);
+        
+        // Update tile appearance
+        const hexElement = document.getElementById(`hex-${row}-${col}`);
+        if (hexElement) {
+            hexElement.classList.add('stabilized');
+            
+            // Show stabilize result
+            const stabilizeResult = document.getElementById('stabilize-result');
+            if (stabilizeResult) {
+                stabilizeResult.textContent = `Stabilize successful: Chaos reduced from ${oldChaos.toFixed(2)} to ${tileData.chaos.toFixed(2)}`;
+                stabilizeResult.style.display = 'block';
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    stabilizeResult.style.display = 'none';
+                }, 3000);
+            }
+        }
+    } else {
+        // Failure
+        console.log('Stabilize failed');
+        
+        // Show stabilize result
+        const stabilizeResult = document.getElementById('stabilize-result');
+        if (stabilizeResult) {
+            stabilizeResult.textContent = 'Stabilize failed: No change occurred';
+            stabilizeResult.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                stabilizeResult.style.display = 'none';
+            }, 3000);
+        }
+    }
+}
+
+/**
+ * Checks for special tiles at the player's current position
+ * @param {number} row - The player's row
+ * @param {number} col - The player's column
+ */
+function checkSpecialTiles(row, col) {
+    const tileData = window.tileData[row][col];
+    
+    if (tileData.hasZoe && !GameState.progress.hasFoundZoe) {
+        console.log('Found Zoe!');
+        GameState.progress.hasFoundZoe = true;
+        GameState.progress.xp += 50; // Bonus XP for finding Zoe
+        alert('You found Zoe! +50 XP');
+    }
+    
+    if (tileData.hasKey && !GameState.level.hasKey) {
+        console.log('Found Key!');
+        GameState.level.hasKey = true;
+        GameState.level.temporaryInventory.push('Key');
+        alert('You found the Key!');
+    }
+    
+    if (tileData.isGoal && GameState.level.hasKey) {
+        console.log('Reached goal with key!');
+        GameState.completeLevelProgress(100, GameState.progress.hasFoundZoe, GameState.level.hasKey);
+        showVictoryScreen();
     }
 }
