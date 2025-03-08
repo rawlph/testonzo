@@ -736,3 +736,285 @@ path {
 .resource-bar-container:hover .resource-tooltip {
     opacity: 1;
 }
+
+/* Evolution Window */
+#evolution-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 25, 50, 0.95);
+    padding: 20px;
+    border: 3px solid #00ccff;
+    border-radius: 10px;
+    box-shadow: 0 0 25px #00ccff, inset 0 0 10px rgba(0, 204, 255, 0.3);
+    z-index: 1000;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    color: #e6f0ff;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    backdrop-filter: blur(2px);
+}
+
+#evolution-window h2 {
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+    margin-top: 0;
+}
+
+/* Evolution Tabs */
+.evolution-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #00ccff;
+    padding-bottom: 10px;
+}
+
+.evolution-tab-btn {
+    background: rgba(0, 51, 102, 0.5);
+    color: #e6f0ff;
+    border: 1px solid #00ccff;
+    padding: 8px 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+    transition: all 0.2s ease;
+}
+
+.evolution-tab-btn:hover {
+    background: rgba(0, 85, 119, 0.7);
+}
+
+.evolution-tab-btn.active {
+    background: rgba(0, 102, 136, 0.8);
+    color: #00ffcc;
+    border-bottom: 2px solid #00ffcc;
+}
+
+/* Evolution Content */
+.evolution-tab-content {
+    display: none;
+    padding: 10px;
+}
+
+.evolution-tab-content.active {
+    display: block;
+}
+
+.evolution-path-info {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(0, 51, 102, 0.3);
+    border-radius: 5px;
+}
+
+.evolution-path-info h3 {
+    color: #00ffcc;
+    margin-top: 0;
+}
+
+.evolution-path-info p {
+    color: #e6f0ff;
+    margin-bottom: 15px;
+}
+
+/* Evolution Progress */
+.evolution-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
+}
+
+.evolution-level {
+    width: 80px;
+    text-align: right;
+    color: #00ffcc;
+}
+
+.evolution-xp-bar {
+    flex-grow: 1;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    margin: 0 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 204, 255, 0.3);
+}
+
+.evolution-xp-fill {
+    height: 100%;
+    background: linear-gradient(to right, #00ccff, #00ffcc);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.evolution-xp {
+    width: 100px;
+    text-align: left;
+    color: #e6f0ff;
+    font-size: 14px;
+}
+
+/* Evolution Traits */
+.evolution-traits {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.evolution-trait {
+    background: rgba(0, 51, 102, 0.5);
+    border: 1px solid #00ccff;
+    border-radius: 5px;
+    padding: 15px;
+    text-align: left;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.evolution-trait:hover {
+    background: rgba(0, 85, 119, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 204, 255, 0.3);
+}
+
+.evolution-trait h4 {
+    color: #00ffcc;
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+.evolution-trait-description {
+    color: #e6f0ff;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.evolution-trait-cost {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 204, 255, 0.3);
+}
+
+.evolution-trait-cost-item {
+    color: #00ccff;
+    font-size: 14px;
+}
+
+.evolution-trait-unlock-btn {
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.evolution-trait-unlock-btn:hover {
+    background: #004477;
+}
+
+.evolution-trait-unlock-btn:disabled {
+    background: #001a33;
+    color: #006666;
+    border-color: #006666;
+    cursor: not-allowed;
+}
+
+.evolution-trait.unlocked {
+    background: rgba(0, 102, 51, 0.5);
+    border-color: #00ff99;
+}
+
+.evolution-trait.unlocked h4 {
+    color: #00ff99;
+}
+
+.evolution-trait.unlocked::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #00ff99;
+    font-size: 18px;
+}
+
+.evolution-trait.locked {
+    background: rgba(51, 0, 0, 0.5);
+    border-color: #ff6666;
+    opacity: 0.7;
+}
+
+.evolution-trait.locked h4 {
+    color: #ff9999;
+}
+
+.evolution-trait.locked::after {
+    content: '🔒';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #ff6666;
+    font-size: 16px;
+}
+
+/* Close Button */
+#close-evolution-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    transition: all 0.2s ease;
+}
+
+#close-evolution-btn:hover {
+    background: #004477;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+}
+
+/* Level Up Indicator */
+.level-up {
+    display: inline-block;
+    color: #00ff99;
+    font-weight: bold;
+    animation: levelUpPulse 1.5s infinite;
+    margin-left: 5px;
+}
+
+@keyframes levelUpPulse {
+    0% { transform: scale(1); text-shadow: 0 0 5px #00ff99; }
+    50% { transform: scale(1.1); text-shadow: 0 0 10px #00ff99; }
+    100% { transform: scale(1); text-shadow: 0 0 5px #00ff99; }
+}
+
+/* Victory Button */
+.victory-btn {
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+    transition: all 0.2s ease;
+}
+
+.victory-btn:hover {
+    background: #004477;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}

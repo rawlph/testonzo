@@ -100,30 +100,124 @@
 		<button id="rest-btn">Rest</button>
         <button id="end-turn-btn">End Turn</button>        
 		<button id="stats-btn">Stats</button>
-		
+        <button id="evolution-btn">Evolution</button>
     </div>
     <div id="feedback-message"></div>
-<div id="stats-window" style="display: none;">
-    <div class="stats-columns">
-        <div class="column recent-knowledge">
-            <h2>Recent Knowledge</h2>
-            <p id="recent-turns">Turns: 0</p>
-            <p id="recent-senses">Senses: 0</p>
-            <p id="recent-pokes">Pokes: 0</p>
-            <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
-            <p id="recent-efficiency">Efficiency: 0.00</p>
+    
+    <!-- Stats Window -->
+    <div id="stats-window" style="display: none;">
+        <div class="stats-columns">
+            <div class="column recent-knowledge">
+                <h2>Recent Knowledge</h2>
+                <p id="recent-turns">Turns: 0</p>
+                <p id="recent-senses">Senses: 0</p>
+                <p id="recent-pokes">Pokes: 0</p>
+                <p id="recent-energy-ratio">Energy Ratio: 0.00</p>
+                <p id="recent-efficiency">Efficiency: 0.00</p>
+            </div>
+            <div class="column general-stats">
+                <h2>General Stats</h2>
+                <p id="general-turns">Total Turns: 0</p>
+                <p id="general-senses">Total Senses: 0</p>
+                <p id="general-pokes">Total Pokes: 0</p>
+                <p id="general-energy-ratio">Energy Ratio: N/A</p>
+                <p id="general-efficiency">Efficiency: N/A</p>
+            </div>
         </div>
-        <div class="column general-stats">
-            <h2>General Stats</h2>
-            <p id="general-turns">Total Turns: 0</p>
-            <p id="general-senses">Total Senses: 0</p>
-            <p id="general-pokes">Total Pokes: 0</p>
-            <p id="general-energy-ratio">Energy Ratio: N/A</p>
-            <p id="general-efficiency">Efficiency: N/A</p>
-        </div>
+        <button id="close-stats-btn">Close</button>
     </div>
-    <button id="close-stats-btn">Close</button>
-</div>
+    
+    <!-- Evolution Window -->
+    <div id="evolution-window" style="display: none;">
+        <h2>Species Evolution</h2>
+        
+        <div class="evolution-tabs">
+            <button class="evolution-tab-btn active" data-path="explorer">Explorer</button>
+            <button class="evolution-tab-btn" data-path="manipulator">Manipulator</button>
+            <button class="evolution-tab-btn" data-path="stabilizer">Stabilizer</button>
+            <button class="evolution-tab-btn" data-path="survivor">Survivor</button>
+        </div>
+        
+        <div class="evolution-content">
+            <!-- Explorer Path -->
+            <div class="evolution-tab-content active" id="explorer-tab">
+                <div class="evolution-path-info">
+                    <h3>Explorer Path</h3>
+                    <p>Focus on sensing and knowledge acquisition</p>
+                    <div class="evolution-progress">
+                        <div class="evolution-level">Level: <span id="explorer-level">0</span></div>
+                        <div class="evolution-xp-bar">
+                            <div id="explorer-xp-fill" class="evolution-xp-fill"></div>
+                        </div>
+                        <div class="evolution-xp">XP: <span id="explorer-xp">0</span>/<span id="explorer-xp-next">100</span></div>
+                    </div>
+                </div>
+                
+                <div class="evolution-traits" id="explorer-traits">
+                    <!-- Traits will be added dynamically -->
+                </div>
+            </div>
+            
+            <!-- Manipulator Path -->
+            <div class="evolution-tab-content" id="manipulator-tab">
+                <div class="evolution-path-info">
+                    <h3>Manipulator Path</h3>
+                    <p>Focus on poking and changing the environment</p>
+                    <div class="evolution-progress">
+                        <div class="evolution-level">Level: <span id="manipulator-level">0</span></div>
+                        <div class="evolution-xp-bar">
+                            <div id="manipulator-xp-fill" class="evolution-xp-fill"></div>
+                        </div>
+                        <div class="evolution-xp">XP: <span id="manipulator-xp">0</span>/<span id="manipulator-xp-next">100</span></div>
+                    </div>
+                </div>
+                
+                <div class="evolution-traits" id="manipulator-traits">
+                    <!-- Traits will be added dynamically -->
+                </div>
+            </div>
+            
+            <!-- Stabilizer Path -->
+            <div class="evolution-tab-content" id="stabilizer-tab">
+                <div class="evolution-path-info">
+                    <h3>Stabilizer Path</h3>
+                    <p>Focus on creating order from chaos</p>
+                    <div class="evolution-progress">
+                        <div class="evolution-level">Level: <span id="stabilizer-level">0</span></div>
+                        <div class="evolution-xp-bar">
+                            <div id="stabilizer-xp-fill" class="evolution-xp-fill"></div>
+                        </div>
+                        <div class="evolution-xp">XP: <span id="stabilizer-xp">0</span>/<span id="stabilizer-xp-next">100</span></div>
+                    </div>
+                </div>
+                
+                <div class="evolution-traits" id="stabilizer-traits">
+                    <!-- Traits will be added dynamically -->
+                </div>
+            </div>
+            
+            <!-- Survivor Path -->
+            <div class="evolution-tab-content" id="survivor-tab">
+                <div class="evolution-path-info">
+                    <h3>Survivor Path</h3>
+                    <p>Focus on energy efficiency and resilience</p>
+                    <div class="evolution-progress">
+                        <div class="evolution-level">Level: <span id="survivor-level">0</span></div>
+                        <div class="evolution-xp-bar">
+                            <div id="survivor-xp-fill" class="evolution-xp-fill"></div>
+                        </div>
+                        <div class="evolution-xp">XP: <span id="survivor-xp">0</span>/<span id="survivor-xp-next">100</span></div>
+                    </div>
+                </div>
+                
+                <div class="evolution-traits" id="survivor-traits">
+                    <!-- Traits will be added dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <button id="close-evolution-btn">Close</button>
+    </div>
 </div>
 
 <div class="ui-panel">
