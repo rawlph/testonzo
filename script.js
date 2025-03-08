@@ -854,20 +854,10 @@ const GameState = {
                 luck: 1
             },
             traits: [],
-        this.grid = {
-            rows: 5,
-            cols: 5,
-            hexVisualWidth: 86.6,
-            hexHeight: 100,
-            rowOffset: 75, // hexHeight * 0.75
-            colOffset: 86.6
-        };
-        this.progress = {
-            stats: { movementRange: 1, luck: 1 },
-            traits: [],
             persistentInventory: [],
             xp: 0,
             sensedTypes: [],
+            uniqueSensedTypes: [],
             sensesMade: 0,
             pokesMade: 0,
             hasFoundZoe: false,
@@ -877,103 +867,278 @@ const GameState = {
             systemOrder: 0.5,
             orderContributions: 0
         };
+        
+        // Reset grid configuration
+        this.grid = {
+            rows: 5,
+            cols: 5,
+            hexVisualWidth: 86.6,
+            hexHeight: 100,
+            rowOffset: 75, // hexHeight * 0.75
+            colOffset: 86.6
+        };
+        
+        // Reset world evolution state
         this.worldEvolution = {
             globalChaos: 0.8,
             globalOrder: 0.2,
             age: 0,
             eventHistory: []
         };
-        this.resourceLimits = {
-            energy: 20,
-            essence: 50,
-            knowledge: 50,
-            stability: 50
-        };
-        this.resourceRates = {
-            energyPerTurn: 2,
-            essencePerChaos: 1,
-            knowledgePerSense: 1,
-            stabilityPerStabilize: 1,
-            stabilityDecayPerTurn: 0.5
-        };
+        
+        // Reset resources
         this.resources = {
             energy: 10,
             essence: 0,
             knowledge: 0,
             stability: 0
         };
+        
+        // Reset evolution paths
+        this.evolution = {
+            paths: {
+                chaos: {
+                    name: "Path of Chaos",
+                    description: "Embrace the unpredictable nature of chaos to gain powers of transformation and creation.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "chaos_affinity",
+                            name: "Chaos Affinity",
+                            description: "Gain 1 essence for each chaotic tile you interact with.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_essence_from_chaos"
+                        },
+                        {
+                            id: "enhanced_poke",
+                            name: "Enhanced Poke",
+                            description: "Increases chance of successfully changing a tile when poking by 20%.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "poke_success_+20%"
+                        },
+                        {
+                            id: "chaos_vision",
+                            name: "Chaos Vision",
+                            description: "Can see the chaos level of tiles within vision range.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "see_chaos_levels"
+                        }
+                    ]
+                },
+                order: {
+                    name: "Path of Order",
+                    description: "Master the principles of order to stabilize the world and enhance your resilience.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "order_affinity",
+                            name: "Order Affinity",
+                            description: "Gain 1 stability for each ordered tile you interact with.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_stability_from_order"
+                        },
+                        {
+                            id: "efficient_movement",
+                            name: "Efficient Movement",
+                            description: "Reduce energy cost of movement by 1.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "movement_cost_-1"
+                        },
+                        {
+                            id: "order_shield",
+                            name: "Order Shield",
+                            description: "Gain resistance to chaotic effects.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "chaos_resistance"
+                        }
+                    ]
+                },
+                balance: {
+                    name: "Path of Balance",
+                    description: "Walk the line between chaos and order to gain versatile abilities.",
+                    xp: 0,
+                    unlocked: false,
+                    traits: [
+                        {
+                            id: "balanced_insight",
+                            name: "Balanced Insight",
+                            description: "Gain 1 knowledge when interacting with balanced tiles.",
+                            cost: 10,
+                            unlocked: false,
+                            effect: "gain_knowledge_from_balance"
+                        },
+                        {
+                            id: "enhanced_vision",
+                            name: "Enhanced Vision",
+                            description: "Increase vision range by 1.",
+                            cost: 20,
+                            unlocked: false,
+                            effect: "vision_range_+1"
+                        },
+                        {
+                            id: "harmony",
+                            name: "Harmony",
+                            description: "All resources regenerate 1 per turn.",
+                            cost: 30,
+                            unlocked: false,
+                            effect: "all_resources_regen_1"
+                        }
+                    ]
+                }
+            },
+            activeTraits: []
+        };
+        
+        // Reset events
+        this.events = {
+            available: [
+                {
+                    id: "chaos_spike",
+                    name: "Chaos Spike",
+                    description: "A sudden surge of chaos energy has been detected in the area.",
+                    trigger: { type: "gameStart", chance: 0.3 },
+                    effect: { type: "increaseChaos", value: 0.2 },
+                    requirement: { globalChaos: 0.4 },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "order_stabilization",
+                    name: "Order Stabilization",
+                    description: "A wave of order energy is stabilizing the surrounding area.",
+                    trigger: { type: "gameStart", chance: 0.3 },
+                    effect: { type: "increaseOrder", value: 0.2 },
+                    requirement: { globalOrder: 0.4 },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "energy_bloom",
+                    name: "Energy Bloom",
+                    description: "A bloom of energy has appeared nearby.",
+                    trigger: { type: "turn", chance: 0.2, minTurn: 5 },
+                    effect: { type: "spawnEnergyTile" },
+                    oneTime: false,
+                    completed: false
+                },
+                {
+                    id: "ancient_knowledge",
+                    name: "Ancient Knowledge",
+                    description: "You've discovered ancient knowledge about the world's creation.",
+                    trigger: { type: "sense", targetType: "special", chance: 1.0 },
+                    effect: { type: "grantResource", resource: "knowledge", value: 5 },
+                    oneTime: true,
+                    completed: false
+                },
+                {
+                    id: "zoe_insight",
+                    name: "Zoe's Insight",
+                    description: "Zoe shares wisdom about the balance of chaos and order.",
+                    trigger: { type: "findZoe", chance: 1.0 },
+                    effect: { type: "unlockEvolutionPath", path: "balance" },
+                    oneTime: true,
+                    completed: false,
+                    chain: "zoe_story"
+                }
+            ],
+            triggered: [],
+            chains: {
+                "zoe_story": {
+                    name: "Zoe's Journey",
+                    description: "Follow Zoe's story as she navigates the balance between chaos and order.",
+                    events: ["zoe_insight", "zoe_quest", "zoe_revelation"],
+                    currentStep: 0,
+                    completed: false
+                }
+            },
+            early: [], // Early game events
+            mid: [],   // Mid game events
+            late: []   // Late game events
+        };
+        
+        // Reset level state
         this.level = {
             temporaryInventory: [],
             hasKey: false,
             foundZoe: false,
             requiresKey: true
         };
-        this.metrics = {
-            turnsTaken: 0,
-            sensesMade: 0,
-            pokesMade: 0,
-            energyUsedForMovement: 0,
-            energyUsedForExploration: 0,
-            movesMade: 0,
-            restsTaken: 0,
-            tilesExplored: 0,
-            specialTilesInteracted: 0,
-            
-            incrementTurns() { this.turnsTaken++; },
-            incrementSenses() { this.sensesMade++; },
-            incrementPokes() { this.pokesMade++; },
-            addEnergyForMovement(cost) { this.energyUsedForMovement += cost; },
-            addEnergyForExploration(cost) { this.energyUsedForExploration += cost; },
-            incrementMoves() { this.movesMade++; },
-            incrementRests() { this.restsTaken++; },
-            incrementTilesExplored() { this.tilesExplored++; },
-            incrementSpecialTiles() { this.specialTilesInteracted++; },
-            
-            reset() {
-                this.turnsTaken = 0;
-                this.sensesMade = 0;
-                this.pokesMade = 0;
-                this.energyUsedForMovement = 0;
-                this.energyUsedForExploration = 0;
-                this.movesMade = 0;
-                this.restsTaken = 0;
-                this.tilesExplored = 0;
-                this.specialTilesInteracted = 0;
-            },
-            
-            getEnergyUsageRatio() {
-                const total = this.energyUsedForMovement + this.energyUsedForExploration;
-                return total === 0 ? 0 : this.energyUsedForMovement / total;
-            },
-            
-            getMovementEfficiency(safestPathLength) {
-                return safestPathLength === 0 ? 0 : safestPathLength / this.movesMade;
-            }
-        };
+        
+        // Reset metrics
+        if (this.metrics) {
+            this.metrics.reset();
+        } else {
+            this.metrics = {
+                turnsTaken: 0,
+                sensesMade: 0,
+                pokesMade: 0,
+                energyUsedForMovement: 0,
+                energyUsedForExploration: 0,
+                movesMade: 0,
+                restsTaken: 0,
+                tilesExplored: 0,
+                specialTilesInteracted: 0,
+                
+                incrementTurns() { this.turnsTaken++; },
+                incrementSenses() { this.sensesMade++; },
+                incrementPokes() { this.pokesMade++; },
+                addEnergyForMovement(cost) { this.energyUsedForMovement += cost; },
+                addEnergyForExploration(cost) { this.energyUsedForExploration += cost; },
+                incrementMoves() { this.movesMade++; },
+                incrementRests() { this.restsTaken++; },
+                incrementTilesExplored() { this.tilesExplored++; },
+                incrementSpecialTiles() { this.specialTilesInteracted++; },
+                
+                reset() {
+                    this.turnsTaken = 0;
+                    this.sensesMade = 0;
+                    this.pokesMade = 0;
+                    this.energyUsedForMovement = 0;
+                    this.energyUsedForExploration = 0;
+                    this.movesMade = 0;
+                    this.restsTaken = 0;
+                    this.tilesExplored = 0;
+                    this.specialTilesInteracted = 0;
+                },
+                
+                getEnergyUsageRatio() {
+                    const total = this.energyUsedForMovement + this.energyUsedForExploration;
+                    return total === 0 ? 0 : this.energyUsedForMovement / total;
+                },
+                
+                getMovementEfficiency(safestPathLength) {
+                    return safestPathLength === 0 ? 0 : safestPathLength / this.movesMade;
+                }
+            };
+        }
+        
+        // Reset recent metrics
         this.recentMetrics = {
             previousChaos: this.worldEvolution.globalChaos,
             previousOrder: this.worldEvolution.globalOrder
         };
-        this.events = {
-            available: [],
-            triggered: [],
-            chains: {}
-        };
-        this.level.tileData = this.createTileData(this.grid.rows, this.grid.cols);
+        
+        // Additional progress data
         this.progress.totalResources = {
             energyGained: 0,
             essenceGained: 0,
             knowledgeGained: 0
         };
         this.progress.levelsWithPositiveOrder = 0;
-        this.progress.uniqueSensedTypes = [];
-        this.worldEvolution.age = 0;
         this.worldEvolution.stabilityThreshold = 0.4;
         this.worldEvolution.complexityThreshold = 0.6;
         this.worldEvolution.tileVariance = 0.2;
-        this.metrics.reset();
-        this.recentMetrics.reset();
+        
         console.log("All progress reset");
+        debug("All progress reset");
     },
     
     /**
