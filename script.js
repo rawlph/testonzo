@@ -101,6 +101,53 @@ const GameState = {
     },
     
     /**
+     * Updates progress after completing a level
+     * @param {number} xpGain - XP gained from completing the level
+     * @param {boolean} foundZoe - Whether Zoe was found in this level
+     * @param {boolean} foundKey - Whether a key was found in this level
+     * @returns {Object} Updated traits and other information
+     */
+    completeLevelProgress(xpGain, foundZoe, foundKey) {
+        // Update XP
+        this.progress.xp += xpGain;
+        
+        // Handle Zoe discovery
+        if (!this.progress.hasFoundZoe && foundZoe) {
+            this.progress.hasFoundZoe = true;
+            this.progress.zoeLevelsCompleted = 1;
+            if (!this.progress.traits.includes('zoeInitiate')) {
+                this.progress.traits.push('zoeInitiate');
+            }
+        } else if (this.progress.hasFoundZoe) {
+            this.progress.zoeLevelsCompleted += 1;
+            if (this.progress.zoeLevelsCompleted === 4 && !this.progress.traits.includes('zoeAdept')) {
+                this.progress.traits.push('zoeAdept');
+            } else if (this.progress.zoeLevelsCompleted === 7 && !this.progress.traits.includes('zoeMaster')) {
+                this.progress.traits.push('zoeMaster');
+            }
+        }
+        
+        // Handle key discovery
+        if (foundKey && !this.progress.traits.includes('Keymaster')) {
+            this.progress.traits.push('Keymaster');
+        }
+        
+        // Update metrics
+        this.progress.sensesMade += this.metrics.sensesMade;
+        this.progress.pokesMade += this.metrics.pokesMade;
+        this.progress.totalTurns = (this.progress.totalTurns || 0) + this.metrics.turnsTaken;
+        
+        // Save progress
+        this.saveProgress();
+        
+        return {
+            traits: this.progress.traits,
+            xp: this.progress.xp,
+            essence: this.progress.essence
+        };
+    },
+    
+    /**
      * Resets all progress (for testing/debugging)
      */
     resetAllProgress() {
@@ -136,6 +183,46 @@ const GameState = {
             return true;
         }
         return false;
+    },
+    
+    /**
+     * Updates the system chaos/order balance based on the current level
+     * @param {Array} tileData - 2D array of tile data
+     * @returns {Object} Updated system balance information
+     */
+    updateSystemBalance(tileData) {
+        let totalChaos = 0;
+        const rows = this.grid.rows;
+        const cols = this.grid.cols;
+        
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                totalChaos += tileData[r][c].chaos;
+            }
+        }
+        
+        const avgChaos = totalChaos / (rows * cols);
+        this.progress.systemChaos = avgChaos;
+        this.progress.systemOrder = 1 - avgChaos;
+        
+        const orderContribution = this.progress.systemOrder - 0.5;
+        this.progress.orderContributions += orderContribution;
+        
+        if (this.progress.systemOrder > 0.5) {
+            this.progress.levelsWithPositiveOrder = (this.progress.levelsWithPositiveOrder || 0) + 1;
+            
+            // Check for orderKeeper trait
+            if (this.progress.levelsWithPositiveOrder >= 5 && !this.progress.traits.includes('orderKeeper')) {
+                this.progress.traits.push('orderKeeper');
+                return { newTrait: 'orderKeeper' };
+            }
+        }
+        
+        return {
+            systemChaos: this.progress.systemChaos,
+            systemOrder: this.progress.systemOrder,
+            levelsWithPositiveOrder: this.progress.levelsWithPositiveOrder
+        };
     }
 };
 
@@ -223,17 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let temporaryInventory = GameState.level.temporaryInventory;
     let metrics = GameState.metrics;
     let recentMetrics = GameState.recentMetrics;
-
-    // Initial grid size and constants
-    let turnCount = 0;
-    let currentRow = 0;
-    let currentCol = 0;
-    let currentLevelSenses = 0; // For Explorer trait
-    let moveCounter = 0; // For Pathfinder energy cost
-    let hasUsedsenserBonus = false; // For senser free reveal
-    let currentAction = null; // 'move', 'sense', 'poke', or 'stabilize'
-    let energy = 5 * (rows + cols - 2); // Starting energy
-    let movementPoints = 1; // Base MP per turn
 
     /**
      * Creates particle effects in the game background
@@ -398,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tileData[pos.row][pos.col].type = 'water';
         }
 
-        if (!hasFoundZoe) {
+        if (!GameState.progress.hasFoundZoe) {
             const zoeRow = 2;
             const zoeCol = 2;
             tileData[zoeRow][zoeCol].type = 'zoe';
@@ -496,14 +572,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('next-level-btn').addEventListener('click', () => {
             statsWindow.style.display = 'none';
+            GameState.isActive = true;
             isGameActive = true;
             startGame();
         });
         document.getElementById('upgrade-btn').addEventListener('click', () => {
-            if (essence >= 5) {
-                essence -= 5;
-                stats.movementRange += 1;
-                localStorage.setItem('playerProgress', JSON.stringify(progress));
+            if (GameState.progress.essence >= 5) {
+                GameState.progress.essence -= 5;
+                essence = GameState.progress.essence; // Update local variable
+                GameState.progress.stats.movementRange += 1;
+                stats.movementRange = GameState.progress.stats.movementRange; // Update local variable
+                GameState.saveProgress();
                 updateUI();
                 alert('Movement range increased by 1!');
             } else {
@@ -575,17 +654,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn(`Element with id '${id}' not found.`);
             }
         };
-        safeUpdate('recent-turns', `Turns: ${recentMetrics.turnsTaken}`);
-        safeUpdate('recent-senses', `Senses: ${recentMetrics.sensesMade}`);
-        safeUpdate('recent-pokes', `Pokes: ${recentMetrics.pokesMade}`);
-        const recentEnergyRatio = recentMetrics.getEnergyUsageRatio().toFixed(2);
+        safeUpdate('recent-turns', `Turns: ${GameState.recentMetrics.turnsTaken}`);
+        safeUpdate('recent-senses', `Senses: ${GameState.recentMetrics.sensesMade}`);
+        safeUpdate('recent-pokes', `Pokes: ${GameState.recentMetrics.pokesMade}`);
+        const recentEnergyRatio = GameState.recentMetrics.getEnergyUsageRatio().toFixed(2);
         safeUpdate('recent-energy-ratio', `Energy Ratio: ${recentEnergyRatio}`);
         const safestPathLength = 2 * (Math.min(rows, cols) - 1);
-        const recentEfficiency = recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
+        const recentEfficiency = GameState.recentMetrics.getMovementEfficiency(safestPathLength).toFixed(2);
         safeUpdate('recent-efficiency', `Efficiency: ${recentEfficiency}`);
-        safeUpdate('general-turns', `Total Turns: ${progress.totalTurns || 0}`);
-        safeUpdate('general-senses', `Total Senses: ${progress.sensesMade || 0}`);
-        safeUpdate('general-pokes', `Total Pokes: ${progress.pokesMade || 0}`);
+        safeUpdate('general-turns', `Total Turns: ${GameState.progress.totalTurns || 0}`);
+        safeUpdate('general-senses', `Total Senses: ${GameState.progress.sensesMade || 0}`);
+        safeUpdate('general-pokes', `Total Pokes: ${GameState.progress.pokesMade || 0}`);
         safeUpdate('general-energy-ratio', `Energy Ratio: N/A`);
         safeUpdate('general-efficiency', `Efficiency: N/A`);
     }
@@ -610,14 +689,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h2>Energy Depleted!</h2>
                 <p>You ran out of energy before reaching the goal.</p>
                 <p>Turns: ${turnCount}</p>
-                <p>Senses Made: ${progress.sensesMade}</p>
-                <p>Pokes Made: ${progress.pokesMade}</p>
+                <p>Senses Made: ${GameState.progress.sensesMade}</p>
+                <p>Pokes Made: ${GameState.progress.pokesMade}</p>
                 <button id="restart-btn">Restart Level</button>
                 <button id="view-stats-btn">View Stats</button>
             `;
             statsWindow.style.display = 'block';
             document.getElementById('restart-btn').addEventListener('click', () => {
                 statsWindow.style.display = 'none';
+                GameState.isActive = true;
                 isGameActive = true;
                 startGame();
             });
@@ -627,6 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('stats-window').style.display = 'block';
             });
         }
+        GameState.isActive = false;
         isGameActive = false;
     }
 
@@ -1016,24 +1097,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (character) character.style.display = 'block';
         }
 
-        if (progress.hasFoundZoe) {
+        if (GameState.progress.hasFoundZoe) {
             const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
             if (goalTile) goalTile.classList.add('goal-visible');
         }
 
-        currentRow = 0;
-        currentCol = 0;
-        energy = 5 * (rows + cols - 2);
-        temporaryInventory = [];
-        turnCount = 0;
-        currentLevelSenses = 0;
-        moveCounter = 0;
-        hasUsedsenserBonus = false;
-        currentAction = null;
-        movementPoints = stats.movementRange; // Start with upgraded range;
         highlightTiles(null);
         updateVision();
         updateUI();
+        
+        GameState.isActive = true;
         isGameActive = true;
         document.getElementById('stats-window').style.display = 'none';
     }
@@ -1042,16 +1115,39 @@ document.addEventListener('DOMContentLoaded', () => {
      * Updates all UI elements with current game state
      */
     function updateUI() {
-        if (turnDisplay) turnDisplay.textContent = `Turns: ${turnCount}`;
-        if (statsDisplay) statsDisplay.textContent = `Moves: ${stats.movementRange} | Luck: ${stats.luck} | XP: ${xp} | Essence: ${progress.essence}`;
-        if (traitsDisplay) traitsDisplay.textContent = `Traits: ${traits.length > 0 ? traits.join(', ') : 'None'}`;
-        if (tempInventoryDisplay) tempInventoryDisplay.textContent = `Level Items: ${temporaryInventory.length > 0 ? temporaryInventory.join(', ') : 'None'}`;
-        if (persistentInventoryDisplay) persistentInventoryDisplay.textContent = `Persistent Items: ${persistentInventory.length > 0 ? persistentInventory.join(', ') : 'None'}`;
-        if (energyDisplay) energyDisplay.textContent = `Energy: ${energy} | MP: ${movementPoints}`;
+        if (turnDisplay) {
+            turnDisplay.textContent = `Turns: ${GameState.player.turnCount}`;
+        }
+        
+        if (statsDisplay) {
+            statsDisplay.textContent = `Moves: ${GameState.progress.stats.movementRange} | Luck: ${GameState.progress.stats.luck} | XP: ${GameState.progress.xp} | Essence: ${GameState.progress.essence}`;
+        }
+        
+        if (traitsDisplay) {
+            traitsDisplay.textContent = `Traits: ${GameState.progress.traits.length > 0 ? GameState.progress.traits.join(', ') : 'None'}`;
+        }
+        
+        if (tempInventoryDisplay) {
+            tempInventoryDisplay.textContent = `Level Items: ${GameState.level.temporaryInventory.length > 0 ? GameState.level.temporaryInventory.join(', ') : 'None'}`;
+        }
+        
+        if (persistentInventoryDisplay) {
+            persistentInventoryDisplay.textContent = `Persistent Items: ${GameState.progress.persistentInventory.length > 0 ? GameState.progress.persistentInventory.join(', ') : 'None'}`;
+        }
+        
+        if (energyDisplay) {
+            energyDisplay.textContent = `Energy: ${GameState.player.energy} | MP: ${GameState.player.movementPoints}`;
+        }
+        
         const systemBalance = document.getElementById('system-balance');
         if (systemBalance) {
-            systemBalance.textContent = `System: ${(progress.systemChaos * 100).toFixed(0)}% Chaos / ${(progress.systemOrder * 100).toFixed(0)}% Order`;
+            systemBalance.textContent = `System: ${(GameState.progress.systemChaos * 100).toFixed(0)}% Chaos / ${(GameState.progress.systemOrder * 100).toFixed(0)}% Order`;
         }
+        
+        // Update local variables for compatibility
+        turnCount = GameState.player.turnCount;
+        energy = GameState.player.energy;
+        movementPoints = GameState.player.movementPoints;
     }
 
     /**
@@ -1074,22 +1170,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('move-btn').addEventListener('click', () => {
-        currentAction = 'move';
+        GameState.player.currentAction = 'move';
+        currentAction = 'move'; // Update local variable for compatibility
         highlightTiles('move');
     });
 
     document.getElementById('sense-btn').addEventListener('click', () => {
-        currentAction = 'sense';
+        GameState.player.currentAction = 'sense';
+        currentAction = 'sense'; // Update local variable for compatibility
         highlightTiles('sense');
     });
 
     document.getElementById('stabilize-btn').addEventListener('click', () => {
-        currentAction = 'stabilize';
+        GameState.player.currentAction = 'stabilize';
+        currentAction = 'stabilize'; // Update local variable for compatibility
         highlightTiles('stabilize');
     });
 
     document.getElementById('poke-btn').addEventListener('click', () => {
-        currentAction = 'poke';
+        GameState.player.currentAction = 'poke';
+        currentAction = 'poke'; // Update local variable for compatibility
         highlightTiles('poke');
     });
 
