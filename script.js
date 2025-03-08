@@ -1549,54 +1549,38 @@ const GameState = {
     },
     
     /**
-     * Determines the type of a tile based on its chaos level and world age
-     * @param {number} chaos - Chaos level of the tile (0-1)
-     * @returns {string} The type of the tile
+     * Determines the type of a tile based on its chaos value
+     * @param {number} chaos - Chaos value between 0 and 1
+     * @returns {string} Tile type
      */
     determineTileType(chaos) {
-        const worldAge = this.worldEvolution.age;
-        let tileType = 'normal';
+        // Default to normal
+        let type = 'normal';
         
-        // Early game has more basic tile types
-        if (worldAge < 3) {
-            if (chaos > 0.7) {
-                tileType = Math.random() < 0.7 ? 'blocked' : 'water';
-            } else if (chaos < 0.3) {
-                tileType = Math.random() < 0.7 ? 'normal' : 'energy';
-            } else {
-                tileType = 'normal';
-            }
-        }
-        // Mid game introduces more variety
-        else if (worldAge < 7) {
-            if (chaos > 0.8) {
-                tileType = 'blocked';
-            } else if (chaos > 0.6) {
-                tileType = Math.random() < 0.6 ? 'water' : 'normal';
-            } else if (chaos > 0.4) {
-                tileType = 'normal';
-            } else if (chaos > 0.2) {
-                tileType = Math.random() < 0.7 ? 'normal' : 'energy';
-            } else {
-                tileType = 'energy';
-            }
-        }
-        // Late game has full variety
-        else {
-            if (chaos > 0.8) {
-                tileType = 'blocked';
-            } else if (chaos > 0.6) {
-                tileType = Math.random() < 0.5 ? 'water' : 'normal';
-            } else if (chaos > 0.4) {
-                tileType = 'normal';
-            } else if (chaos > 0.2) {
-                tileType = Math.random() < 0.5 ? 'normal' : 'energy';
-            } else {
-                tileType = 'energy';
-            }
+        // Determine type based on chaos level
+        if (chaos < 0.2) {
+            // High order tiles
+            const types = ['normal'];
+            type = types[Math.floor(Math.random() * types.length)];
+        } else if (chaos < 0.4) {
+            // Order tiles
+            const types = ['normal'];
+            type = types[Math.floor(Math.random() * types.length)];
+        } else if (chaos < 0.6) {
+            // Balanced tiles
+            const types = ['normal'];
+            type = types[Math.floor(Math.random() * types.length)];
+        } else if (chaos < 0.8) {
+            // Chaos tiles
+            const types = ['normal'];
+            type = types[Math.floor(Math.random() * types.length)];
+        } else {
+            // High chaos tiles
+            const types = ['normal'];
+            type = types[Math.floor(Math.random() * types.length)];
         }
         
-        return tileType;
+        return type;
     }
 };
 
@@ -1660,6 +1644,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add basic CSS styles
     addGameStyles();
+    
+    // Create UI elements
+    createGameUI();
     
     // Initialize game state
     GameState.init();
@@ -1726,9 +1713,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.recentMetrics = recentMetrics;
     window.tileData = null; // Will be set in startGame
     window.isGameActive = true;
-    
-    // Create game UI if it doesn't exist
-    createGameUI();
     
     // Create particles
     createParticles(25);
@@ -2083,134 +2067,295 @@ function addGameStyles() {
  * Creates basic UI elements for the game
  */
 function createGameUI() {
-    // Check if UI already exists
-    if (document.getElementById('game-container')) {
-        return;
+    console.log("Setting up game UI");
+    
+    // Create game container if it doesn't exist
+    let gameContainer = document.getElementById('game-container');
+    if (!gameContainer) {
+        gameContainer = document.createElement('div');
+        gameContainer.id = 'game-container';
+        gameContainer.className = 'game-container';
+        document.body.appendChild(gameContainer);
+        console.log("Created game container");
+    } else {
+        console.log("Game container already exists");
     }
     
-    console.log("Creating game UI");
-    
-    // Create game container
-    const gameContainer = document.createElement('div');
-    gameContainer.id = 'game-container';
-    gameContainer.className = 'game-container';
-    document.body.appendChild(gameContainer);
-    
-    // Create resource bars
-    const resourceBars = document.createElement('div');
-    resourceBars.className = 'resource-bars';
-    resourceBars.innerHTML = `
-        <div class="resource-bar">
-            <span class="resource-label">Energy:</span>
-            <div class="resource-progress" id="energy-progress">
-                <div class="resource-value energy-value" id="energy-value" style="width: 50%;"></div>
+    // Create resource bars if they don't exist
+    if (!document.querySelector('.resource-bars')) {
+        const resourceBars = document.createElement('div');
+        resourceBars.className = 'resource-bars';
+        resourceBars.innerHTML = `
+            <div class="resource-bar">
+                <span class="resource-label">Energy:</span>
+                <div class="resource-progress" id="energy-progress">
+                    <div class="resource-value energy-value" id="energy-value" style="width: 50%;"></div>
+                </div>
+                <span class="resource-text" id="energy-text">10/20</span>
             </div>
-            <span class="resource-text" id="energy-text">10/20</span>
-        </div>
-        <div class="resource-bar">
-            <span class="resource-label">Essence:</span>
-            <div class="resource-progress" id="essence-progress">
-                <div class="resource-value essence-value" id="essence-value" style="width: 0%;"></div>
+            <div class="resource-bar">
+                <span class="resource-label">Essence:</span>
+                <div class="resource-progress" id="essence-progress">
+                    <div class="resource-value essence-value" id="essence-value" style="width: 0%;"></div>
+                </div>
+                <span class="resource-text" id="essence-text">0/50</span>
             </div>
-            <span class="resource-text" id="essence-text">0/50</span>
-        </div>
-        <div class="resource-bar">
-            <span class="resource-label">Knowledge:</span>
-            <div class="resource-progress" id="knowledge-progress">
-                <div class="resource-value knowledge-value" id="knowledge-value" style="width: 0%;"></div>
+            <div class="resource-bar">
+                <span class="resource-label">Knowledge:</span>
+                <div class="resource-progress" id="knowledge-progress">
+                    <div class="resource-value knowledge-value" id="knowledge-value" style="width: 0%;"></div>
+                </div>
+                <span class="resource-text" id="knowledge-text">0/50</span>
             </div>
-            <span class="resource-text" id="knowledge-text">0/50</span>
-        </div>
-        <div class="resource-bar">
-            <span class="resource-label">Stability:</span>
-            <div class="resource-progress" id="stability-progress">
-                <div class="resource-value stability-value" id="stability-value" style="width: 0%;"></div>
+            <div class="resource-bar">
+                <span class="resource-label">Stability:</span>
+                <div class="resource-progress" id="stability-progress">
+                    <div class="resource-value stability-value" id="stability-value" style="width: 0%;"></div>
+                </div>
+                <span class="resource-text" id="stability-text">0/50</span>
             </div>
-            <span class="resource-text" id="stability-text">0/50</span>
-        </div>
-        <div id="system-balance">Balanced Forces | Age: 0 | 50% Chaos / 50% Order</div>
-        <div id="turn-counter">Turns: 0</div>
-        <div id="stats-display">Moves: 1 | Luck: 1 | XP: 0</div>
-        <div id="traits-display">Traits: None</div>
-        <div id="temp-inventory-display">Level Items: None</div>
-        <div id="persistent-inventory-display">Persistent Items: None</div>
-    `;
-    gameContainer.appendChild(resourceBars);
+            <div id="system-balance">Balanced Forces | Age: 0 | 50% Chaos / 50% Order</div>
+            <div id="turn-counter">Turns: 0</div>
+            <div id="stats-display">Moves: 1 | Luck: 1 | XP: 0</div>
+            <div id="traits-display">Traits: None</div>
+            <div id="temp-inventory-display">Level Items: None</div>
+            <div id="persistent-inventory-display">Persistent Items: None</div>
+        `;
+        gameContainer.appendChild(resourceBars);
+        console.log("Created resource bars");
+    }
     
-    // Create action console
-    const actionConsole = document.createElement('div');
-    actionConsole.className = 'action-console';
-    actionConsole.innerHTML = `
-        <button id="move-btn" class="console-btn">Move</button>
-        <button id="sense-btn" class="console-btn">Sense</button>
-        <button id="poke-btn" class="console-btn">Poke</button>
-        <button id="stabilize-btn" class="console-btn">Stabilize</button>
-        <button id="rest-btn" class="console-btn">Rest</button>
-        <button id="end-turn-btn" class="console-btn">End Turn</button>
-        <button id="evolution-btn" class="console-btn">Evolution</button>
-        <button id="events-btn" class="console-btn">Events</button>
-        <button id="stats-btn" class="console-btn">Stats</button>
-    `;
-    gameContainer.appendChild(actionConsole);
+    // Create action console if it doesn't exist
+    let actionConsole = document.querySelector('.action-console');
+    if (!actionConsole) {
+        actionConsole = document.createElement('div');
+        actionConsole.className = 'action-console';
+        actionConsole.innerHTML = `
+            <button id="move-btn" class="console-btn">Move</button>
+            <button id="sense-btn" class="console-btn">Sense</button>
+            <button id="poke-btn" class="console-btn">Poke</button>
+            <button id="stabilize-btn" class="console-btn">Stabilize</button>
+            <button id="rest-btn" class="console-btn">Rest</button>
+            <button id="end-turn-btn" class="console-btn">End Turn</button>
+            <button id="evolution-btn" class="console-btn">Evolution</button>
+            <button id="events-btn" class="console-btn">Events</button>
+            <button id="stats-btn" class="console-btn">Stats</button>
+        `;
+        gameContainer.appendChild(actionConsole);
+        console.log("Created action console");
+        
+        // Add event listeners to buttons
+        document.getElementById('move-btn').addEventListener('click', () => {
+            console.log("Move button clicked");
+            highlightTiles('move');
+        });
+        
+        document.getElementById('sense-btn').addEventListener('click', () => {
+            console.log("Sense button clicked");
+            highlightTiles('sense');
+        });
+        
+        document.getElementById('poke-btn').addEventListener('click', () => {
+            console.log("Poke button clicked");
+            highlightTiles('poke');
+        });
+        
+        document.getElementById('stabilize-btn').addEventListener('click', () => {
+            console.log("Stabilize button clicked");
+            highlightTiles('stabilize');
+        });
+        
+        document.getElementById('rest-btn').addEventListener('click', rest);
+        document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+        
+        document.getElementById('evolution-btn').addEventListener('click', () => {
+            const evolutionWindow = document.getElementById('evolution-window');
+            if (evolutionWindow) {
+                updateEvolutionUI();
+                evolutionWindow.style.display = 'block';
+            }
+        });
+        
+        document.getElementById('events-btn').addEventListener('click', () => {
+            const eventsWindow = document.getElementById('events-window');
+            if (eventsWindow) {
+                updateEventsUI();
+                eventsWindow.style.display = 'block';
+            }
+        });
+        
+        document.getElementById('stats-btn').addEventListener('click', () => {
+            const statsWindow = document.getElementById('stats-window');
+            if (statsWindow) {
+                updateStatsWindow();
+                statsWindow.style.display = 'block';
+            }
+        });
+    } else {
+        console.log("Action console already exists");
+    }
     
-    // Create stats window
-    const statsWindow = document.createElement('div');
-    statsWindow.id = 'stats-window';
-    statsWindow.className = 'window';
-    statsWindow.innerHTML = `
-        <div class="window-header">
-            <h2>Game Statistics</h2>
-            <button id="close-stats-btn" class="close-btn">×</button>
-        </div>
-        <div class="window-content">
-            <h3>Recent Stats</h3>
-            <div id="recent-turns">Turns: 0</div>
-            <div id="recent-senses">Senses: 0</div>
-            <div id="recent-pokes">Pokes: 0</div>
-            <div id="recent-energy-ratio">Energy Ratio: 0.00</div>
-            <div id="recent-efficiency">Efficiency: 0.00</div>
-            <h3>General Stats</h3>
-            <div id="general-turns">Total Turns: 0</div>
-            <div id="general-senses">Total Senses: 0</div>
-            <div id="general-pokes">Total Pokes: 0</div>
-            <div id="general-energy-ratio">Energy Ratio: N/A</div>
-            <div id="general-efficiency">Efficiency: N/A</div>
-            <h3>Admin Controls</h3>
-            <div>
-                <input id="rows-input" type="number" min="3" max="20" value="5" />
-                <span>×</span>
-                <input id="cols-input" type="number" min="3" max="20" value="5" />
-                <button id="resize-btn">Resize Grid</button>
+    // Create stats window if it doesn't exist
+    if (!document.getElementById('stats-window')) {
+        const statsWindow = document.createElement('div');
+        statsWindow.id = 'stats-window';
+        statsWindow.className = 'window';
+        statsWindow.innerHTML = `
+            <div class="window-header">
+                <h2>Game Statistics</h2>
+                <button id="close-stats-btn" class="close-btn">×</button>
             </div>
-            <button id="reset-stats-btn">Reset All Progress</button>
-        </div>
-    `;
-    document.body.appendChild(statsWindow);
+            <div class="window-content">
+                <h3>Recent Stats</h3>
+                <div id="recent-turns">Turns: 0</div>
+                <div id="recent-senses">Senses: 0</div>
+                <div id="recent-pokes">Pokes: 0</div>
+                <div id="recent-energy-ratio">Energy Ratio: 0.00</div>
+                <div id="recent-efficiency">Efficiency: 0.00</div>
+                <h3>General Stats</h3>
+                <div id="general-turns">Total Turns: 0</div>
+                <div id="general-senses">Total Senses: 0</div>
+                <div id="general-pokes">Total Pokes: 0</div>
+                <div id="general-energy-ratio">Energy Ratio: N/A</div>
+                <div id="general-efficiency">Efficiency: N/A</div>
+                <h3>Admin Controls</h3>
+                <div>
+                    <input id="rows-input" type="number" min="3" max="20" value="5" />
+                    <span>×</span>
+                    <input id="cols-input" type="number" min="3" max="20" value="5" />
+                    <button id="resize-btn">Resize Grid</button>
+                </div>
+                <button id="reset-stats-btn">Reset All Progress</button>
+            </div>
+        `;
+        document.body.appendChild(statsWindow);
+        
+        // Add event listener to close button
+        document.getElementById('close-stats-btn').addEventListener('click', () => {
+            statsWindow.style.display = 'none';
+        });
+        
+        // Add event listeners to admin controls
+        document.getElementById('resize-btn').addEventListener('click', () => {
+            const newRows = parseInt(document.getElementById('rows-input').value);
+            const newCols = parseInt(document.getElementById('cols-input').value);
+            
+            if (GameState.updateGridSize(newRows, newCols)) {
+                // Update local variables for compatibility
+                window.rows = GameState.grid.rows;
+                window.cols = GameState.grid.cols;
+                
+                startGame();
+            } else {
+                alert('Please choose rows and columns between 3 and 20.');
+            }
+        });
+        
+        document.getElementById('reset-stats-btn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+                GameState.resetAllProgress();
+                startGame();
+            }
+        });
+        
+        console.log("Created stats window");
+    }
     
-    // Create event notification
-    const eventNotification = document.createElement('div');
-    eventNotification.id = 'event-notification';
-    eventNotification.className = 'window';
-    eventNotification.innerHTML = `
-        <div class="window-header">
-            <h2>Event Triggered</h2>
-            <button id="event-notification-close-btn" class="close-btn">×</button>
-        </div>
-        <div class="window-content">
-            <h3 id="event-notification-title">Event Title</h3>
-            <p id="event-notification-description">Event description goes here.</p>
-            <div id="event-notification-effects">Event effects will be shown here.</div>
-        </div>
-    `;
-    document.body.appendChild(eventNotification);
+    // Create events window if it doesn't exist
+    if (!document.getElementById('events-window')) {
+        const eventsWindow = document.createElement('div');
+        eventsWindow.id = 'events-window';
+        eventsWindow.className = 'window';
+        eventsWindow.style.width = '500px';
+        eventsWindow.style.maxHeight = '80%';
+        eventsWindow.style.overflow = 'auto';
+        eventsWindow.style.display = 'none';
+        eventsWindow.innerHTML = `
+            <div class="window-header">
+                <h2>World Events</h2>
+                <button id="close-events-btn" class="close-btn">×</button>
+            </div>
+            <div class="window-content">
+                <div class="events-tabs">
+                    <button class="events-tab-btn active" data-type="triggered">Triggered</button>
+                    <button class="events-tab-btn" data-type="available">Available</button>
+                    <button class="events-tab-btn" data-type="chains">Chains</button>
+                </div>
+                <div class="events-tab-content active" id="triggered-events-tab">
+                    <div id="triggered-events" class="events-list"></div>
+                </div>
+                <div class="events-tab-content" id="available-events-tab">
+                    <div id="available-events" class="events-list"></div>
+                </div>
+                <div class="events-tab-content" id="chains-events-tab">
+                    <div id="chains-events" class="events-list"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(eventsWindow);
+        
+        // Add event listener to close button
+        document.getElementById('close-events-btn').addEventListener('click', () => {
+            eventsWindow.style.display = 'none';
+        });
+        
+        // Add event listeners to tab buttons
+        const tabButtons = document.querySelectorAll('.events-tab-btn');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.events-tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                const type = button.getAttribute('data-type');
+                document.getElementById(`${type}-events-tab`).classList.add('active');
+            });
+        });
+        
+        console.log("Created events window");
+    }
     
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.id = 'notification';
-    notification.className = 'notification';
-    document.body.appendChild(notification);
+    // Create event notification window if it doesn't exist
+    if (!document.getElementById('event-notification')) {
+        const eventNotification = document.createElement('div');
+        eventNotification.id = 'event-notification';
+        eventNotification.className = 'window';
+        eventNotification.style.display = 'none';
+        eventNotification.style.width = '400px';
+        eventNotification.style.zIndex = '40';
+        eventNotification.innerHTML = `
+            <div class="window-header">
+                <h2>Event Triggered</h2>
+                <button id="event-notification-close-btn" class="close-btn">×</button>
+            </div>
+            <div class="window-content">
+                <h3 id="event-notification-title">Event Title</h3>
+                <p id="event-notification-description">Event description goes here.</p>
+                <div id="event-notification-effects">Event effects will be shown here.</div>
+            </div>
+        `;
+        document.body.appendChild(eventNotification);
+        
+        // Add event listener to close button
+        document.getElementById('event-notification-close-btn').addEventListener('click', () => {
+            eventNotification.style.display = 'none';
+        });
+        
+        console.log("Created event notification");
+    }
     
-    console.log("Game UI created");
+    // Create notification element if it doesn't exist
+    if (!document.getElementById('notification')) {
+        const notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = 'notification';
+        document.body.appendChild(notification);
+        console.log("Created notification element");
+    }
+    
+    console.log("Game UI setup complete");
 }
 
 /**
@@ -3401,34 +3546,6 @@ function getAdjacentTiles(row, col) {
     return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
 }
 
-document.getElementById('move-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'move';
-    currentAction = 'move'; // Update local variable for compatibility
-    highlightTiles('move');
-});
-
-document.getElementById('sense-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'sense';
-    currentAction = 'sense'; // Update local variable for compatibility
-    highlightTiles('sense');
-});
-
-document.getElementById('stabilize-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'stabilize';
-    currentAction = 'stabilize'; // Update local variable for compatibility
-    highlightTiles('stabilize');
-});
-
-document.getElementById('poke-btn').addEventListener('click', () => {
-    GameState.player.currentAction = 'poke';
-    currentAction = 'poke'; // Update local variable for compatibility
-    highlightTiles('poke');
-});
-
-document.getElementById('end-turn-btn').addEventListener('click', endTurn);
-
-document.getElementById('rest-btn').addEventListener('click', rest);
-
 /**
  * Updates the evolution UI with current player evolution progress
  */
@@ -3632,10 +3749,14 @@ function createTraitElement(trait, path, unlocked, locked = false) {
  * Shows the evolution window
  */
 function showEvolutionWindow() {
+    console.log("Showing evolution window");
     const evolutionWindow = document.getElementById('evolution-window');
     if (evolutionWindow) {
+        // Update UI before showing
         updateEvolutionUI();
         evolutionWindow.style.display = 'block';
+    } else {
+        console.error("Evolution window not found");
     }
 }
 
@@ -3643,9 +3764,12 @@ function showEvolutionWindow() {
  * Hides the evolution window
  */
 function hideEvolutionWindow() {
+    console.log("Hiding evolution window");
     const evolutionWindow = document.getElementById('evolution-window');
     if (evolutionWindow) {
         evolutionWindow.style.display = 'none';
+    } else {
+        console.error("Evolution window not found");
     }
 }
 
@@ -3939,10 +4063,14 @@ function createEventChainElement(chainId, chainData) {
  * Shows the events window
  */
 function showEventsWindow() {
+    console.log("Showing events window");
     const eventsWindow = document.getElementById('events-window');
     if (eventsWindow) {
+        // Update UI before showing
         updateEventsUI();
         eventsWindow.style.display = 'block';
+    } else {
+        console.error("Events window not found");
     }
 }
 
@@ -3950,60 +4078,72 @@ function showEventsWindow() {
  * Hides the events window
  */
 function hideEventsWindow() {
+    console.log("Hiding events window");
     const eventsWindow = document.getElementById('events-window');
     if (eventsWindow) {
         eventsWindow.style.display = 'none';
+    } else {
+        console.error("Events window not found");
     }
 }
 
 /**
- * Shows an event notification
- * @param {Object} event - Event to show
+ * Shows an event notification with the given event
+ * @param {Object} event - The event to show
  */
 function showEventNotification(event) {
-    if (!event) {
-        console.error('No event provided to showEventNotification');
+    console.log("Showing event notification:", event);
+    const eventNotification = document.getElementById('event-notification');
+    if (!eventNotification) {
+        console.error("Event notification window not found");
         return;
     }
     
-    console.log('Showing event notification:', event);
+    // Set notification content
+    const titleElement = document.getElementById('event-notification-title');
+    const descriptionElement = document.getElementById('event-notification-description');
+    const effectsElement = document.getElementById('event-notification-effects');
     
-    const notification = document.getElementById('event-notification');
-    const title = document.getElementById('event-notification-title');
-    const description = document.getElementById('event-notification-description');
-    const flavor = document.getElementById('event-notification-flavor');
-    const effects = document.getElementById('event-notification-effects');
+    if (titleElement) titleElement.textContent = event.name || "Unknown Event";
+    if (descriptionElement) descriptionElement.textContent = event.description || "No description available";
     
-    if (!notification || !title || !description || !flavor || !effects) {
-        console.error('Event notification elements not found');
-        return;
+    // Create effects HTML
+    let effectsHtml = '<div class="event-effects">';
+    if (event.effect) {
+        if (event.effect.type === 'increaseChaos') {
+            effectsHtml += `<div class="event-effect">Increases chaos by ${event.effect.value * 100}%</div>`;
+        } else if (event.effect.type === 'increaseOrder') {
+            effectsHtml += `<div class="event-effect">Increases order by ${event.effect.value * 100}%</div>`;
+        } else if (event.effect.type === 'spawnEnergyTile') {
+            effectsHtml += `<div class="event-effect">Spawns an energy tile on the grid</div>`;
+        } else if (event.effect.type === 'grantResource') {
+            effectsHtml += `<div class="event-effect">Grants ${event.effect.value} ${event.effect.resource}</div>`;
+        } else if (event.effect.type === 'unlockEvolutionPath') {
+            effectsHtml += `<div class="event-effect">Unlocks the ${event.effect.path} evolution path</div>`;
+        } else {
+            effectsHtml += `<div class="event-effect">Unknown effect: ${event.effect.type}</div>`;
+        }
+    } else {
+        effectsHtml += '<div class="event-effect">No effects</div>';
     }
+    effectsHtml += '</div>';
     
-    title.textContent = event.name || 'Event Triggered';
-    description.textContent = event.description || '';
-    flavor.textContent = event.flavor || '';
-    effects.innerHTML = createEventEffectsHTML(event.effect);
+    if (effectsElement) effectsElement.innerHTML = effectsHtml;
     
-    notification.style.display = 'flex';
-    
-    // Apply the event effect
-    const effectResult = GameState.applyEventEffect(event);
-    console.log('Event effect applied:', effectResult);
-    
-    // Update UI to reflect changes
-    updateUI();
+    // Show the notification
+    eventNotification.style.display = 'block';
 }
 
 /**
  * Hides the event notification
  */
 function hideEventNotification() {
-    console.log('Hiding event notification');
-    const notification = document.getElementById('event-notification');
-    if (notification) {
-        notification.style.display = 'none';
-            } else {
-        console.error('Event notification element not found');
+    console.log("Hiding event notification");
+    const eventNotification = document.getElementById('event-notification');
+    if (eventNotification) {
+        eventNotification.style.display = 'none';
+    } else {
+        console.error("Event notification window not found");
     }
 }
 
