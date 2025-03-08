@@ -1042,14 +1042,30 @@ document.addEventListener('DOMContentLoaded', () => {
             startGame();
         });
         document.getElementById('upgrade-btn').addEventListener('click', () => {
-            if (GameState.progress.essence >= 5) {
-                GameState.progress.essence -= 5;
-                essence = GameState.progress.essence; // Update local variable
+            const upgradeCost = 5;
+            if (GameState.resources.essence >= upgradeCost) {
+                // Consume essence
+                GameState.updateResource('essence', -upgradeCost);
+                essence = GameState.resources.essence; // Update local variable
+                
+                // Increase movement range
                 GameState.progress.stats.movementRange += 1;
                 stats.movementRange = GameState.progress.stats.movementRange; // Update local variable
+                
+                // Save progress
                 GameState.saveProgress();
+                
+                // Update UI
                 updateUI();
-                alert('Movement range increased by 1!');
+                
+                // Show feedback
+                alert(`Movement range increased to ${GameState.progress.stats.movementRange}!`);
+                
+                // Update the button text to reflect new cost
+                const upgradeBtn = document.getElementById('upgrade-btn');
+                if (upgradeBtn) {
+                    upgradeBtn.textContent = `Spend ${Math.min(5, GameState.resources.essence)} Essence: +1 Movement`;
+                }
             } else {
                 alert('Not enough Essence!');
             }
@@ -1820,12 +1836,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="victory-section">
                                     <h3>Resources</h3>
-                                    <p>Essence: ${GameState.progress.essence}</p>
-                                    <p>Energy Remaining: ${GameState.player.energy}</p>
-                                    <p>XP Gained: ${xpGain}</p>
+                                    <p>Energy: ${GameState.resources.energy}/${GameState.resourceLimits.energy}</p>
+                                    <p>Essence: ${GameState.resources.essence}/${GameState.resourceLimits.essence}</p>
+                                    <p>Knowledge: ${GameState.resources.knowledge}/${GameState.resourceLimits.knowledge}</p>
+                                    <p>Stability: ${GameState.resources.stability}/${GameState.resourceLimits.stability}</p>
                                 </div>
                                 <div class="victory-section">
                                     <h3>Statistics</h3>
+                                    <p>XP Gained: ${xpGain}</p>
                                     <p>Turns: ${turnCount}</p>
                                     <p>Senses Made: ${GameState.progress.sensesMade}</p>
                                     <p>Pokes Made: ${GameState.progress.pokesMade}</p>
@@ -1835,7 +1853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="victory-buttons">
                                     <button id="next-level-btn">Next Level</button>
-                                    <button id="upgrade-btn">Spend ${Math.min(5, GameState.progress.essence)} Essence: +1 Movement</button>
+                                    <button id="upgrade-btn">Spend ${Math.min(5, GameState.resources.essence)} Essence: +1 Movement</button>
                                     <button id="view-stats-btn">View Stats</button>
                                 </div>
                             `;
