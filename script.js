@@ -54,6 +54,16 @@ const GameState = {
         uniqueSensedTypes: []
     },
     
+    // World evolution system
+    worldEvolution: {
+        age: 0,                  // Increases with each level completed
+        globalChaos: 0.8,        // Starting at 80% chaos
+        globalOrder: 0.2,        // Starting at 20% order
+        stabilityThreshold: 0.4, // Minimum order needed for certain features
+        complexityThreshold: 0.6, // Higher order enables more complex features
+        tileVariance: 0.2        // How much individual tiles can vary from global state
+    },
+    
     // Metrics tracking
     metrics: null,
     recentMetrics: null,
@@ -66,6 +76,11 @@ const GameState = {
         const savedProgress = JSON.parse(localStorage.getItem('playerProgress'));
         if (savedProgress) {
             this.progress = savedProgress;
+            
+            // If we have saved world evolution data, load it
+            if (savedProgress.worldEvolution) {
+                this.worldEvolution = savedProgress.worldEvolution;
+            }
         }
         
         // Initialize metrics trackers
@@ -97,6 +112,8 @@ const GameState = {
      * Saves current progress to localStorage
      */
     saveProgress() {
+        // Include world evolution data in the saved progress
+        this.progress.worldEvolution = this.worldEvolution;
         localStorage.setItem('playerProgress', JSON.stringify(this.progress));
     },
     
@@ -137,13 +154,51 @@ const GameState = {
         this.progress.pokesMade += this.metrics.pokesMade;
         this.progress.totalTurns = (this.progress.totalTurns || 0) + this.metrics.turnsTaken;
         
+        // Evolve the world
+        const worldEvolutionResult = this.evolveWorld();
+        
         // Save progress
         this.saveProgress();
         
         return {
             traits: this.progress.traits,
             xp: this.progress.xp,
-            essence: this.progress.essence
+            essence: this.progress.essence,
+            worldAge: worldEvolutionResult.newAge,
+            globalOrder: worldEvolutionResult.globalOrder,
+            globalChaos: worldEvolutionResult.globalChaos
+        };
+    },
+    
+    /**
+     * Evolves the world state after completing a level
+     * @returns {Object} Updated world state information
+     */
+    evolveWorld() {
+        // Increase world age
+        this.worldEvolution.age++;
+        
+        // Calculate new global balance based on player actions
+        const orderContribution = this.progress.orderContributions;
+        const stabilizationFactor = 0.05 * Math.min(1, this.metrics.tilesExplored / (this.grid.rows * this.grid.cols));
+        
+        // World evolves toward order but with diminishing returns
+        this.worldEvolution.globalOrder = Math.min(0.9, this.worldEvolution.globalOrder + 
+            (stabilizationFactor * orderContribution) / (this.worldEvolution.age * 0.5 + 1));
+        this.worldEvolution.globalChaos = 1 - this.worldEvolution.globalOrder;
+        
+        // Adjust thresholds based on world age
+        if (this.worldEvolution.age > 5) {
+            this.worldEvolution.stabilityThreshold = Math.min(0.6, this.worldEvolution.stabilityThreshold + 0.02);
+            this.worldEvolution.complexityThreshold = Math.max(0.4, this.worldEvolution.complexityThreshold - 0.02);
+        }
+        
+        return {
+            newAge: this.worldEvolution.age,
+            globalOrder: this.worldEvolution.globalOrder,
+            globalChaos: this.worldEvolution.globalChaos,
+            stabilityThreshold: this.worldEvolution.stabilityThreshold,
+            complexityThreshold: this.worldEvolution.complexityThreshold
         };
     },
     
@@ -168,6 +223,17 @@ const GameState = {
             levelsWithPositiveOrder: 0,
             uniqueSensedTypes: []
         };
+        
+        // Reset world evolution
+        this.worldEvolution = {
+            age: 0,
+            globalChaos: 0.8,
+            globalOrder: 0.2,
+            stabilityThreshold: 0.4,
+            complexityThreshold: 0.6,
+            tileVariance: 0.2
+        };
+        
         this.saveProgress();
     },
     
@@ -223,6 +289,54 @@ const GameState = {
             systemOrder: this.progress.systemOrder,
             levelsWithPositiveOrder: this.progress.levelsWithPositiveOrder
         };
+    },
+    
+    /**
+     * Determines the type of a tile based on its chaos level and world age
+     * @param {number} chaos - Chaos level of the tile (0-1)
+     * @returns {string} The type of the tile
+     */
+    determineTileType(chaos) {
+        const worldAge = this.worldEvolution.age;
+        
+        // Early game has more basic tile types
+        if (worldAge < 3) {
+            if (chaos > 0.7) {
+                return Math.random() < 0.7 ? 'blocked' : 'water';
+            } else if (chaos < 0.3) {
+                return Math.random() < 0.7 ? 'normal' : 'energy';
+            } else {
+                return 'normal';
+            }
+        }
+        // Mid game introduces more variety
+        else if (worldAge < 7) {
+            if (chaos > 0.8) {
+                return 'blocked';
+            } else if (chaos > 0.6) {
+                return Math.random() < 0.6 ? 'water' : 'normal';
+            } else if (chaos > 0.4) {
+                return 'normal';
+            } else if (chaos > 0.2) {
+                return Math.random() < 0.7 ? 'normal' : 'energy';
+            } else {
+                return 'energy';
+            }
+        }
+        // Late game has full variety
+        else {
+            if (chaos > 0.8) {
+                return 'blocked';
+            } else if (chaos > 0.6) {
+                return Math.random() < 0.5 ? 'water' : 'normal';
+            } else if (chaos > 0.4) {
+                return 'normal';
+            } else if (chaos > 0.2) {
+                return Math.random() < 0.5 ? 'normal' : 'energy';
+            } else {
+                return 'energy';
+            }
+        }
     }
 };
 
@@ -407,16 +521,45 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function createTileData(rows, cols) {
         const tileData = [];
+        const globalChaos = GameState.worldEvolution.globalChaos;
+        const variance = GameState.worldEvolution.tileVariance;
+        
         for (let row = 0; row < rows; row++) {
             tileData[row] = [];
             for (let col = 0; col < cols; col++) {
+                // Calculate chaos level with some variance
+                // More variance at the edges of the grid (representing frontier areas)
+                const edgeFactor = Math.max(
+                    Math.abs(row / rows - 0.5) * 2,
+                    Math.abs(col / cols - 0.5) * 2
+                );
+                const extraVariance = edgeFactor * variance * 0.5;
+                
+                // Generate chaos value with variance
+                let chaos = globalChaos + (Math.random() * 2 - 1) * (variance + extraVariance);
+                
+                // Ensure chaos stays within 0-1 range
+                chaos = Math.max(0.1, Math.min(0.9, chaos));
+                
+                // Create special pockets of order/chaos
+                if (Math.random() < 0.1) {
+                    // 10% chance of a special pocket
+                    if (Math.random() < 0.5) {
+                        // Order pocket
+                        chaos = Math.max(0.1, chaos - 0.3);
+                    } else {
+                        // Chaos pocket
+                        chaos = Math.min(0.9, chaos + 0.3);
+                    }
+                }
+                
                 tileData[row][col] = {
-                    type: 'normal',
+                    type: 'normal', // Will be set in placeTiles
                     effects: [],
                     state: 'active',
                     explored: false,
-                    chaos: 0.5, // Default chaos level
-                    order: 0.5  // Default order level
+                    chaos: chaos,
+                    order: 1 - chaos
                 };
             }
         }
@@ -454,42 +597,74 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} cols - Number of columns in the grid
      */
     function placeTiles(tileData, rows, cols) {
+        // Always set the goal tile
         tileData[rows - 1][cols - 1].type = 'goal';
+        
+        // Get non-path positions
         let nonPathPositions = getNonPathPositions(rows, cols);
+        
+        // Shuffle non-path positions
         for (let i = nonPathPositions.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [nonPathPositions[i], nonPathPositions[j]] = [nonPathPositions[j], nonPathPositions[i]];
         }
-
-        const gridSize = Math.min(rows, cols);
-        const blocksToPlace = gridSize >= 3 ? 2 * Math.floor((gridSize - 2) / 2) : 0;
-        for (let i = 0; i < blocksToPlace && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'blocked';
-        }
-
-        const waterTileCount = Math.floor(blocksToPlace / 2);
-        for (let i = 0; i < waterTileCount && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'water';
-        }
-
+        
+        // Place Zoe if not found yet
         if (!GameState.progress.hasFoundZoe) {
             const zoeRow = 2;
             const zoeCol = 2;
             tileData[zoeRow][zoeCol].type = 'zoe';
             nonPathPositions = nonPathPositions.filter(pos => !(pos.row === zoeRow && pos.col === zoeCol));
         }
-
+        
+        // Place a key
         if (nonPathPositions.length > 0) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'key';
+            const keyPos = nonPathPositions.shift();
+            tileData[keyPos.row][keyPos.col].type = 'key';
         }
-
-        const energyTileCount = Math.floor(gridSize / 2);
-        for (let i = 0; i < energyTileCount && nonPathPositions.length > 0; i++) {
-            const pos = nonPathPositions.shift();
-            tileData[pos.row][pos.col].type = 'energy';
+        
+        // Determine tile types based on chaos levels
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                // Skip already assigned tiles (goal, zoe, key)
+                if (tileData[row][col].type !== 'normal') {
+                    continue;
+                }
+                
+                // Skip the start position
+                if (row === 0 && col === 0) {
+                    continue;
+                }
+                
+                // Determine tile type based on chaos level
+                const chaos = tileData[row][col].chaos;
+                const tileType = GameState.determineTileType(chaos);
+                tileData[row][col].type = tileType;
+            }
+        }
+        
+        // Ensure the path is traversable
+        ensureTraversablePath(tileData, rows, cols);
+    }
+    
+    /**
+     * Ensures there is a traversable path from start to goal
+     * @param {Array} tileData - 2D array of tile data
+     * @param {number} rows - Number of rows in the grid
+     * @param {number} cols - Number of columns in the grid
+     */
+    function ensureTraversablePath(tileData, rows, cols) {
+        // Simple path: top row and rightmost column
+        for (let col = 0; col < cols; col++) {
+            if (tileData[0][col].type === 'blocked') {
+                tileData[0][col].type = 'normal';
+            }
+        }
+        
+        for (let row = 1; row < rows; row++) {
+            if (tileData[row][cols - 1].type === 'blocked') {
+                tileData[row][cols - 1].type = 'normal';
+            }
         }
     }
 
@@ -524,6 +699,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 hexContainer.classList.add('hex-container');
                 hexContainer.setAttribute('data-row', row);
                 hexContainer.setAttribute('data-col', col);
+                
+                // Add chaos/order data attributes
+                const chaos = tileData[row][col].chaos;
+                const order = tileData[row][col].order;
+                
+                // Set data attributes for styling
+                if (order > 0.7) {
+                    hexContainer.setAttribute('data-order', 'high');
+                } else if (order > 0.5) {
+                    hexContainer.setAttribute('data-order', 'medium');
+                } else if (order > 0.3) {
+                    hexContainer.setAttribute('data-order', 'low');
+                } else if (chaos > 0.7) {
+                    hexContainer.setAttribute('data-chaos', 'high');
+                } else if (chaos > 0.5) {
+                    hexContainer.setAttribute('data-chaos', 'medium');
+                }
 
                 const isOddRow = row % 2 === 1;
                 const rowShift = isOddRow ? hexVisualWidth / 2 : 0;
@@ -540,12 +732,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 svg.style.overflow = 'visible';
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', 'M43.3 0 L86.6 25 L86.6 75 L43.3 100 L0 75 L0 25 Z');
+                
+                // Adjust path color based on chaos/order
+                if (order > 0.7) {
+                    path.style.fill = '#00ccff';
+                    path.style.filter = 'brightness(1.2)';
+                } else if (order > 0.5) {
+                    path.style.fill = '#00aa99';
+                    path.style.filter = 'brightness(1.1)';
+                } else if (chaos > 0.7) {
+                    path.style.fill = '#aa3300';
+                    path.style.filter = 'brightness(0.9)';
+                } else if (chaos > 0.5) {
+                    path.style.fill = '#884400';
+                    path.style.filter = 'brightness(0.95)';
+                }
+                
                 svg.appendChild(path);
                 hexContainer.appendChild(svg);
 
                 const character = document.createElement('div');
                 character.classList.add('character');
                 hexContainer.appendChild(character);
+                
+                // Add a visual indicator of the tile's chaos/order state
+                const stateIndicator = document.createElement('div');
+                stateIndicator.classList.add('tile-state-indicator');
+                
+                if (order > 0.7) {
+                    stateIndicator.classList.add('tile-state-order-high');
+                } else if (order > 0.5) {
+                    stateIndicator.classList.add('tile-state-order-medium');
+                } else if (chaos > 0.7) {
+                    stateIndicator.classList.add('tile-state-chaos-high');
+                } else if (chaos > 0.5) {
+                    stateIndicator.classList.add('tile-state-chaos-medium');
+                } else {
+                    stateIndicator.classList.add('tile-state-balanced');
+                }
+                
+                hexContainer.appendChild(stateIndicator);
 
                 const tileType = tileData[row][col].type;
                 hexContainer.classList.add(tileType);
@@ -912,8 +1138,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
-                        feedbackMessage.textContent = `Sensed a ${tile.type} tile!`;
+                        // Format chaos/order information
+                        const chaosPercent = (tile.chaos * 100).toFixed(0);
+                        const orderPercent = (tile.order * 100).toFixed(0);
+                        
+                        // Determine the state description based on chaos/order ratio
+                        let stateDescription = "";
+                        if (tile.chaos > 0.8) {
+                            stateDescription = "highly chaotic";
+                        } else if (tile.chaos > 0.6) {
+                            stateDescription = "chaotic";
+                        } else if (tile.chaos > 0.4) {
+                            stateDescription = "balanced";
+                        } else if (tile.chaos > 0.2) {
+                            stateDescription = "ordered";
+                        } else {
+                            stateDescription = "highly ordered";
+                        }
+                        
+                        feedbackMessage.textContent = `Sensed a ${tile.type} tile! It is ${stateDescription} (${chaosPercent}% chaos, ${orderPercent}% order).`;
                         feedbackMessage.style.display = 'block';
+                        
                         if (traits.includes('senser') && !GameState.player.hasUsedSenserBonus && !isCurrentTile) {
                             GameState.player.hasUsedSenserBonus = true;
                             hasUsedsenserBonus = true; // Update local variable
@@ -931,9 +1176,27 @@ document.addEventListener('DOMContentLoaded', () => {
                             GameState.player.currentLevelSenses++;
                             currentLevelSenses = GameState.player.currentLevelSenses; // Update local variable
                             
-                            feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free!`;
+                            // Format chaos/order information for bonus tile
+                            const adjChaosPercent = (adjTile.chaos * 100).toFixed(0);
+                            const adjOrderPercent = (adjTile.order * 100).toFixed(0);
+                            
+                            // Determine the state description for bonus tile
+                            let adjStateDescription = "";
+                            if (adjTile.chaos > 0.8) {
+                                adjStateDescription = "highly chaotic";
+                            } else if (adjTile.chaos > 0.6) {
+                                adjStateDescription = "chaotic";
+                            } else if (adjTile.chaos > 0.4) {
+                                adjStateDescription = "balanced";
+                            } else if (adjTile.chaos > 0.2) {
+                                adjStateDescription = "ordered";
+                            } else {
+                                adjStateDescription = "highly ordered";
+                            }
+                            
+                            feedbackMessage.textContent += ` Bonus: Sensed an adjacent ${adjTile.type} tile for free! It is ${adjStateDescription} (${adjChaosPercent}% chaos, ${adjOrderPercent}% order).`;
                         }
-                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                     }
                     updateUI();
 
@@ -986,17 +1249,54 @@ document.addEventListener('DOMContentLoaded', () => {
                     GameState.player.energy -= energyCost;
                     energy = GameState.player.energy; // Update local variable
                     
-                    tile.chaos = Math.max(0, tile.chaos - 0.2);
+                    // Calculate stabilization effect based on current chaos level
+                    // More chaotic tiles are harder to stabilize
+                    const stabilizationPower = 0.2; // Base stabilization power
+                    const chaosResistance = tile.chaos * 0.5; // Higher chaos = more resistance
+                    const effectiveStabilization = stabilizationPower * (1 - chaosResistance);
+                    
+                    // Apply stabilization effect
+                    const oldChaos = tile.chaos;
+                    tile.chaos = Math.max(0.1, tile.chaos - effectiveStabilization);
                     tile.order = 1 - tile.chaos;
                     
-                    GameState.progress.essence += 1;
+                    // Calculate essence gained based on how much order was created
+                    const orderCreated = tile.order - (1 - oldChaos);
+                    const essenceGained = Math.max(1, Math.round(orderCreated * 10));
+                    
+                    GameState.progress.essence += essenceGained;
                     essence = GameState.progress.essence; // Update local variable
+                    
+                    // Visual feedback - change tile appearance based on order level
+                    if (tile.order > 0.7) {
+                        // Highly ordered tiles could have a special appearance
+                        container.style.opacity = "1.0";
+                        container.style.filter = "brightness(1.2)";
+                    } else if (tile.order > 0.5) {
+                        container.style.opacity = "0.9";
+                        container.style.filter = "brightness(1.1)";
+                    }
                     
                     const feedbackMessage = document.getElementById('feedback-message');
                     if (feedbackMessage) {
-                        feedbackMessage.textContent = `Stabilized tile! Chaos: ${(tile.chaos * 100).toFixed(0)}%, Order: ${(tile.order * 100).toFixed(0)}%. Gained 1 Essence.`;
+                        const chaosPercent = (tile.chaos * 100).toFixed(0);
+                        const orderPercent = (tile.order * 100).toFixed(0);
+                        
+                        // Determine effectiveness message
+                        let effectivenessMsg = "";
+                        if (effectiveStabilization < 0.05) {
+                            effectivenessMsg = "The chaos strongly resists your efforts.";
+                        } else if (effectiveStabilization < 0.1) {
+                            effectivenessMsg = "The chaos resists your efforts.";
+                        } else if (effectiveStabilization < 0.15) {
+                            effectivenessMsg = "You make some progress against the chaos.";
+                        } else {
+                            effectivenessMsg = "Your stabilization is very effective!";
+                        }
+                        
+                        feedbackMessage.textContent = `Stabilized tile! ${effectivenessMsg} New balance: ${chaosPercent}% Chaos, ${orderPercent}% Order. Gained ${essenceGained} Essence.`;
                         feedbackMessage.style.display = 'block';
-                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 2000);
+                        setTimeout(() => { feedbackMessage.style.display = 'none'; }, 3000);
                     }
                     updateUI();
                 } else {
@@ -1078,19 +1378,54 @@ document.addEventListener('DOMContentLoaded', () => {
                             const safestPathLength = 2 * (Math.min(rows, cols) - 1);
                             const energyRatio = GameState.metrics.getEnergyUsageRatio().toFixed(2);
                             const efficiency = GameState.metrics.getMovementEfficiency(safestPathLength).toFixed(2);
+                            
+                            // Format world evolution information
+                            const worldAge = GameState.worldEvolution.age;
+                            const globalChaos = (GameState.worldEvolution.globalChaos * 100).toFixed(0);
+                            const globalOrder = (GameState.worldEvolution.globalOrder * 100).toFixed(0);
+                            
+                            // Determine world state description
+                            let worldStateDesc = "";
+                            if (GameState.worldEvolution.globalChaos > 0.8) {
+                                worldStateDesc = "Primordial Chaos";
+                            } else if (GameState.worldEvolution.globalChaos > 0.6) {
+                                worldStateDesc = "Emerging Patterns";
+                            } else if (GameState.worldEvolution.globalChaos > 0.4) {
+                                worldStateDesc = "Balanced Forces";
+                            } else if (GameState.worldEvolution.globalChaos > 0.2) {
+                                worldStateDesc = "Ordered Systems";
+                            } else {
+                                worldStateDesc = "Harmonious Order";
+                            }
+                            
                             victoryScreenContent = `
                                 <h2>Level Complete!</h2>
-                                <p>Essence: ${GameState.progress.essence}</p>
-                                <p>Turns: ${turnCount}</p>
-                                <p>Energy Remaining: ${GameState.player.energy}</p>
-                                <p>Senses Made: ${GameState.progress.sensesMade}</p>
-                                <p>Pokes Made: ${GameState.progress.pokesMade}</p>
-                                <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
-                                <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
-                                <p>Sensed Types: ${sensedTypesText || 'None'}</p>
-                                <button id="next-level-btn">Next Level</button>
-                                <button id="upgrade-btn">Spend 5 Essence: +1 Movement</button>
-                                <button id="view-stats-btn">View Stats</button>
+                                <div class="victory-section">
+                                    <h3>World Evolution</h3>
+                                    <p>World Age: ${worldAge}</p>
+                                    <p>World State: ${worldStateDesc}</p>
+                                    <p>Global Balance: ${globalChaos}% Chaos / ${globalOrder}% Order</p>
+                                </div>
+                                <div class="victory-section">
+                                    <h3>Resources</h3>
+                                    <p>Essence: ${GameState.progress.essence}</p>
+                                    <p>Energy Remaining: ${GameState.player.energy}</p>
+                                    <p>XP Gained: ${xpGain}</p>
+                                </div>
+                                <div class="victory-section">
+                                    <h3>Statistics</h3>
+                                    <p>Turns: ${turnCount}</p>
+                                    <p>Senses Made: ${GameState.progress.sensesMade}</p>
+                                    <p>Pokes Made: ${GameState.progress.pokesMade}</p>
+                                    <p>Energy Usage Ratio (Move/Total): ${energyRatio}</p>
+                                    <p>Movement Efficiency (Safest/Moves): ${efficiency}</p>
+                                    <p>Sensed Types: ${sensedTypesText || 'None'}</p>
+                                </div>
+                                <div class="victory-buttons">
+                                    <button id="next-level-btn">Next Level</button>
+                                    <button id="upgrade-btn">Spend ${Math.min(5, GameState.progress.essence)} Essence: +1 Movement</button>
+                                    <button id="view-stats-btn">View Stats</button>
+                                </div>
                             `;
                             statsWindow.innerHTML = victoryScreenContent;
                             statsWindow.style.display = 'block';
@@ -1154,7 +1489,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const systemBalance = document.getElementById('system-balance');
         if (systemBalance) {
-            systemBalance.textContent = `System: ${(GameState.progress.systemChaos * 100).toFixed(0)}% Chaos / ${(GameState.progress.systemOrder * 100).toFixed(0)}% Order`;
+            // Determine world state description
+            let worldStateDesc = "";
+            if (GameState.worldEvolution.globalChaos > 0.8) {
+                worldStateDesc = "Primordial Chaos";
+            } else if (GameState.worldEvolution.globalChaos > 0.6) {
+                worldStateDesc = "Emerging Patterns";
+            } else if (GameState.worldEvolution.globalChaos > 0.4) {
+                worldStateDesc = "Balanced Forces";
+            } else if (GameState.worldEvolution.globalChaos > 0.2) {
+                worldStateDesc = "Ordered Systems";
+            } else {
+                worldStateDesc = "Harmonious Order";
+            }
+            
+            const chaosPercent = (GameState.worldEvolution.globalChaos * 100).toFixed(0);
+            const orderPercent = (GameState.worldEvolution.globalOrder * 100).toFixed(0);
+            const worldAge = GameState.worldEvolution.age;
+            
+            systemBalance.innerHTML = `
+                <span class="world-state">${worldStateDesc}</span> | 
+                <span class="world-age">Age: ${worldAge}</span> | 
+                <span class="world-balance">${chaosPercent}% Chaos / ${orderPercent}% Order</span>
+            `;
         }
         
         // Update local variables for compatibility

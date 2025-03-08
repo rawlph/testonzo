@@ -484,3 +484,157 @@ path {
         padding: 10px;
     }
 }
+
+/* Victory Screen Styling */
+.victory-section {
+    background: rgba(0, 30, 60, 0.8);
+    margin: 10px 0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #00ffcc;
+    text-align: left;
+}
+
+.victory-section h3 {
+    color: #00ffcc;
+    margin-top: 0;
+    font-size: 18px;
+    text-shadow: 0 0 5px #00ffcc;
+}
+
+.victory-section p {
+    margin: 5px 0;
+    color: #e6f0ff;
+}
+
+.victory-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.victory-buttons button {
+    background: #003366;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    transition: all 0.2s ease;
+}
+
+.victory-buttons button:hover {
+    background: #004477;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+}
+
+/* Tile appearance based on chaos/order ratio */
+.hex-container[data-order="high"] path {
+    fill: #00ccff;
+    filter: brightness(1.2);
+}
+
+.hex-container[data-order="medium"] path {
+    fill: #00aa99;
+    filter: brightness(1.1);
+}
+
+.hex-container[data-order="low"] path {
+    fill: #007766;
+    filter: brightness(1.0);
+}
+
+.hex-container[data-chaos="high"] path {
+    fill: #aa3300;
+    filter: brightness(0.9);
+}
+
+.hex-container[data-chaos="medium"] path {
+    fill: #884400;
+    filter: brightness(0.95);
+}
+
+/* Tile state indicators */
+.tile-state-indicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.tile-state-chaos-high {
+    background: #ff3300;
+    box-shadow: 0 0 5px #ff3300;
+}
+
+.tile-state-chaos-medium {
+    background: #ff6600;
+    box-shadow: 0 0 5px #ff6600;
+}
+
+.tile-state-balanced {
+    background: #ffcc00;
+    box-shadow: 0 0 5px #ffcc00;
+}
+
+.tile-state-order-medium {
+    background: #00cc66;
+    box-shadow: 0 0 5px #00cc66;
+}
+
+.tile-state-order-high {
+    background: #00ffcc;
+    box-shadow: 0 0 5px #00ffcc;
+}
+
+/* System Balance Display */
+#system-balance {
+    font-family: 'Cinzel', serif;
+    text-align: center;
+    padding: 5px 0;
+}
+
+.world-state {
+    font-weight: bold;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+}
+
+.world-age {
+    color: #e6f0ff;
+}
+
+.world-balance {
+    color: #00ccff;
+}
+
+/* Chaos/Order color indicators */
+.chaos-high {
+    color: #ff3300;
+    text-shadow: 0 0 5px #ff3300;
+}
+
+.chaos-medium {
+    color: #ff6600;
+    text-shadow: 0 0 5px #ff6600;
+}
+
+.balanced {
+    color: #ffcc00;
+    text-shadow: 0 0 5px #ffcc00;
+}
+
+.order-medium {
+    color: #00cc66;
+    text-shadow: 0 0 5px #00cc66;
+}
+
+.order-high {
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+}
