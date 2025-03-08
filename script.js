@@ -1352,7 +1352,7 @@ let victoryScreenContent = '';
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM content loaded, initializing game...");
     
-    // Add CSS styles for action results and hex grid
+    // Add CSS styles for hex grid and action bar
     const style = document.createElement('style');
     style.textContent = `
         body {
