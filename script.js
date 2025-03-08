@@ -1406,26 +1406,65 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Extract frequently used values from state for backward compatibility
     // This helps with the transition to the new state management system
-    rows = GameState.grid.rows;
-    cols = GameState.grid.cols;
-    turnCount = GameState.player.turnCount;
-    currentRow = GameState.player.currentRow;
-    currentCol = GameState.player.currentCol;
-    currentLevelSenses = GameState.player.currentLevelSenses;
-    moveCounter = GameState.player.moveCounter;
-    hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
-    currentAction = GameState.player.currentAction;
-    energy = GameState.player.energy;
-    movementPoints = GameState.player.movementPoints;
+    let rows = GameState.grid.rows;
+    let cols = GameState.grid.cols;
+    const hexVisualWidth = GameState.grid.hexVisualWidth;
+    const hexHeight = GameState.grid.hexHeight;
+    const rowOffset = GameState.grid.rowOffset;
+    const colOffset = GameState.grid.colOffset;
+    let turnCount = GameState.player.turnCount;
+    let currentRow = GameState.player.currentRow;
+    let currentCol = GameState.player.currentCol;
+    let currentLevelSenses = GameState.player.currentLevelSenses;
+    let moveCounter = GameState.player.moveCounter;
+    let hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
+    let currentAction = GameState.player.currentAction;
+    let energy = GameState.player.energy;
+    let movementPoints = GameState.player.movementPoints;
     
     // Extract progress data
-    ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
-       hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
-       orderContributions, uniquesensedTypes } = GameState.progress);
+    let { stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
+          hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
+          orderContributions, uniquesensedTypes } = GameState.progress;
     
-    temporaryInventory = GameState.level.temporaryInventory;
-    metrics = GameState.metrics;
-    recentMetrics = GameState.recentMetrics;
+    let temporaryInventory = GameState.level.temporaryInventory;
+    let metrics = GameState.metrics;
+    let recentMetrics = GameState.recentMetrics;
+    
+    // Make these variables global so they can be accessed by all functions
+    window.rows = rows;
+    window.cols = cols;
+    window.hexVisualWidth = hexVisualWidth;
+    window.hexHeight = hexHeight;
+    window.rowOffset = rowOffset;
+    window.colOffset = colOffset;
+    window.turnCount = turnCount;
+    window.currentRow = currentRow;
+    window.currentCol = currentCol;
+    window.currentLevelSenses = currentLevelSenses;
+    window.moveCounter = moveCounter;
+    window.hasUsedsenserBonus = hasUsedsenserBonus;
+    window.currentAction = currentAction;
+    window.energy = energy;
+    window.movementPoints = movementPoints;
+    window.stats = stats;
+    window.traits = traits;
+    window.persistentInventory = persistentInventory;
+    window.xp = xp;
+    window.sensedTypes = sensedTypes;
+    window.sensesMade = sensesMade;
+    window.pokesMade = pokesMade;
+    window.hasFoundZoe = hasFoundZoe;
+    window.zoeLevelsCompleted = zoeLevelsCompleted;
+    window.essence = essence;
+    window.systemChaos = systemChaos;
+    window.systemOrder = systemOrder;
+    window.orderContributions = orderContributions;
+    window.uniquesensedTypes = uniquesensedTypes;
+    window.temporaryInventory = temporaryInventory;
+    window.metrics = metrics;
+    window.recentMetrics = recentMetrics;
+    window.tileData = null; // Will be set in startGame
     
     // Create particles
     createParticles(25);
@@ -1491,7 +1530,7 @@ function updateVision() {
         visionRange += 1;
     }
     
-    const visibleTiles = getTilesInRange(currentRow, currentCol, visionRange);
+    const visibleTiles = getTilesInRange(window.currentRow, window.currentCol, visionRange);
     
     document.querySelectorAll('.hex-container').forEach(container => {
         const row = parseInt(container.getAttribute('data-row'));
@@ -1505,8 +1544,8 @@ function updateVision() {
             container.classList.remove('unexplored');
             
             // Mark as explored in data
-            if (tileData[row][col]) {
-                tileData[row][col].explored = true;
+            if (window.tileData && window.tileData[row] && window.tileData[row][col]) {
+                window.tileData[row][col].explored = true;
             }
         }
     });
@@ -1521,6 +1560,9 @@ function updateVision() {
  */
 function getTilesInRange(row, col, range) {
     const tiles = [];
+    const rows = window.rows;
+    const cols = window.cols;
+    
     for (let r = Math.max(0, row - range); r <= Math.min(rows - 1, row + range); r++) {
         for (let c = Math.max(0, col - range); c <= Math.min(cols - 1, col + range); c++) {
             const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
@@ -1826,6 +1868,14 @@ function createDirectPath(tileData, startRow, startCol, goalRow, goalCol) {
  */
 function buildGrid(rows, cols, tileData) {
     console.log(`Building grid: ${rows}x${cols}`);
+    
+    // Access grid configuration from window or GameState
+    const hexVisualWidth = window.hexVisualWidth || GameState.grid.hexVisualWidth;
+    const hexHeight = window.hexHeight || GameState.grid.hexHeight;
+    const rowOffset = window.rowOffset || GameState.grid.rowOffset;
+    const colOffset = window.colOffset || GameState.grid.colOffset;
+    
+    console.log(`Grid config: hexVisualWidth=${hexVisualWidth}, hexHeight=${hexHeight}, rowOffset=${rowOffset}, colOffset=${colOffset}`);
     
     const grid = document.querySelector('.grid');
     if (!grid) {
@@ -2225,32 +2275,32 @@ function startGame() {
     GameState.resetPlayerState();
     
     // Update local variables for compatibility
-    rows = GameState.grid.rows;
-    cols = GameState.grid.cols;
-    turnCount = GameState.player.turnCount;
-    currentRow = GameState.player.currentRow;
-    currentCol = GameState.player.currentCol;
-    currentLevelSenses = GameState.player.currentLevelSenses;
-    moveCounter = GameState.player.moveCounter;
-    hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
-    currentAction = GameState.player.currentAction;
-    energy = GameState.player.energy;
-    movementPoints = GameState.player.movementPoints;
-    temporaryInventory = GameState.level.temporaryInventory;
+    window.rows = GameState.grid.rows;
+    window.cols = GameState.grid.cols;
+    window.turnCount = GameState.player.turnCount;
+    window.currentRow = GameState.player.currentRow;
+    window.currentCol = GameState.player.currentCol;
+    window.currentLevelSenses = GameState.player.currentLevelSenses;
+    window.moveCounter = GameState.player.moveCounter;
+    window.hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
+    window.currentAction = GameState.player.currentAction;
+    window.energy = GameState.player.energy;
+    window.movementPoints = GameState.player.movementPoints;
+    window.temporaryInventory = GameState.level.temporaryInventory;
     
-    console.log(`Grid size: ${rows}x${cols}`);
+    console.log(`Grid size: ${window.rows}x${window.cols}`);
     
     // Create and initialize tile data
-    GameState.level.tileData = createTileData(rows, cols);
-    tileData = GameState.level.tileData; // Update global reference
+    GameState.level.tileData = createTileData(window.rows, window.cols);
+    window.tileData = GameState.level.tileData; // Update global reference
     
     console.log("Tile data created");
     
     // Place tiles and build grid
-    placeTiles(tileData, rows, cols);
+    placeTiles(window.tileData, window.rows, window.cols);
     console.log("Tiles placed");
     
-    buildGrid(rows, cols, tileData);
+    buildGrid(window.rows, window.cols, window.tileData);
     console.log("Grid built");
 
     document.querySelectorAll('.character').forEach(char => char.style.display = 'none');
@@ -2263,7 +2313,7 @@ function startGame() {
     }
 
     if (GameState.progress.hasFoundZoe) {
-        const goalTile = document.querySelector(`.hex-container[data-row="${rows - 1}"][data-col="${cols - 1}"]`);
+        const goalTile = document.querySelector(`.hex-container[data-row="${window.rows - 1}"][data-col="${window.cols - 1}"]`);
         if (goalTile) goalTile.classList.add('goal-visible');
     }
     
@@ -2303,7 +2353,7 @@ function startGame() {
     updateUI();
     
     GameState.isActive = true;
-    isGameActive = true;
+    window.isGameActive = true;
     
     // Hide all windows
     const statsWindow = document.getElementById('stats-window');
@@ -3060,96 +3110,3 @@ function attachEventsListeners() {
         console.error('Event notification close button not found');
     }
 }
-
-// Initialize the game when the document is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM content loaded, initializing game...");
-    
-    // Attach event listeners for UI elements
-    const statsBtn = document.getElementById('stats-btn');
-    if (statsBtn) {
-        statsBtn.addEventListener('click', () => {
-            restoreStatsWindow();
-            updateStatsWindow();
-            document.getElementById('stats-window').style.display = 'block';
-        });
-    }
-    
-    const closeStatsBtn = document.getElementById('close-stats-btn');
-    if (closeStatsBtn) {
-        closeStatsBtn.addEventListener('click', () => {
-            document.getElementById('stats-window').style.display = 'none';
-        });
-    }
-    
-    const resizeBtn = document.getElementById('resize-btn');
-    if (resizeBtn) {
-        resizeBtn.addEventListener('click', () => {
-            const newRows = parseInt(document.getElementById('rows-input').value);
-            const newCols = parseInt(document.getElementById('cols-input').value);
-            
-            if (GameState.updateGridSize(newRows, newCols)) {
-                // Update local variables for compatibility
-                rows = GameState.grid.rows;
-                cols = GameState.grid.cols;
-                
-                startGame();
-            } else {
-                alert('Please choose rows and columns between 3 and 20.');
-            }
-        });
-    }
-    
-    const resetStatsBtn = document.getElementById('reset-stats-btn');
-    if (resetStatsBtn) {
-        resetStatsBtn.addEventListener('click', () => {
-            // Reset all progress
-            GameState.resetAllProgress();
-            
-            // Update local variables for compatibility
-            ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
-               hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
-               orderContributions, uniquesensedTypes } = GameState.progress);
-            
-            startGame();
-        });
-    }
-    
-    // Initialize game state
-    GameState.init();
-    
-    // Extract frequently used values from state for backward compatibility
-    // This helps with the transition to the new state management system
-    rows = GameState.grid.rows;
-    cols = GameState.grid.cols;
-    turnCount = GameState.player.turnCount;
-    currentRow = GameState.player.currentRow;
-    currentCol = GameState.player.currentCol;
-    currentLevelSenses = GameState.player.currentLevelSenses;
-    moveCounter = GameState.player.moveCounter;
-    hasUsedsenserBonus = GameState.player.hasUsedSenserBonus;
-    currentAction = GameState.player.currentAction;
-    energy = GameState.player.energy;
-    movementPoints = GameState.player.movementPoints;
-    
-    // Extract progress data
-    ({ stats, traits, persistentInventory, xp, sensedTypes, sensesMade, pokesMade, 
-       hasFoundZoe, zoeLevelsCompleted, essence, systemChaos, systemOrder, 
-       orderContributions, uniquesensedTypes } = GameState.progress);
-    
-    temporaryInventory = GameState.level.temporaryInventory;
-    metrics = GameState.metrics;
-    recentMetrics = GameState.recentMetrics;
-    
-    // Create particles
-    createParticles(25);
-    
-    // Attach event listeners for the evolution system
-    attachEvolutionListeners();
-    
-    // Attach event listeners for the events system
-    attachEventsListeners();
-    
-    // Initialize the game
-    startGame();
-});
