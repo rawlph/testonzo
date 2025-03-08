@@ -1600,19 +1600,33 @@ function highlightTiles(action) {
         tilesInRange = getTilesInRange(window.currentRow, window.currentCol, 1);
     }
     
-    console.log(`Found ${tilesInRange.length} tiles in range for ${action}`);
+    console.log(`Found ${tilesInRange.length} tiles in range for ${action}`, tilesInRange);
     
     // Highlight the tiles and add click event listeners
     tilesInRange.forEach(pos => {
-        const [row, col] = pos;
+        // Ensure pos is an array with row and col
+        if (!Array.isArray(pos)) {
+            console.warn(`Invalid tile position: ${pos}`);
+            return;
+        }
+        
+        const row = pos[0];
+        const col = pos[1];
         const hexId = `hex-${row}-${col}`;
         const hexElement = document.getElementById(hexId);
         
         if (hexElement) {
+            // Check if tileData exists for this position
+            if (!window.tileData || !window.tileData[row] || !window.tileData[row][col]) {
+                console.warn(`No tile data for position [${row}, ${col}]`);
+                return;
+            }
+            
             const tileData = window.tileData[row][col];
             
             // For move action, only highlight if the tile is not blocked
             if (action === 'move' && tileData.type === 'blocked') {
+                console.log(`Tile [${row}, ${col}] is blocked, not highlighting for move`);
                 return;
             }
             
@@ -1623,6 +1637,10 @@ function highlightTiles(action) {
             hexElement.addEventListener('click', function() {
                 performAction(action, row, col);
             });
+            
+            console.log(`Highlighted tile [${row}, ${col}] for ${action}`);
+        } else {
+            console.warn(`Element with ID ${hexId} not found`);
         }
     });
 }
@@ -1662,23 +1680,34 @@ function updateVision() {
 }
 
 /**
- * Gets all tiles within a specified range from a position
- * @param {number} row - Starting row
- * @param {number} col - Starting column
- * @param {number} range - Vision range
- * @returns {Array} Array of tile positions within range
+ * Returns all tiles within a specified range of the given position
+ * @param {number} row - The row of the center tile
+ * @param {number} col - The column of the center tile
+ * @param {number} range - The maximum range from the center tile
+ * @returns {Array} Array of positions [row, col] within range
  */
 function getTilesInRange(row, col, range) {
-    const tiles = [];
-    const rows = window.rows;
-    const cols = window.cols;
+    console.log(`Getting tiles in range ${range} from [${row}, ${col}]`);
     
-    for (let r = Math.max(0, row - range); r <= Math.min(rows - 1, row + range); r++) {
-        for (let c = Math.max(0, col - range); c <= Math.min(cols - 1, col + range); c++) {
+    const tiles = [];
+    const totalRows = window.rows;
+    const totalCols = window.cols;
+    
+    // Check all potential tile positions in a square area
+    for (let r = Math.max(0, row - range); r <= Math.min(totalRows - 1, row + range); r++) {
+        for (let c = Math.max(0, col - range); c <= Math.min(totalCols - 1, col + range); c++) {
+            // Calculate Manhattan distance (simplified for hexagonal grid)
+            // For a true hex grid, we'd need a more complex distance calculation
             const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
-            if (distance <= range) tiles.push({ row: r, col: c });
+            
+            // If within range, add to tiles array
+            if (distance <= range) {
+                tiles.push([r, c]);
+            }
         }
     }
+    
+    console.log(`Found ${tiles.length} tiles in range:`, tiles);
     return tiles;
 }
 
@@ -2654,16 +2683,31 @@ function updateResourceDisplay(resourceType, value, max, animate = false) {
  * @returns {Array} Array of adjacent tile positions
  */
 function getAdjacentTiles(row, col) {
-    const isOddRow = row % 2 === 1;
-    const adjacent = [
-        { row: row - 1, col: col },
-        { row: row + 1, col: col },
-        { row: row, col: col - 1 },
-        { row: row, col: col + 1 },
-        { row: row - 1, col: isOddRow ? col + 1 : col - 1 },
-        { row: row + 1, col: isOddRow ? col + 1 : col - 1 }
+    console.log(`Getting adjacent tiles for [${row}, ${col}]`);
+    
+    const directions = [
+        [-1, 0],  // North
+        [-1, 1],  // Northeast
+        [0, 1],   // East
+        [1, 0],   // South
+        [1, -1],  // Southwest
+        [0, -1]   // West
     ];
-    return adjacent.filter(tile => tile.row >= 0 && tile.row < rows && tile.col >= 0 && tile.col < cols);
+    
+    const adjacentPositions = [];
+    
+    for (const [dRow, dCol] of directions) {
+        const newRow = row + dRow;
+        const newCol = col + dCol;
+        
+        // Check if the new position is within the grid bounds
+        if (newRow >= 0 && newRow < window.rows && newCol >= 0 && newCol < window.cols) {
+            adjacentPositions.push([newRow, newCol]);
+        }
+    }
+    
+    console.log(`Found ${adjacentPositions.length} adjacent tiles:`, adjacentPositions);
+    return adjacentPositions;
 }
 
 document.getElementById('move-btn').addEventListener('click', () => {
