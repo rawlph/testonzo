@@ -841,9 +841,19 @@ const GameState = {
     },
     
     /**
-     * Resets all progress
+     * Resets all progress to default values
      */
     resetAllProgress() {
+        console.log("Resetting all progress...");
+        debug("Resetting all progress");
+        
+        // Default progress state
+        this.progress = {
+            stats: {
+                movementRange: 1,
+                luck: 1
+            },
+            traits: [],
         this.grid = {
             rows: 5,
             cols: 5,
@@ -1814,313 +1824,38 @@ function addGameStyles() {
  */
 function createGameUI() {
     console.log("Setting up game UI");
-    
-    // Create game container if it doesn't exist
-    let gameContainer = document.getElementById('game-container');
-    if (!gameContainer) {
-        gameContainer = document.createElement('div');
-        gameContainer.id = 'game-container';
-        gameContainer.className = 'game-container';
-        document.body.appendChild(gameContainer);
-        console.log("Created game container");
-    } else {
-        console.log("Game container already exists");
+    debug("Setting up game UI");
+
+    // Check if the game container already exists
+    if (document.getElementById('game-container')) {
+        console.warn("Game container already exists, skipping UI creation.");
+        return;
     }
-    
-    // Create resource bars if they don't exist
-    if (!document.querySelector('.resource-bars')) {
-        const resourceBars = document.createElement('div');
-        resourceBars.className = 'resource-bars';
-        resourceBars.innerHTML = `
-            <div class="resource-bar">
-                <span class="resource-label">Energy:</span>
-                <div class="resource-progress" id="energy-progress">
-                    <div class="resource-value energy-value" id="energy-value" style="width: 50%;"></div>
-                </div>
-                <span class="resource-text" id="energy-text">10/20</span>
-            </div>
-            <div class="resource-bar">
-                <span class="resource-label">Essence:</span>
-                <div class="resource-progress" id="essence-progress">
-                    <div class="resource-value essence-value" id="essence-value" style="width: 0%;"></div>
-                </div>
-                <span class="resource-text" id="essence-text">0/50</span>
-            </div>
-            <div class="resource-bar">
-                <span class="resource-label">Knowledge:</span>
-                <div class="resource-progress" id="knowledge-progress">
-                    <div class="resource-value knowledge-value" id="knowledge-value" style="width: 0%;"></div>
-                </div>
-                <span class="resource-text" id="knowledge-text">0/50</span>
-            </div>
-            <div class="resource-bar">
-                <span class="resource-label">Stability:</span>
-                <div class="resource-progress" id="stability-progress">
-                    <div class="resource-value stability-value" id="stability-value" style="width: 0%;"></div>
-                </div>
-                <span class="resource-text" id="stability-text">0/50</span>
-            </div>
-            <div id="system-balance">Balanced Forces | Age: 0 | 50% Chaos / 50% Order</div>
-            <div id="turn-counter">Turns: 0</div>
-            <div id="stats-display">Moves: 1 | Luck: 1 | XP: 0</div>
-            <div id="traits-display">Traits: None</div>
-            <div id="temp-inventory-display">Level Items: None</div>
-            <div id="persistent-inventory-display">Persistent Items: None</div>
-        `;
-        gameContainer.appendChild(resourceBars);
-        console.log("Created resource bars");
-    }
-    
-    // Create admin tools if they don't exist
-    if (!document.querySelector('.admin-tools')) {
-        const adminTools = document.createElement('div');
-        adminTools.className = 'admin-tools';
-        adminTools.innerHTML = `
-            <div>
-                <input id="rows-input" type="number" min="3" max="20" value="5" />
-                <span>×</span>
-                <input id="cols-input" type="number" min="3" max="20" value="5" />
-                <button id="resize-btn">Resize Grid</button>
-            </div>
-            <button id="reset-stats-btn">Reset All Progress</button>
-        `;
-        gameContainer.appendChild(adminTools);
-        
-        // Add event listeners to admin controls
-        document.getElementById('resize-btn').addEventListener('click', () => {
-            const newRows = parseInt(document.getElementById('rows-input').value);
-            const newCols = parseInt(document.getElementById('cols-input').value);
-            
-            if (GameState.updateGridSize(newRows, newCols)) {
-                // Update local variables for compatibility
-                window.rows = GameState.grid.rows;
-                window.cols = GameState.grid.cols;
-                
-                startGame();
-            } else {
-                alert('Please choose rows and columns between 3 and 20.');
-            }
-        });
-        
-        document.getElementById('reset-stats-btn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
-                GameState.resetAllProgress();
-                startGame();
-            }
-        });
-        
-        console.log("Created admin tools");
-    }
-    
-    // Remove any duplicate action consoles
-    const actionConsoles = document.querySelectorAll('.action-console');
-    if (actionConsoles.length > 1) {
-        console.log(`Found ${actionConsoles.length} action consoles, removing duplicates`);
-        // Keep only the first one
-        for (let i = 1; i < actionConsoles.length; i++) {
-            actionConsoles[i].parentNode.removeChild(actionConsoles[i]);
-        }
-    }
-    
-    // Create action console if it doesn't exist
-    if (document.querySelectorAll('.action-console').length === 0) {
-        const actionConsole = document.createElement('div');
-        actionConsole.className = 'action-console';
-        actionConsole.innerHTML = `
-            <button id="move-btn" class="console-btn">Move</button>
-            <button id="sense-btn" class="console-btn">Sense</button>
-            <button id="poke-btn" class="console-btn">Poke</button>
-            <button id="stabilize-btn" class="console-btn">Stabilize</button>
-            <button id="rest-btn" class="console-btn">Rest</button>
-            <button id="end-turn-btn" class="console-btn">End Turn</button>
-            <button id="evolution-btn" class="console-btn">Evolution</button>
-            <button id="events-btn" class="console-btn">Events</button>
-            <button id="stats-btn" class="console-btn">Stats</button>
-        `;
-        gameContainer.appendChild(actionConsole);
-        console.log("Created action console");
-        
-        // Add event listeners to buttons
-        document.getElementById('move-btn').addEventListener('click', () => {
-            console.log("Move button clicked");
-            highlightTiles('move');
-        });
-        
-        document.getElementById('sense-btn').addEventListener('click', () => {
-            console.log("Sense button clicked");
-            highlightTiles('sense');
-        });
-        
-        document.getElementById('poke-btn').addEventListener('click', () => {
-            console.log("Poke button clicked");
-            highlightTiles('poke');
-        });
-        
-        document.getElementById('stabilize-btn').addEventListener('click', () => {
-            console.log("Stabilize button clicked");
-            highlightTiles('stabilize');
-        });
-        
-        document.getElementById('rest-btn').addEventListener('click', rest);
-        document.getElementById('end-turn-btn').addEventListener('click', endTurn);
-        
-        document.getElementById('evolution-btn').addEventListener('click', () => {
-            const evolutionWindow = document.getElementById('evolution-window');
-            if (evolutionWindow) {
-                updateEvolutionUI();
-                evolutionWindow.style.display = 'block';
-            }
-        });
-        
-        document.getElementById('events-btn').addEventListener('click', () => {
-            const eventsWindow = document.getElementById('events-window');
-            if (eventsWindow) {
-                updateEventsUI();
-                eventsWindow.style.display = 'block';
-            }
-        });
-        
-        document.getElementById('stats-btn').addEventListener('click', () => {
-            const statsWindow = document.getElementById('stats-window');
-            if (statsWindow) {
-                updateStatsWindow();
-                statsWindow.style.display = 'block';
-            }
-        });
-    } else {
-        console.log("Action console already exists");
-    }
-    
-    // Create stats window if it doesn't exist
-    if (!document.getElementById('stats-window')) {
-        const statsWindow = document.createElement('div');
-        statsWindow.id = 'stats-window';
-        statsWindow.className = 'window';
-        statsWindow.innerHTML = `
-            <div class="window-header">
-                <h2>Game Statistics</h2>
-                <button id="close-stats-btn" class="close-btn">×</button>
-            </div>
-            <div class="window-content">
-                <h3>Recent Stats</h3>
-                <div id="recent-turns">Turns: 0</div>
-                <div id="recent-senses">Senses: 0</div>
-                <div id="recent-pokes">Pokes: 0</div>
-                <div id="recent-energy-ratio">Energy Ratio: 0.00</div>
-                <div id="recent-efficiency">Efficiency: 0.00</div>
-                <h3>General Stats</h3>
-                <div id="general-turns">Total Turns: 0</div>
-                <div id="general-senses">Total Senses: 0</div>
-                <div id="general-pokes">Total Pokes: 0</div>
-                <div id="general-energy-ratio">Energy Ratio: N/A</div>
-                <div id="general-efficiency">Efficiency: N/A</div>
-            </div>
-        `;
-        document.body.appendChild(statsWindow);
-        
-        // Add event listener to close button
-        document.getElementById('close-stats-btn').addEventListener('click', () => {
-            statsWindow.style.display = 'none';
-        });
-        
-        console.log("Created stats window");
-    }
-    
-    // Create events window if it doesn't exist
-    if (!document.getElementById('events-window')) {
-        const eventsWindow = document.createElement('div');
-        eventsWindow.id = 'events-window';
-        eventsWindow.className = 'window';
-        eventsWindow.style.width = '500px';
-        eventsWindow.style.maxHeight = '80%';
-        eventsWindow.style.overflow = 'auto';
-        eventsWindow.style.display = 'none';
-        eventsWindow.innerHTML = `
-            <div class="window-header">
-                <h2>World Events</h2>
-                <button id="close-events-btn" class="close-btn">×</button>
-            </div>
-            <div class="window-content">
-                <div class="events-tabs">
-                    <button class="events-tab-btn active" data-type="triggered">Triggered</button>
-                    <button class="events-tab-btn" data-type="available">Available</button>
-                    <button class="events-tab-btn" data-type="chains">Chains</button>
-                </div>
-                <div class="events-tab-content active" id="triggered-events-tab">
-                    <div id="triggered-events" class="events-list"></div>
-                </div>
-                <div class="events-tab-content" id="available-events-tab">
-                    <div id="available-events" class="events-list"></div>
-                </div>
-                <div class="events-tab-content" id="chains-events-tab">
-                    <div id="chains-events" class="events-list"></div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(eventsWindow);
-        
-        // Add event listener to close button
-        document.getElementById('close-events-btn').addEventListener('click', () => {
-            eventsWindow.style.display = 'none';
-        });
-        
-        // Add event listeners to tab buttons
-        const tabButtons = document.querySelectorAll('.events-tab-btn');
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all buttons and content
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.events-tab-content').forEach(content => content.classList.remove('active'));
-                
-                // Add active class to clicked button and corresponding content
-                button.classList.add('active');
-                const type = button.getAttribute('data-type');
-                document.getElementById(`${type}-events-tab`).classList.add('active');
-            });
-        });
-        
-        console.log("Created events window");
-    }
-    
-    // Create event notification window if it doesn't exist
-    if (!document.getElementById('event-notification')) {
-        const eventNotification = document.createElement('div');
-        eventNotification.id = 'event-notification';
-        eventNotification.className = 'window';
-        eventNotification.style.display = 'none';
-        eventNotification.style.width = '400px';
-        eventNotification.style.zIndex = '40';
-        eventNotification.innerHTML = `
-            <div class="window-header">
-                <h2>Event Triggered</h2>
-                <button id="event-notification-close-btn" class="close-btn">×</button>
-            </div>
-            <div class="window-content">
-                <h3 id="event-notification-title">Event Title</h3>
-                <p id="event-notification-description">Event description goes here.</p>
-                <div id="event-notification-effects">Event effects will be shown here.</div>
-            </div>
-        `;
-        document.body.appendChild(eventNotification);
-        
-        // Add event listener to close button
-        document.getElementById('event-notification-close-btn').addEventListener('click', () => {
-            eventNotification.style.display = 'none';
-        });
-        
-        console.log("Created event notification");
-    }
-    
-    // Create notification element if it doesn't exist
-    if (!document.getElementById('notification')) {
-        const notification = document.createElement('div');
-        notification.id = 'notification';
-        notification.className = 'notification';
-        document.body.appendChild(notification);
-        console.log("Created notification element");
-    }
-    
+
+    // Create game container
+    const gameContainer = document.createElement('div');
+    gameContainer.id = 'game-container';
+    gameContainer.className = 'game-container';
+    document.body.appendChild(gameContainer);
+
+    // Create resource bars
+    const resourceBars = document.createElement('div');
+    resourceBars.className = 'resource-bars';
+    gameContainer.appendChild(resourceBars);
+
+    // Create action console
+    const actionConsole = document.createElement('div');
+    actionConsole.className = 'action-console';
+    gameContainer.appendChild(actionConsole);
+
+    // Create notification element
+    const notificationElement = document.createElement('div');
+    notificationElement.id = 'notification';
+    notificationElement.className = 'notification';
+    gameContainer.appendChild(notificationElement);
+
     console.log("Game UI setup complete");
+    debug("Game UI setup complete");
 }
 
 /**
